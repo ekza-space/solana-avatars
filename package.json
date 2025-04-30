@@ -1,11 +1,16 @@
 {
+  "private": true,
   "license": "ISC",
+  "workspaces": [
+    "sdk"
+  ],
   "scripts": {
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
   },
   "dependencies": {
-    "@coral-xyz/anchor": "^0.31.1"
+    "@coral-xyz/anchor": "^0.31.1",
+    "solana-avatars-sdk": "file:./sdk"
   },
   "devDependencies": {
     "chai": "^4.3.4",
