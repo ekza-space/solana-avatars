@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "@remix-run/react";
 import Header from "~/components/header";
 
@@ -41,6 +41,9 @@ export default function AvatarEditor() {
 
   // Selected 3D avatar object
   const [selectedAvatar, setSelectedAvatar] = useState(avatarList[0]);
+
+  // Ref for horizontal scroll container
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Mock wallet connect
   const handleConnect = () => {
@@ -144,11 +147,19 @@ export default function AvatarEditor() {
             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
               Browse &amp; Select 3D Avatars
             </h3>
-            <div className="h-32 overflow-y-auto grid grid-cols-5 gap-4 p-1">
+            <div ref={containerRef} className="h-40 overflow-x-auto whitespace-nowrap flex gap-4 p-1">
               {avatarList.map((avatar) => (
-                <div key={avatar.imgHash} className="p-1">
+                <div
+                  key={avatar.imgHash}
+                  className="p-1 inline-block"
+                  ref={el => {
+                    if (avatar.seedPubKey === selectedAvatar.seedPubKey && el) {
+                      el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }
+                  }}
+                >
                   <div
-                    className={`relative w-full aspect-square overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow duration-150 cursor-pointer ${avatar.seedPubKey === selectedAvatar.seedPubKey ? 'ring-4 ring-purple-500' : 'ring-0'}`}
+                    className={`relative w-32 h-32 overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow duration-150 cursor-pointer ${avatar.seedPubKey === selectedAvatar.seedPubKey ? 'ring-4 ring-purple-500' : 'ring-0'}`}
                     onClick={() => setSelectedAvatar(avatar)}
                   >
                     <img
