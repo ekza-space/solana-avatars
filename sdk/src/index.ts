@@ -1,94 +1,63 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
-import { UserAvatar } from "../idl/user_avatar";
+import { UserProfile } from "../idl/user_profile";
 
-export interface CreateUserAvatarArgs {
+export interface CreateUserProfileArgs {
     username: number[];
     description: number[];
-    avatar2d: number[];
-    avatar3d: number[];
+    avatarMint: PublicKey;
 }
 
-export interface UpdateUserAvatarArgs {
+export interface UpdateUserProfileArgs {
     username?: number[] | null;
     description?: number[] | null;
-    avatar2d?: number[] | null;
-    avatar3d?: number[] | null;
+    avatarMint?: PublicKey | null;
 }
 
 export function createSolanaAvatarsSdk(
     provider: anchor.Provider,
-    program: Program<UserAvatar>
+    program: Program<UserProfile>
 ) {
     const systemProgram = anchor.web3.SystemProgram.programId;
-    const payer = provider.publicKey;
+    const payer = provider.publicKey!;
 
-    async function getCounterPda(): Promise<[PublicKey, number]> {
+    function getProfilePda(): [PublicKey, number] {
         return PublicKey.findProgramAddressSync(
-            [Buffer.from("avatar_counter")],
+            [Buffer.from("profile"), payer.toBuffer()],
             program.programId
         );
     }
 
-    async function initializeCounter(): Promise<PublicKey> {
-        const [counter, bump] = await getCounterPda();
+    async function initializeProfile(args: CreateUserProfileArgs): Promise<PublicKey> {
+        const [profile, bump] = getProfilePda();
         await program.methods
-            .initialize()
-            .accountsStrict({ counter, payer, systemProgram })
+            .initializeProfile(args.username, args.description, args.avatarMint)
+            .accountsStrict({ profile, owner: payer, systemProgram })
             .rpc();
-        return counter;
+        return profile;
     }
 
-    async function createUserAvatar(args: CreateUserAvatarArgs): Promise<PublicKey> {
-        const [counter] = await getCounterPda();
-        const counterAccount = await program.account.avatarCounter.fetch(counter);
-        const id = counterAccount.nextId;
-
-        const [avatar] = await PublicKey.findProgramAddressSync(
-            [Buffer.from("user_id"), new anchor.BN(id).toArrayLike(Buffer, "le", 8)],
-            program.programId
-        );
-
+    async function updateProfile(args: UpdateUserProfileArgs): Promise<void> {
+        const [profile] = getProfilePda();
         await program.methods
-            .createUserAvatar(args.username, args.description, args.avatar2d, args.avatar3d)
-            .accountsStrict({
-                counter,
-                avatar,
-                owner: payer,
-                systemProgram,
-            })
-            .rpc();
-
-        return avatar;
-    }
-
-    async function updateUserAvatar(
-        avatar: PublicKey,
-        updates: UpdateUserAvatarArgs
-    ): Promise<void> {
-        await program.methods
-            .updateUserAvatar(
-                updates.username ?? null,
-                updates.description ?? null,
-                updates.avatar2d ?? null,
-                updates.avatar3d ?? null
-            )
-            .accountsStrict({ avatar, owner: payer })
+            .updateProfile(args.username ?? null, args.description ?? null, args.avatarMint ?? null)
+            .accountsStrict({ profile, owner: payer })
             .rpc();
     }
 
-    async function deleteUserAvatar(avatar: PublicKey): Promise<void> {
+    async function deleteProfile(): Promise<void> {
+        const [profile] = getProfilePda();
         await program.methods
-            .deleteUserAvatar()
-            .accountsStrict({ avatar, owner: payer })
+            .deleteProfile()
+            .accountsStrict({ profile, owner: payer })
             .rpc();
     }
 
     return {
-        initializeCounter,
-        createUserAvatar,
-        updateUserAvatar,
-        deleteUserAvatar,
+        getProfilePda,
+        initializeProfile,
+        updateProfile,
+        deleteProfile,
     };
 }
