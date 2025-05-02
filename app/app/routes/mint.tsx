@@ -1,5 +1,7 @@
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { clusterApiUrl } from "@solana/web3.js";
 import { useState, useEffect, ChangeEvent } from "react";
-import { useActionData, Form } from "@remix-run/react";
+import { useFetcher } from "@remix-run/react";
 import Header from "~/components/header";
 import type { ActionFunctionArgs } from "@remix-run/node";
 import * as Tabs from '@radix-ui/react-tabs';
@@ -9,9 +11,6 @@ interface ActionData {
 }
 
 export default function GenerateAvatar() {
-    // Wallet state
-    const [connected, setConnected] = useState(false);
-    const [address, setAddress] = useState("");
 
     // Generator state
     const [prompt, setPrompt] = useState("");
@@ -20,6 +19,18 @@ export default function GenerateAvatar() {
     // Upload state
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState<string>("");
+
+    // Solana wallet and Metaplex setup
+    const { publicKey, wallet } = useWallet();
+    const { connection } = useConnection();
+
+    // Track which tab is active and auto-switch on generation
+    const [tabValue, setTabValue] = useState<'upload' | 'generate'>('upload');
+    useEffect(() => {
+        if (previewUrl) {
+            setTabValue('generate');
+        }
+    }, [previewUrl]);
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -30,27 +41,30 @@ export default function GenerateAvatar() {
         }
     };
 
-    const actionData = useActionData<ActionData>();
+    // Fetcher for generating images without full page reload
+    const fetcher = useFetcher<ActionData>();
     useEffect(() => {
-        if (actionData?.imageUrl) {
-            setPreviewUrl(actionData.imageUrl);
+        if (fetcher.data?.imageUrl) {
+            setPreviewUrl(fetcher.data.imageUrl);
         }
-    }, [actionData]);
-
-    const handleConnect = () => {
-        const mock = "0xAbCd...1234";
-        setAddress(mock);
-        setConnected(true);
-    };
+    }, [fetcher.data]);
 
     return (
         <div className="min-h-screen flex flex-col">
             {/* Header with nav + wallet */}
-            <Header connected={connected} address={address} onConnect={handleConnect} />
+            <Header />
 
             {/* Main panel */}
             <div className="flex-1 px-8 py-4 bg-white dark:bg-gray-900">
-                <Tabs.Root defaultValue="upload" className="flex flex-col items-center space-y-8">
+                <Tabs.Root
+                    value={tabValue}
+                    onValueChange={(value) => {
+                        setTabValue(value as 'upload' | 'generate');
+                        setPreviewUrl('');
+                        setUploadedPreviewUrl('');
+                    }}
+                    className="flex flex-col items-center space-y-8"
+                >
                     <div className="flex items-center justify-center w-full md:w-3/4 mx-auto mb-4">
                         {previewUrl || uploadedPreviewUrl ? (
                             <img
@@ -82,7 +96,7 @@ export default function GenerateAvatar() {
                     </Tabs.List>
 
                     <Tabs.Content value="generate" className="w-full flex flex-col space-y-8 items-center">
-                        <Form method="post" className="w-full flex flex-col items-center space-y-4">
+                        <fetcher.Form method="post" className="w-full flex flex-col items-center space-y-4">
                             <textarea
                                 name="prompt"
                                 value={prompt}
@@ -93,17 +107,27 @@ export default function GenerateAvatar() {
                             />
                             <button
                                 type="submit"
-                                disabled={!connected}
-                                className="w-1/4 px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-300 transition-colors duration-200 disabled:opacity-50"
+                                className="w-1/4 px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-300 transition-colors duration-200"
                             >
                                 Generate
                             </button>
-                            {!connected && (
+                            {!publicKey && (
                                 <p className="text-sm text-red-500">
                                     Connect your wallet to generate.
                                 </p>
                             )}
-                        </Form>
+                        </fetcher.Form>
+                        {(previewUrl || uploadedPreviewUrl) && publicKey && (
+                            <button
+                                onClick={() => {
+                                    console.log("Mock mint");
+                                    alert("Minted mock NFT!");
+                                }}
+                                className="w-1/4 px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-colors duration-200"
+                            >
+                                Mint
+                            </button>
+                        )}
                     </Tabs.Content>
 
                     <Tabs.Content value="upload" className="w-full flex flex-col space-y-4 items-center">

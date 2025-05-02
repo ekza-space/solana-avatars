@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import { Link } from "@remix-run/react";
 import Header from "~/components/header";
 
 // Define the expected structure for avatar creation arguments
@@ -38,7 +37,7 @@ export default function AvatarEditor() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const nicknamePlaceholders = [
-    "Wotori", "NeonNinja", "CyberFrog", "PixelMage", "QuantumLlama", "CodeSamurai", "Zero404"
+    "NeonNinja", "CyberFrog", "PixelMage", "QuantumLlama", "CodeSamurai", "Zero404"
   ];
 
   const descriptionPlaceholders = [
@@ -90,7 +89,7 @@ export default function AvatarEditor() {
 
   return (
     <div className="w-full h-screen flex flex-col">
-      <Header connected={connected} address={address} onConnect={handleConnect} />
+      <Header />
       <div className="flex-1 overflow-auto px-8 py-4 bg-white dark:bg-gray-900 rounded-3xl shadow-xl">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Left: Form Inputs */}

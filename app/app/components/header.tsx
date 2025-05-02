@@ -1,12 +1,7 @@
 import { Link } from "@remix-run/react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
-interface HeaderProps {
-  connected: boolean;
-  address: string;
-  onConnect: () => void;
-}
-
-export default function Header({ connected, address, onConnect }: HeaderProps) {
+export default function Header() {
   return (
     <header className="flex items-center justify-between mb-4 px-8 p-4">
       <div className="flex items-center space-x-6">
@@ -28,15 +23,7 @@ export default function Header({ connected, address, onConnect }: HeaderProps) {
           Space
         </a>
       </div>
-      <button
-        onClick={onConnect}
-        className={`${connected ?
-          "bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-300" :
-          "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 focus:ring-indigo-300"
-        } px-6 py-3 rounded-lg font-semibold shadow-lg transition-colors duration-200 focus:outline-none focus:ring-4`}
-      >
-        {connected ? address : "Connect Wallet"}
-      </button>
+      <WalletMultiButton className="px-6 py-3 rounded-lg font-semibold shadow-lg transition-colors duration-200 focus:outline-none focus:ring-4" />
     </header>
   );
 }
