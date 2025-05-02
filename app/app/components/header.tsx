@@ -8,12 +8,15 @@ export default function Header() {
 
   return (
     <header className="flex justify-between items-center py-4 px-8 bg-gray-100 dark:bg-gray-900 mb-8">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+      <Link
+        to="/"
+        className="text-2xl font-bold text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
+      >
         Solana Avatars
-      </h1>
+      </Link>
       <nav className="space-x-4">
         <Link
-          to="/"
+          to="/profile"
           className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
         >
           Profile
@@ -24,6 +27,14 @@ export default function Header() {
         >
           Mint
         </Link>
+
+        <Link
+          to="/market"
+          className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
+        >
+          Market
+        </Link>
+
       </nav>
       {isClient && (
         <WalletMultiButton className="px-6 py-3 rounded-lg font-semibold transition-colors duration-200 focus:outline-none" />
