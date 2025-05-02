@@ -3,11 +3,11 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import Header from "~/components/header";
 import { Connection, Keypair, PublicKey, clusterApiUrl } from "@solana/web3.js";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
-import { createSolanaAvatarsSdk } from "../../../sdk/src";
 import { decodeByteArray, encodeString } from "~/utils/bytes";
 
-import idlJson from "../../../sdk/idl/user_profile.json";
-import type { UserProfile } from "../../../sdk/idl/user_profile";
+import sdk from "../../../sdk/src";
+import type { UserProfile } from "../../../sdk/src";
+
 
 // Define the expected structure for avatar creation arguments
 export interface CreateUserAvatarArgs {
@@ -58,10 +58,10 @@ export default function AvatarEditor() {
     if (!connected) return;
     const connection = new Connection(clusterApiUrl("devnet"));
     const provider = new AnchorProvider(connection, (window as any).solana, AnchorProvider.defaultOptions());
-    const program = new Program<UserProfile>(idlJson as UserProfile, provider);
+    const program = new Program<UserProfile>(sdk.idlJson as UserProfile, provider);
 
-    const sdk = createSolanaAvatarsSdk(provider, program as any);
-    const [pda] = sdk.getProfilePda();
+    const avatars = sdk.create(provider, program);
+    const [pda] = avatars.getProfilePda();
     setProfilePda(pda);
     // Attempt to fetch the account
     program.account.userProfile.fetch(pda)
@@ -141,12 +141,12 @@ export default function AvatarEditor() {
     // Initialize Anchor provider and SDK
     const connection = new Connection(clusterApiUrl("devnet"));
     const provider = new AnchorProvider(connection, (window as any).solana, AnchorProvider.defaultOptions());
-    const program = new Program(idlJson, provider);
-    const sdk = createSolanaAvatarsSdk(provider, program as any);
+    const program = new Program<UserProfile>(sdk.idlJson as UserProfile, provider);
+    const avatars = sdk.create(provider, program);
 
     try {
       if (profileExists && profilePda) {
-        await sdk.updateProfile({
+        await avatars.updateProfile({
           username: args.username,
           description: args.description,
           avatarMint: new PublicKey(selectedAvatar.avatarMint),
@@ -154,7 +154,7 @@ export default function AvatarEditor() {
         console.log("Profile updated successfully");
         window.alert("Profile updated successfully");
       } else {
-        await sdk.initializeProfile({
+        await avatars.initializeProfile({
           username: args.username,
           description: args.description,
           avatarMint: new PublicKey(selectedAvatar.avatarMint),
@@ -173,10 +173,10 @@ export default function AvatarEditor() {
     // Initialize provider and SDK
     const connection = new Connection(clusterApiUrl("devnet"));
     const provider = new AnchorProvider(connection, (window as any).solana, AnchorProvider.defaultOptions());
-    const program = new Program(idlJson as any, provider);
-    const sdk = createSolanaAvatarsSdk(provider, program as any);
+    const program = new Program<UserProfile>(sdk.idlJson as UserProfile, provider);
+    const avatars = sdk.create(provider, program);
     try {
-      await sdk.deleteProfile();
+      await avatars.deleteProfile();
       console.log("Profile deleted successfully");
       window.alert("Profile deleted successfully");
       setProfileExists(false);

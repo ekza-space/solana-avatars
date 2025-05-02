@@ -1,6 +1,11 @@
 anchor-deploy:
 	anchor build && anchor deploy --program-name solana-avatars --program-keypair target-deploy-keypair.json
 
+anchor-test-local:
+	anchor test --provider.cluster localnet
+
+anchor-test-dev:
+	anchor test --provider.cluster devnet
 
 ts-check:
 	npx tsc --noEmit -p .

@@ -1,11 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { assert } from "chai";
-import {
-  createSolanaAvatarsSdk,
-  CreateUserProfileArgs,
-  UpdateUserProfileArgs,
-} from "../sdk/src";
+import sdk from "../sdk/src";
 import { UserProfile } from "../target/types/user_profile";
 import { PublicKey, Keypair } from "@solana/web3.js";
 
@@ -13,7 +9,7 @@ describe("user_profile", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
   const provider = anchor.getProvider();
   const program = anchor.workspace.userProfile as Program<UserProfile>;
-  const sdk = createSolanaAvatarsSdk(provider, program);
+  const avatarsSdk = sdk.create(provider, program);
 
   const username = new Array(32).fill(0);
   const description = new Array(128).fill(1);
@@ -22,8 +18,8 @@ describe("user_profile", () => {
   let profilePda: PublicKey;
 
   it("Initializes profile", async () => {
-    const args: CreateUserProfileArgs = { username, description, avatarMint };
-    profilePda = await sdk.initializeProfile(args);
+    const args = { username, description, avatarMint };
+    profilePda = await avatarsSdk.initializeProfile(args);
     const profile = await program.account.userProfile.fetch(profilePda);
     assert.deepEqual(profile.username, username);
     assert.deepEqual(profile.description, description);
@@ -35,15 +31,15 @@ describe("user_profile", () => {
 
   it("Updates profile description", async () => {
     const updatedDescription = new Array(128).fill(9);
-    const updateArgs: UpdateUserProfileArgs = { description: updatedDescription };
-    await sdk.updateProfile(updateArgs);
+    const updateArgs = { description: updatedDescription };
+    await avatarsSdk.updateProfile(updateArgs);
     const profile = await program.account.userProfile.fetch(profilePda);
     assert.deepEqual(profile.description, updatedDescription);
     assert.deepEqual(profile.username, username);
   });
 
   it("Deletes profile", async () => {
-    await sdk.deleteProfile();
+    await avatarsSdk.deleteProfile();
     try {
       await program.account.userProfile.fetch(profilePda);
       assert.fail("Profile should be deleted");

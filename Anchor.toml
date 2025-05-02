@@ -15,7 +15,7 @@ solana_avatars = "56kfTdE1xmCkZ2eDuikD7S5Mr15nmdzQENDWfmdMVtt"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet" # localnet
+cluster = "localnet" # localnet / devnet
 wallet = "~/.config/solana/id.json"
 
 [scripts]
