@@ -12,21 +12,21 @@ export interface CreateUserAvatarArgs {
 
 // Mock list of free-to-use 3D avatars with IPFS references
 const avatarList = [
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", seedPubKey: "SeedPubKey100" },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", seedPubKey: "SeedPubKey101" },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", seedPubKey: "SeedPubKey102" },
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", seedPubKey: "SeedPubKey103" },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", seedPubKey: "SeedPubKey104" },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", seedPubKey: "SeedPubKey105" },
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", seedPubKey: "SeedPubKey106" },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", seedPubKey: "SeedPubKey107" },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", seedPubKey: "SeedPubKey108" },
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", seedPubKey: "SeedPubKey109" },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", seedPubKey: "SeedPubKey110" },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", seedPubKey: "SeedPubKey111" },
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", seedPubKey: "SeedPubKey112" },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", seedPubKey: "SeedPubKey113" },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", seedPubKey: "SeedPubKey114" },
+  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: "avatarMint100" },
+  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: "avatarMint101" },
+  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: "avatarMint102" },
+  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: "avatarMint103" },
+  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: "avatarMint104" },
+  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: "avatarMint105" },
+  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: "avatarMint106" },
+  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: "avatarMint107" },
+  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: "avatarMint108" },
+  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: "avatarMint109" },
+  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: "avatarMint110" },
+  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: "avatarMint111" },
+  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: "avatarMint112" },
+  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: "avatarMint113" },
+  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: "avatarMint114" },
 ];
 
 export default function AvatarEditor() {
@@ -34,16 +34,34 @@ export default function AvatarEditor() {
   const [connected, setConnected] = useState(false);
   const [address, setAddress] = useState("");
 
+  // Ref for horizontal scroll container
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const nicknamePlaceholders = [
+    "Wotori", "NeonNinja", "CyberFrog", "PixelMage", "QuantumLlama", "CodeSamurai", "Zero404"
+  ];
+
+  const descriptionPlaceholders = [
+    "Time traveler with a broken compass.",
+    "Debugging reality one frame at a time.",
+    "Born in the cloud, raised on open source.",
+    "Can compile thoughts in under 2 seconds.",
+    "Likes long walks on the blockchain.",
+    "Rendered in dreams and TypeScript.",
+    "Here for the tacos and async magic."
+  ];
+
   // Form inputs
-  const [usernameInput, setUsernameInput] = useState("");
-  const [descriptionInput, setDescriptionInput] = useState("");
+  const [usernameInput, setUsernameInput] = useState(() =>
+    nicknamePlaceholders[Math.floor(Math.random() * nicknamePlaceholders.length)]
+  );
+  const [descriptionInput, setDescriptionInput] = useState(() =>
+    descriptionPlaceholders[Math.floor(Math.random() * descriptionPlaceholders.length)]
+  );
   const [avatar2dInput, setAvatar2dInput] = useState("");
 
   // Selected 3D avatar object
   const [selectedAvatar, setSelectedAvatar] = useState(avatarList[0]);
-
-  // Ref for horizontal scroll container
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Mock wallet connect
   const handleConnect = () => {
@@ -86,7 +104,7 @@ export default function AvatarEditor() {
                 type="text"
                 value={usernameInput}
                 onChange={(e) => setUsernameInput(e.target.value)}
-                placeholder="e.g. 1,2,3"
+                placeholder=""
                 className="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
@@ -100,19 +118,19 @@ export default function AvatarEditor() {
                 type="text"
                 value={descriptionInput}
                 onChange={(e) => setDescriptionInput(e.target.value)}
-                placeholder="e.g. 4,5,6"
+                placeholder=""
                 className="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
 
-            {/* Avatar Seed */}
+            {/* Avatar Mint */}
             <div className="flex flex-col">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Avatar Seed
+                Avatar Mint
               </label>
               <input
                 type="text"
-                value={selectedAvatar.seedPubKey}
+                value={selectedAvatar.avatarMint}
                 readOnly
                 className="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
@@ -153,13 +171,13 @@ export default function AvatarEditor() {
                   key={avatar.imgHash}
                   className="p-1 inline-block"
                   ref={el => {
-                    if (avatar.seedPubKey === selectedAvatar.seedPubKey && el) {
+                    if (avatar.avatarMint === selectedAvatar.avatarMint && el) {
                       el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
                     }
                   }}
                 >
                   <div
-                    className={`relative w-32 h-32 overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow duration-150 cursor-pointer ${avatar.seedPubKey === selectedAvatar.seedPubKey ? 'ring-4 ring-purple-500' : 'ring-0'}`}
+                    className={`relative w-32 h-32 overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow duration-150 cursor-pointer ${avatar.avatarMint === selectedAvatar.avatarMint ? 'ring-4 ring-purple-500' : 'ring-0'}`}
                     onClick={() => setSelectedAvatar(avatar)}
                   >
                     <img

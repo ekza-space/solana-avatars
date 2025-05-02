@@ -16,8 +16,8 @@ export default function Header({ connected, address, onConnect }: HeaderProps) {
         <Link to="/" className="text-lg font-medium text-gray-700 dark:text-gray-300 hover:underline">
           Setup
         </Link>
-        <Link to="/generate" className="text-lg font-medium text-gray-700 dark:text-gray-300 hover:underline">
-          Generate
+        <Link to="/mint" className="text-lg font-medium text-gray-700 dark:text-gray-300 hover:underline">
+          Mint
         </Link>
         <a
           href="https://space.ekza.io"
