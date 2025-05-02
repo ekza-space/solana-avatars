@@ -1,5 +1,13 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import Header from "~/components/header";
+import { Connection, Keypair, PublicKey, clusterApiUrl } from "@solana/web3.js";
+import { AnchorProvider, Program } from "@coral-xyz/anchor";
+import { createSolanaAvatarsSdk } from "../../../sdk/src";
+import { decodeByteArray, encodeString } from "~/utils/bytes";
+
+import idlJson from "../../../sdk/idl/user_profile.json";
+import type { UserProfile } from "../../../sdk/idl/user_profile";
 
 // Define the expected structure for avatar creation arguments
 export interface CreateUserAvatarArgs {
@@ -11,30 +19,66 @@ export interface CreateUserAvatarArgs {
 
 // Mock list of free-to-use 3D avatars with IPFS references
 const avatarList = [
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: "avatarMint100" },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: "avatarMint101" },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: "avatarMint102" },
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: "avatarMint103" },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: "avatarMint104" },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: "avatarMint105" },
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: "avatarMint106" },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: "avatarMint107" },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: "avatarMint108" },
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: "avatarMint109" },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: "avatarMint110" },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: "avatarMint111" },
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: "avatarMint112" },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: "avatarMint113" },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: "avatarMint114" },
+  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: new Keypair().publicKey },
+  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: new Keypair().publicKey },
 ];
 
 export default function AvatarEditor() {
-  // Wallet connection state
-  const [connected, setConnected] = useState(false);
-  const [address, setAddress] = useState("");
+  // Prevent SSR/client markup mismatch
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Ref for horizontal scroll container
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Use Solana Wallet Adapter for connection status
+  const { publicKey, connected } = useWallet();
+
+  // Track existing profile on-chain
+  const [profileExists, setProfileExists] = useState<boolean>(false);
+  const [profilePda, setProfilePda] = useState<PublicKey | null>(null);
+
+  // On wallet connect, try loading the profile PDA to decide create vs update
+  useEffect(() => {
+    if (!connected) return;
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const provider = new AnchorProvider(connection, (window as any).solana, AnchorProvider.defaultOptions());
+    const program = new Program<UserProfile>(idlJson as UserProfile, provider);
+
+    const sdk = createSolanaAvatarsSdk(provider, program as any);
+    const [pda] = sdk.getProfilePda();
+    setProfilePda(pda);
+    // Attempt to fetch the account
+    program.account.userProfile.fetch(pda)
+      .then((account: any) => {
+        setProfileExists(true);
+        // Pre‑fill form fields using the helper to strip trailing null data
+        setUsernameInput(decodeByteArray(account.username));
+        setDescriptionInput(decodeByteArray(account.description));
+        // Select matching avatar if present
+        const mintKey = account.avatarMint.toString();
+        const match = avatarList.find(a => a.avatarMint.toString() === mintKey);
+        if (match) setSelectedAvatar(match);
+      })
+      .catch(() => {
+        setProfileExists(false);
+      });
+  }, [connected]);
 
   const nicknamePlaceholders = [
     "NeonNinja", "CyberFrog", "PixelMage", "QuantumLlama", "CodeSamurai", "Zero404"
@@ -51,23 +95,32 @@ export default function AvatarEditor() {
   ];
 
   // Form inputs
-  const [usernameInput, setUsernameInput] = useState(() =>
-    nicknamePlaceholders[Math.floor(Math.random() * nicknamePlaceholders.length)]
-  );
-  const [descriptionInput, setDescriptionInput] = useState(() =>
-    descriptionPlaceholders[Math.floor(Math.random() * descriptionPlaceholders.length)]
-  );
+  const [usernameInput, setUsernameInput] = useState("");
+  const [descriptionInput, setDescriptionInput] = useState("");
+
+  // Suggested placeholder text
+  const [suggestedUsername, setSuggestedUsername] = useState("");
+  const [suggestedDescription, setSuggestedDescription] = useState("");
+
+  useEffect(() => {
+    if (isClient) {
+      setSuggestedUsername(
+        nicknamePlaceholders[
+        Math.floor(Math.random() * nicknamePlaceholders.length)
+        ]
+      );
+      setSuggestedDescription(
+        descriptionPlaceholders[
+        Math.floor(Math.random() * descriptionPlaceholders.length)
+        ]
+      );
+    }
+  }, [isClient]);
+
   const [avatar2dInput, setAvatar2dInput] = useState("");
 
   // Selected 3D avatar object
   const [selectedAvatar, setSelectedAvatar] = useState(avatarList[0]);
-
-  // Mock wallet connect
-  const handleConnect = () => {
-    const mockAddress = "0xAbCd...1234";
-    setAddress(mockAddress);
-    setConnected(true);
-  };
 
   // CSV → number[] parser
   const parseNumberArray = (str: string): number[] =>
@@ -77,14 +130,63 @@ export default function AvatarEditor() {
       .filter((n) => !isNaN(n));
 
   // Save handler
-  const handleSave = () => {
+  const handleSave = async () => {
+    // Encode form inputs using the same symmetric helper
     const args: CreateUserAvatarArgs = {
-      username: parseNumberArray(usernameInput),
-      description: parseNumberArray(descriptionInput),
+      username: encodeString(usernameInput),
+      description: encodeString(descriptionInput),
       avatar2d: parseNumberArray(avatar2dInput),
       avatar3d: [selectedAvatar.modelHash],
     };
-    console.log("Executing transaction with args:", args);
+    // Initialize Anchor provider and SDK
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const provider = new AnchorProvider(connection, (window as any).solana, AnchorProvider.defaultOptions());
+    const program = new Program(idlJson, provider);
+    const sdk = createSolanaAvatarsSdk(provider, program as any);
+
+    try {
+      if (profileExists && profilePda) {
+        await sdk.updateProfile({
+          username: args.username,
+          description: args.description,
+          avatarMint: new PublicKey(selectedAvatar.avatarMint),
+        });
+        console.log("Profile updated successfully");
+        window.alert("Profile updated successfully");
+      } else {
+        await sdk.initializeProfile({
+          username: args.username,
+          description: args.description,
+          avatarMint: new PublicKey(selectedAvatar.avatarMint),
+        });
+        console.log("Profile initialized successfully");
+        window.alert("Profile initialized successfully");
+      }
+    } catch (error) {
+      console.error("Failed to save profile", error);
+    }
+  };
+
+  // Delete handler
+  const handleDelete = async () => {
+    if (!profilePda) return;
+    // Initialize provider and SDK
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const provider = new AnchorProvider(connection, (window as any).solana, AnchorProvider.defaultOptions());
+    const program = new Program(idlJson as any, provider);
+    const sdk = createSolanaAvatarsSdk(provider, program as any);
+    try {
+      await sdk.deleteProfile();
+      console.log("Profile deleted successfully");
+      window.alert("Profile deleted successfully");
+      setProfileExists(false);
+      // Optionally reset form
+      setUsernameInput("");
+      setDescriptionInput("");
+      setSelectedAvatar(avatarList[0]);
+    } catch (error) {
+      console.error("Failed to delete profile", error);
+    }
   };
 
   return (
@@ -103,8 +205,8 @@ export default function AvatarEditor() {
                 type="text"
                 value={usernameInput}
                 onChange={(e) => setUsernameInput(e.target.value)}
-                placeholder=""
-                className="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder={suggestedUsername}
+                className="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
 
@@ -117,8 +219,8 @@ export default function AvatarEditor() {
                 type="text"
                 value={descriptionInput}
                 onChange={(e) => setDescriptionInput(e.target.value)}
-                placeholder=""
-                className="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                placeholder={suggestedDescription}
+                className="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
 
@@ -129,7 +231,7 @@ export default function AvatarEditor() {
               </label>
               <input
                 type="text"
-                value={selectedAvatar.avatarMint}
+                value={selectedAvatar.avatarMint.toString()}
                 readOnly
                 className="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
@@ -141,8 +243,17 @@ export default function AvatarEditor() {
               disabled={!connected}
               className="w-full mt-4 px-6 py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-300 transition-colors duration-200 disabled:opacity-50"
             >
-              Save Profile
+              {profileExists ? "Update Profile" : "Save Profile"}
             </button>
+            {profileExists && (
+              <button
+                onClick={handleDelete}
+                disabled={!connected}
+                className="w-full mt-2 px-6 py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-300 transition-colors duration-200 disabled:opacity-50"
+              >
+                Delete Profile
+              </button>
+            )}
 
             {!connected && (
               <p className="text-center text-sm text-red-500 mt-2">
@@ -167,7 +278,7 @@ export default function AvatarEditor() {
             <div ref={containerRef} className="h-40 overflow-x-auto whitespace-nowrap flex gap-4 p-1">
               {avatarList.map((avatar) => (
                 <div
-                  key={avatar.imgHash}
+                  key={avatar.avatarMint.toString()}
                   className="p-1 inline-block"
                   ref={el => {
                     if (avatar.avatarMint === selectedAvatar.avatarMint && el) {

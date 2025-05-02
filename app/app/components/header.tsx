@@ -1,29 +1,33 @@
 import { Link } from "@remix-run/react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { useState, useEffect } from "react";
 
 export default function Header() {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => setIsClient(true), []);
+
   return (
-    <header className="flex items-center justify-between mb-4 px-8 p-4">
-      <div className="flex items-center space-x-6">
-        <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">
-          W3Avatar
-        </h2>
-        <Link to="/" className="text-lg font-medium text-gray-700 dark:text-gray-300 hover:underline">
-          Setup
+    <header className="flex justify-between items-center py-4 px-8 bg-gray-100 dark:bg-gray-900 mb-8">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+        Solana Avatars
+      </h1>
+      <nav className="space-x-4">
+        <Link
+          to="/"
+          className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
+        >
+          Profile
         </Link>
-        <Link to="/mint" className="text-lg font-medium text-gray-700 dark:text-gray-300 hover:underline">
+        <Link
+          to="/mint"
+          className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
+        >
           Mint
         </Link>
-        <a
-          href="https://space.ekza.io"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-lg font-medium text-gray-700 dark:text-gray-300 hover:underline"
-        >
-          Space
-        </a>
-      </div>
-      <WalletMultiButton className="px-6 py-3 rounded-lg font-semibold shadow-lg transition-colors duration-200 focus:outline-none focus:ring-4" />
+      </nav>
+      {isClient && (
+        <WalletMultiButton className="px-6 py-3 rounded-lg font-semibold transition-colors duration-200 focus:outline-none" />
+      )}
     </header>
   );
 }

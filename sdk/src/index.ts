@@ -1,7 +1,13 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
-import { UserProfile } from "../idl/user_profile";
+
+// Re-export IDL and its type
+import idl from "../idl/user_profile.json";
+import type { UserProfile } from "../idl/user_profile";
+
+export const idlJson = idl;
+export type { UserProfile };
 
 export interface CreateUserProfileArgs {
     username: number[];
