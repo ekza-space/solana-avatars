@@ -12,7 +12,7 @@ export default function Header() {
         to="/"
         className="text-2xl font-bold text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
       >
-        Solana Avatars
+        W3 Avatars
       </Link>
       <nav className="space-x-4">
         <Link
@@ -21,12 +21,6 @@ export default function Header() {
         >
           Profile
         </Link>
-        <Link
-          to="/mint"
-          className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
-        >
-          Mint
-        </Link>
 
         <Link
           to="/market"
@@ -34,6 +28,22 @@ export default function Header() {
         >
           Market
         </Link>
+
+        <Link
+          to="/mint"
+          className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
+        >
+          Mint
+        </Link>
+
+        <a
+          href="https://space.ekza.io"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
+        >
+          Ekza
+        </a>
 
       </nav>
       {isClient && (
