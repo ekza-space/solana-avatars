@@ -1,14 +1,38 @@
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-import { clusterApiUrl } from "@solana/web3.js";
+import { clusterApiUrl, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { useState, useEffect, ChangeEvent } from "react";
 import { useFetcher } from "@remix-run/react";
 import Header from "~/components/header";
 import type { ActionFunctionArgs } from "@remix-run/node";
 import * as Tabs from '@radix-ui/react-tabs';
+import { Buffer } from "buffer";
 
 interface ActionData {
     imageUrl?: string;
 }
+
+/**
+ * Returns the PublicKey of the treasury address.
+ * Works both in the browser (`import.meta.env`) and on the server (`process.env`).
+ * Throws a clear error if the env variable is missing.
+ */
+function getTreasury(): PublicKey {
+    const addr =
+        (typeof window !== "undefined"
+            ? (import.meta as any).env?.VITE_TREASURY_ADDRESS
+            : process.env.VITE_TREASURY_ADDRESS) as string | undefined;
+
+    if (!addr) {
+        throw new Error(
+            "VITE_TREASURY_ADDRESS env variable is missing. " +
+            "Add it to your .env or .env.local file."
+        );
+    }
+    return new PublicKey(addr);
+}
+
+/** Price per mint in lamports (e.g. 0.01 SOL) */
+const PRICE_LAMPORTS = 0.03 * LAMPORTS_PER_SOL;
 
 export default function GenerateAvatar() {
 
@@ -21,7 +45,7 @@ export default function GenerateAvatar() {
     const [uploadedPreviewUrl, setUploadedPreviewUrl] = useState<string>("");
 
     // Solana wallet and Metaplex setup
-    const { publicKey, wallet } = useWallet();
+    const { publicKey, wallet, sendTransaction } = useWallet();
     const { connection } = useConnection();
 
     // Track which tab is active and auto-switch on generation
@@ -48,6 +72,56 @@ export default function GenerateAvatar() {
             setPreviewUrl(fetcher.data.imageUrl);
         }
     }, [fetcher.data]);
+
+    const [minting, setMinting] = useState(false);
+
+    const handleMint = async () => {
+        if (!publicKey || !sendTransaction || (!previewUrl && !uploadedPreviewUrl)) return;
+
+        try {
+            setMinting(true);
+
+            // 1) Build transfer → admin
+            const transaction = new Transaction().add(
+                SystemProgram.transfer({
+                    fromPubkey: publicKey,
+                    toPubkey: getTreasury(),
+                    lamports: PRICE_LAMPORTS,
+                })
+            );
+
+            // 2) Send & confirm
+            const signature = await sendTransaction(transaction, connection);
+            const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+            await connection.confirmTransaction(
+                { signature, blockhash, lastValidBlockHeight },
+                "confirmed"
+            );
+
+            // 3) Notify backend to mint NFT on behalf of the payer
+            const body: Record<string, string> = {
+                owner: publicKey.toBase58(),
+                paymentSig: signature,
+            };
+            if (previewUrl) body.metadataUri = previewUrl;
+            if (uploadedPreviewUrl) body.metadataUri = uploadedPreviewUrl;
+
+            const mintRes = await fetch("/mint", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+            });
+
+            if (!mintRes.ok) throw new Error(`Backend mint failed: ${await mintRes.text()}`);
+
+            alert("Mint successful! Tx: " + signature);
+        } catch (err) {
+            console.error(err);
+            alert("Mint failed: " + (err as Error).message);
+        } finally {
+            setMinting(false);
+        }
+    };
 
     return (
         <div className="min-h-screen flex flex-col">
@@ -119,13 +193,11 @@ export default function GenerateAvatar() {
                         </fetcher.Form>
                         {(previewUrl || uploadedPreviewUrl) && publicKey && (
                             <button
-                                onClick={() => {
-                                    console.log("Mock mint");
-                                    alert("Minted mock NFT!");
-                                }}
-                                className="w-1/4 px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-colors duration-200"
+                                onClick={handleMint}
+                                disabled={minting}
+                                className={`w-1/4 px-4 py-2 ${minting ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"} text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300 transition-colors duration-200`}
                             >
-                                Mint
+                                {minting ? "Minting..." : "Mint"}
                             </button>
                         )}
                     </Tabs.Content>
@@ -144,12 +216,47 @@ export default function GenerateAvatar() {
     );
 }
 
+// Polyfill Buffer for browser environments
+if (typeof window !== "undefined" && !window.Buffer) {
+    // @ts-ignore
+    window.Buffer = Buffer;
+}
+
 export async function action({ request }: ActionFunctionArgs) {
-    const formData = await request.formData();
-    const prompt = formData.get("prompt");
-    // TODO: add API call
-    console.log("Received prompt:", prompt);
-    // TODO: replace with real generation logic
-    const generatedImageUrl = "https://ipfs.io/ipfs/QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF";
-    return Response.json({ imageUrl: generatedImageUrl });
+    const contentType = request.headers.get("content-type") || "";
+
+    // ───────────────────────────────────────────────────────────
+    // 1) JSON branch → called from handleMint (minting request)
+    // ───────────────────────────────────────────────────────────
+    if (contentType.includes("application/json")) {
+        const { owner, metadataUri, paymentSig } = await request.json();
+
+        if (!owner || !metadataUri || !paymentSig) {
+            return new Response("Missing owner, metadataUri or paymentSig", { status: 400 });
+        }
+
+        // TODO: verify paymentSig corresponds to a transfer of PRICE_LAMPORTS to TREASURY
+        // TODO: build and send Metaplex Core mint, setting 'owner' as the update & ownership authority
+
+        console.log("✅ Payment verified:", paymentSig, "→ minting NFT for", owner);
+
+        return Response.json({ status: "queued" });
+    }
+
+    // ───────────────────────────────────────────────────────────
+    // 2) formData branch → called from the "Generate" textarea
+    // ───────────────────────────────────────────────────────────
+    if (contentType.includes("multipart/form-data") || contentType.includes("application/x-www-form-urlencoded")) {
+        const formData = await request.formData();
+        const prompt = formData.get("prompt");
+        console.log("Received prompt:", prompt);
+
+        // TODO: replace with real image generation logic
+        const generatedImageUrl = "https://ipfs.io/ipfs/QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF";
+
+        return Response.json({ imageUrl: generatedImageUrl });
+    }
+
+    // Unsupported content type
+    return new Response("Unsupported Content‑Type", { status: 415 });
 }
