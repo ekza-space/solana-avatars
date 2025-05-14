@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import Header from "~/components/header";
-import { Connection, Keypair, PublicKey, clusterApiUrl } from "@solana/web3.js";
+import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import { decodeByteArray, encodeString } from "~/utils/bytes";
 
 import sdk from "../../../sdk/src";
 import type { UserProfile } from "../../../sdk/src";
+import { fetchUserNFTs } from "~/utils/fetchUserNfts";
+import AvatarSelector, { avatarList } from "~/components/AvatarSelector";
 
 
 // Define the expected structure for avatar creation arguments
@@ -15,26 +17,7 @@ export interface CreateUserAvatarArgs {
   description: number[];
   avatar2d: number[];
   avatar3d: string[]; // IPFS hashes
-}
-
-// Mock list of free-to-use 3D avatars with IPFS references
-const avatarList = [
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", modelHash: "QmaX4sAJV5p9a7dvxB67xY6CAJotX82B7FixYmhzgwTfEz", avatarMint: new Keypair().publicKey },
-  { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: new Keypair().publicKey },
-];
+};
 
 export default function AvatarEditor() {
   // Prevent SSR/client markup mismatch
@@ -48,10 +31,13 @@ export default function AvatarEditor() {
 
   // Use Solana Wallet Adapter for connection status
   const { publicKey, connected } = useWallet();
+  const { connection } = useConnection();
 
   // Track existing profile on-chain
   const [profileExists, setProfileExists] = useState<boolean>(false);
   const [profilePda, setProfilePda] = useState<PublicKey | null>(null);
+
+
 
   // On wallet connect, try loading the profile PDA to decide create vs update
   useEffect(() => {
@@ -262,54 +248,12 @@ export default function AvatarEditor() {
             )}
           </div>
 
-          {/* Right: Scrollable Avatar Gallery + Selection Details */}
-          <div>
-            {/* 3D Visualization Placeholder */}
-            <div className="mb-6">
-              <img
-                src={`https://ipfs.io/ipfs/${selectedAvatar.modelHash}`}
-                alt={`3D visualization of model ${selectedAvatar.modelHash}`}
-                className="w-full h-80 object-contain rounded-lg shadow-lg"
-              />
-            </div>
-            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
-              Browse &amp; Select 3D Avatars
-            </h3>
-            <div ref={containerRef} className="h-40 overflow-x-auto whitespace-nowrap flex gap-4 p-1">
-              {avatarList.map((avatar) => (
-                <div
-                  key={avatar.avatarMint.toString()}
-                  className="p-1 inline-block"
-                  ref={el => {
-                    if (avatar.avatarMint === selectedAvatar.avatarMint && el) {
-                      el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                    }
-                  }}
-                >
-                  <div
-                    className={`relative w-32 h-32 overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow duration-150 cursor-pointer ${avatar.avatarMint === selectedAvatar.avatarMint ? 'ring-4 ring-purple-500' : 'ring-0'}`}
-                    onClick={() => setSelectedAvatar(avatar)}
-                  >
-                    <img
-                      src={`https://ipfs.io/ipfs/${avatar.imgHash}`}
-                      alt={avatar.imgHash}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Selected Avatar IPFS Details */}
-            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <p className="text-sm text-gray-700 dark:text-gray-300">
-                <strong>Image IPFS Hash:</strong> {selectedAvatar.imgHash}
-              </p>
-              <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                <strong>Model IPFS Hash:</strong> {selectedAvatar.modelHash}
-              </p>
-            </div>
-          </div>
+          {/* Right: AvatarSelector Component */}
+          <AvatarSelector
+            avatarList={avatarList}
+            selectedAvatar={selectedAvatar}
+            setSelectedAvatar={setSelectedAvatar}
+          />
         </div>
       </div>
     </div>
