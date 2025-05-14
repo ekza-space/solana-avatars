@@ -1,5 +1,5 @@
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-import { clusterApiUrl, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { clusterApiUrl, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, Connection } from "@solana/web3.js";
 import { useState, useEffect, ChangeEvent } from "react";
 import { useFetcher } from "@remix-run/react";
 import Header from "~/components/header";
@@ -31,8 +31,9 @@ function getTreasury(): PublicKey {
     return new PublicKey(addr);
 }
 
-/** Price per mint in lamports (e.g. 0.01 SOL) */
-const PRICE_LAMPORTS = 0.03 * LAMPORTS_PER_SOL;
+/** Price per mint in lamports (exact integer for 0.03 SOL) */
+const PRICE_LAMPORTS = Math.round(0.03 * LAMPORTS_PER_SOL);
+
 
 export default function GenerateAvatar() {
 
@@ -76,48 +77,102 @@ export default function GenerateAvatar() {
     const [minting, setMinting] = useState(false);
 
     const handleMint = async () => {
-        if (!publicKey || !sendTransaction || (!previewUrl && !uploadedPreviewUrl)) return;
+        if (!publicKey || (!previewUrl && !uploadedPreviewUrl)) return;
 
+        setMinting(true);
         try {
-            setMinting(true);
+            const metadataUri = uploadedPreviewUrl || previewUrl;
 
-            // 1) Build transfer → admin
+            // ── Оплата ──
+            if (!sendTransaction) {
+                alert("Wallet is not connected or cannot send transactions.");
+                setMinting(false);
+                return;
+            }
             const transaction = new Transaction().add(
                 SystemProgram.transfer({
                     fromPubkey: publicKey,
-                    toPubkey: getTreasury(),
+                    toPubkey: getTreasury(), // Убедитесь, что getTreasury() не падает на клиенте, если VITE_TREASURY_ADDRESS не задан для клиентской сборки
                     lamports: PRICE_LAMPORTS,
                 })
             );
+            transaction.feePayer = publicKey!;
+            transaction.recentBlockhash = (await connection.getLatestBlockhash("confirmed")).blockhash;
 
-            // 2) Send & confirm
-            const signature = await sendTransaction(transaction, connection);
+            const paymentSig = await sendTransaction(transaction, connection);
             const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
             await connection.confirmTransaction(
-                { signature, blockhash, lastValidBlockHeight },
+                { signature: paymentSig, blockhash, lastValidBlockHeight },
                 "confirmed"
             );
 
-            // 3) Notify backend to mint NFT on behalf of the payer
-            const body: Record<string, string> = {
-                owner: publicKey.toBase58(),
-                paymentSig: signature,
-            };
-            if (previewUrl) body.metadataUri = previewUrl;
-            if (uploadedPreviewUrl) body.metadataUri = uploadedPreviewUrl;
+            console.log("Client: Payment successful, paymentSig:", paymentSig);
 
-            const mintRes = await fetch("/mint", {
+            const body = {
+                owner: publicKey.toBase58(),
+                metadataUri,
+                paymentSig,
+            };
+
+            console.log("Client: Sending to action:", JSON.stringify(body));
+
+            const mintRes = await fetch(window.location.pathname, { // Убедитесь, что это правильный URL для вашей action
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
                 body: JSON.stringify(body),
             });
 
-            if (!mintRes.ok) throw new Error(`Backend mint failed: ${await mintRes.text()}`);
+            const responseStatus = mintRes.status;
+            const responseContentType = mintRes.headers.get('content-type') || "";
+            const responseText = await mintRes.text(); // Читаем тело ответа как текст
 
-            alert("Mint successful! Tx: " + signature);
-        } catch (err) {
-            console.error(err);
-            alert("Mint failed: " + (err as Error).message);
+            console.log('Client: Response Status:', responseStatus);
+            console.log('Client: Response Content-Type:', responseContentType);
+            console.log('Client: Response Body (raw text):', responseText.substring(0, 1000)); // Логируем часть тела
+
+            if (!mintRes.ok) {
+                // Сервер вернул ошибку (4xx, 5xx)
+                let errorMsg = `Server returned status ${responseStatus}.`;
+                if (responseContentType.includes("application/json")) {
+                    try {
+                        const errJson = JSON.parse(responseText);
+                        errorMsg = errJson.error || errorMsg;
+                    } catch (e) { /* ignore parsing error, use status text */ }
+                } else if (responseText.toLowerCase().includes("<!doctype html")) {
+                    errorMsg += " Server returned an HTML error page.";
+                } else {
+                    errorMsg += " Response: " + responseText.substring(0, 200);
+                }
+                alert(`Mint failed: ${errorMsg}`);
+                setMinting(false);
+                return;
+            }
+
+            // mintRes.ok is true (статус 2xx)
+            if (responseContentType.includes("application/json")) {
+                try {
+                    const mintJson = JSON.parse(responseText);
+                    if (mintJson.error) { // На случай, если сервер вернул 200 OK, но с ошибкой в теле JSON
+                        alert(`Mint request processed, but with error: ${mintJson.error}`);
+                    } else if (mintJson.mint && mintJson.tx) {
+                        alert(`✅ NFT minted successfully!\n\nView transaction:\nhttps://explorer.solana.com/tx/${mintJson.tx}?cluster=devnet\n\nMint address:\n${mintJson.mint}`);
+                    } else {
+                        alert(`Mint request successful, but response format is unexpected: ${JSON.stringify(mintJson)}`);
+                    }
+                } catch (e: any) {
+                    alert(`Mint successful (HTTP ${responseStatus}) but failed to parse JSON response: ${e.message}\nRaw Response: ${responseText.substring(0, 500)}`);
+                }
+            } else {
+                // Сервер вернул 2xx, но Content-Type не JSON - это странно для вашего случая
+                alert(`Mint request successful (HTTP ${responseStatus}) but server returned unexpected content type: ${responseContentType}`);
+            }
+
+        } catch (err: any) {
+            console.error("Client: Error in handleMint:", err);
+            alert("Mint failed (client-side exception): " + err.message);
         } finally {
             setMinting(false);
         }
@@ -209,6 +264,15 @@ export default function GenerateAvatar() {
                             onChange={handleFileChange}
                             className="w-2/3 max-w-sm bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-4"
                         />
+                        {(uploadedPreviewUrl || previewUrl) && publicKey && (
+                            <button
+                                onClick={handleMint}
+                                disabled={minting}
+                                className={`w-1/4 px-4 py-2 ${minting ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"} text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300 transition-colors duration-200`}
+                            >
+                                {minting ? "Minting..." : "Mint"}
+                            </button>
+                        )}
                     </Tabs.Content>
                 </Tabs.Root>
             </div>
@@ -221,6 +285,11 @@ if (typeof window !== "undefined" && !window.Buffer) {
     // @ts-ignore
     window.Buffer = Buffer;
 }
+// Polyfill global for browser environments (required by some Metaplex deps)
+if (typeof window !== "undefined" && (window as any).global === undefined) {
+    // @ts-ignore
+    window.global = window;
+}
 
 export async function action({ request }: ActionFunctionArgs) {
     const contentType = request.headers.get("content-type") || "";
@@ -232,15 +301,101 @@ export async function action({ request }: ActionFunctionArgs) {
         const { owner, metadataUri, paymentSig } = await request.json();
 
         if (!owner || !metadataUri || !paymentSig) {
-            return new Response("Missing owner, metadataUri or paymentSig", { status: 400 });
+            return Response.json({ error: "Missing owner, metadataUri or paymentSig" }, { status: 400 });
         }
 
-        // TODO: verify paymentSig corresponds to a transfer of PRICE_LAMPORTS to TREASURY
-        // TODO: build and send Metaplex Core mint, setting 'owner' as the update & ownership authority
+        /* ---------------------------------------------------------
+           1) Verify that `paymentSig` really transfers PRICE_LAMPORTS
+              from `owner` to our treasury address.
+        --------------------------------------------------------- */
+        try {
+            const conn = new Connection(clusterApiUrl("devnet"), "confirmed");
+            // @ts-ignore use parsed transaction to access .program and .parsed
+            const txInfo = await conn.getParsedTransaction(paymentSig, "confirmed");
+            // @ts-ignore treat instructions as parsed objects
+            const instructions: any[] = (txInfo as any).transaction.message.instructions;
 
-        console.log("✅ Payment verified:", paymentSig, "→ minting NFT for", owner);
+            if (!txInfo) {
+                return Response.json({ error: "Payment transaction not found on chain" }, { status: 400 });
+            }
 
-        return Response.json({ status: "queued" });
+            const treasury = getTreasury().toBase58();
+            let paymentVerified = false;
+
+            for (const instr of instructions) {
+                if ("parsed" in instr && instr.program === "system") {
+                    const info: any = instr.parsed.info;
+                    if (
+                        info.destination === treasury &&
+                        info.source === owner &&
+                        Number(info.lamports) >= PRICE_LAMPORTS
+                    ) {
+                        paymentVerified = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!paymentVerified) {
+                return Response.json({ error: "Payment to treasury not found or amount too low" }, { status: 400 });
+            }
+
+            // ── Load server admin secret key and configure Umi signer ──
+            const rawKey = process.env.ADMIN_KEYPAIR!;
+            let secretArr: number[];
+            if (rawKey.trim().startsWith("[")) {
+                // Env var contains the JSON array directly
+                secretArr = JSON.parse(rawKey) as number[];
+            } else {
+                // Env var is a path to the keypair file
+                const fs = await import("fs");
+                secretArr = JSON.parse(fs.readFileSync(rawKey, "utf-8")) as number[];
+            }
+            const secretBytes = Uint8Array.from(secretArr);
+            const {
+                createSignerFromKeypair,
+                keypairIdentity,
+                generateSigner,
+                percentAmount,
+                publicKey,
+            } = await import("@metaplex-foundation/umi");
+
+            /* -----------------------------------------------------
+               2) Mint the NFT on the server with Metaplex Umi
+            ----------------------------------------------------- */
+            const { createUmi } = await import("@metaplex-foundation/umi-bundle-defaults");
+            const { createNft, mplTokenMetadata } = await import("@metaplex-foundation/mpl-token-metadata");
+
+            // Use the same endpoint as the client (devnet by default)
+            const umi = createUmi(clusterApiUrl("devnet"));
+
+            // Convert to Umi keypair and register it as the signer
+            const umiKeypair = umi.eddsa.createKeypairFromSecretKey(secretBytes);
+            const signer = createSignerFromKeypair(umi, umiKeypair);
+            umi.use(keypairIdentity(signer)).use(mplTokenMetadata());
+
+            // Now generate a mint keypair and mint
+            const mint = generateSigner(umi);
+
+            const { signature: mintSig } = await createNft(umi, {
+                mint,
+                name: "Avatar NFT",
+                uri: metadataUri,
+                sellerFeeBasisPoints: percentAmount(5.5),
+                tokenOwner: publicKey(owner),
+            }).sendAndConfirm(umi);
+
+            console.log("✅ NFT minted:", mint.publicKey.toString(), "tx:", mintSig);
+
+            return Response.json({
+                status: "minted",
+                mint: mint.publicKey.toString(),
+                tx: mintSig,
+            });
+        } catch (e: any) {
+            console.error("Mint failed on backend:", e);
+            return Response.json({ error: "Minting failed on backend: " + e.message }, { status: 500 });
+        }
     }
 
     // ───────────────────────────────────────────────────────────

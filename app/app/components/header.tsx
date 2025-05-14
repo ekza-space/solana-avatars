@@ -15,6 +15,14 @@ export default function Header() {
         W3 Avatars
       </Link>
       <nav className="space-x-4">
+
+        <Link
+          to="/"
+          className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
+        >
+          Home
+        </Link>
+
         <Link
           to="/profile"
           className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"

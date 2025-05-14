@@ -11,7 +11,10 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
+    "@metaplex-foundation/umi": "^1.2.0",
     "@metaplex-foundation/umi-bundle-defaults": "^1.2.0",
+    "@metaplex-foundation/umi-signer-wallet-adapters": "^1.2.0",
     "@radix-ui/react-tabs": "^1.1.9",
     "@remix-run/node": "^2.16.5",
     "@remix-run/react": "^2.16.5",
@@ -20,6 +23,7 @@
     "@solana/wallet-adapter-react": "^0.15.38",
     "@solana/wallet-adapter-react-ui": "^0.9.38",
     "@solana/wallet-adapter-wallets": "^0.19.36",
+    "@solana/web3.js": "^1.98.2",
     "bs58": "^4",
     "isbot": "^4.1.0",
     "react": "18.3.1",
