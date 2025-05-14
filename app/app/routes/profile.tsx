@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from "react";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import Header from "~/components/header";
 import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import { decodeByteArray, encodeString } from "~/utils/bytes";
 
+
 import sdk from "../../../sdk/src";
 import type { UserProfile } from "../../../sdk/src";
-import { fetchUserNFTs } from "~/utils/fetchUserNfts";
 import AvatarSelector, { avatarList } from "~/components/AvatarSelector";
 
 
@@ -20,24 +20,18 @@ export interface CreateUserAvatarArgs {
 };
 
 export default function AvatarEditor() {
+
+  // Burn invalid NFTs handler
+  const { publicKey, connected, sendTransaction } = useWallet();
   // Prevent SSR/client markup mismatch
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Ref for horizontal scroll container
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  // Use Solana Wallet Adapter for connection status
-  const { publicKey, connected } = useWallet();
-  const { connection } = useConnection();
-
   // Track existing profile on-chain
   const [profileExists, setProfileExists] = useState<boolean>(false);
   const [profilePda, setProfilePda] = useState<PublicKey | null>(null);
-
-
 
   // On wallet connect, try loading the profile PDA to decide create vs update
   useEffect(() => {
@@ -49,17 +43,25 @@ export default function AvatarEditor() {
     const avatars = sdk.create(provider, program);
     const [pda] = avatars.getProfilePda();
     setProfilePda(pda);
-    // Attempt to fetch the account
+
     program.account.userProfile.fetch(pda)
       .then((account: any) => {
         setProfileExists(true);
-        // Pre‑fill form fields using the helper to strip trailing null data
         setUsernameInput(decodeByteArray(account.username));
         setDescriptionInput(decodeByteArray(account.description));
-        // Select matching avatar if present
+
+        // Try to find avatar by mint, or create fallback
         const mintKey = account.avatarMint.toString();
-        const match = avatarList.find(a => a.avatarMint.toString() === mintKey);
-        if (match) setSelectedAvatar(match);
+        let match = avatarList.find(a => a.avatarMint.toString() === mintKey);
+        if (!match) {
+          // fallback for unknown avatar mints
+          match = {
+            avatarMint: new PublicKey(mintKey),
+            imgHash: "",
+            modelHash: "",
+          };
+        }
+        setSelectedAvatar(match);
       })
       .catch(() => {
         setProfileExists(false);
@@ -232,13 +234,15 @@ export default function AvatarEditor() {
               {profileExists ? "Update Profile" : "Save Profile"}
             </button>
             {profileExists && (
-              <button
-                onClick={handleDelete}
-                disabled={!connected}
-                className="w-full mt-2 px-6 py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-300 transition-colors duration-200 disabled:opacity-50"
-              >
-                Delete Profile
-              </button>
+              <>
+                <button
+                  onClick={handleDelete}
+                  disabled={!connected}
+                  className="w-full mt-2 px-6 py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-300 transition-colors duration-200 disabled:opacity-50"
+                >
+                  Delete Profile
+                </button>
+              </>
             )}
 
             {!connected && (

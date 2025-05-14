@@ -1,3 +1,4 @@
+import type { NftMetadata } from "~/types/nft";
 import { Connection, PublicKey, ParsedAccountData } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
@@ -9,12 +10,12 @@ const METADATA_PROGRAM_ID = new PublicKey(
 export async function fetchUserNFTs(
     connection: Connection,
     ownerPk: PublicKey
-): Promise<Array<{ mint: string; uri: string; metadata?: any }>> {
+): Promise<Array<{ mint: string; uri: string; metadata?: NftMetadata }>> {
     const resp = await connection.getParsedTokenAccountsByOwner(ownerPk, {
         programId: TOKEN_PROGRAM_ID,
     });
     const decoder = new TextDecoder();
-    const results: Array<{ mint: string; uri: string; metadata?: any }> = [];
+    const results: Array<{ mint: string; uri: string; metadata?: NftMetadata }> = [];
 
     for (const { account } of resp.value) {
         const data = account.data as ParsedAccountData;
@@ -61,18 +62,18 @@ export async function fetchUserNFTs(
                 const isValidIpfsCid = (cid: string): boolean => {
                     return /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/.test(cid) || /^bafy[0-9a-z]{50,}$/.test(cid);
                 };
-                
+
                 if (!isValidIpfsCid(uri)) {
-                    console.warn("Skipping NFT with invalid URI:", uri);
+                    console.warn("Skipping NFT with invalid URI:", uri, "mint pubkey: ", mintPubkey.toString());
                     continue;
                 }
 
                 // Fetch metadata JSON from local IPFS gateway
-                let metadata = undefined;
+                let metadata: NftMetadata | undefined = undefined;
                 try {
                     const res = await fetch(`http://localhost:8080/ipfs/${uri}`); // TODO: read from .env
                     if (res.ok) {
-                        metadata = await res.json();
+                        metadata = await res.json() as NftMetadata;
                     }
                 } catch (e) {
                     console.warn("Failed to fetch metadata for", uri, e);

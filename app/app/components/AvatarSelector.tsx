@@ -1,7 +1,9 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { PublicKey, Keypair } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+
 import { fetchUserNFTs } from "~/utils/fetchUserNfts";
+import { handleBurnInvalidNFTs } from "~/utils/burnNft";
 
 
 
@@ -40,8 +42,10 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Use Solana Wallet Adapter for connection status
-    const { publicKey, connected } = useWallet();
+    const { publicKey, connected, sendTransaction } = useWallet();
     const { connection } = useConnection();
+
+    const [realAvatarList, setRealAvatarList] = useState<Avatar[]>([]);
 
 
     useEffect(() => {
@@ -55,9 +59,32 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
     useEffect(() => {
         if (!publicKey) return;
         fetchUserNFTs(connection, publicKey)
-            .then(nfts => console.log("User NFTs with URIs:", nfts))
+            .then(nfts => {
+                const avatars: Avatar[] = nfts.map(nft => ({
+                    imgHash: nft.metadata?.image
+                        ? nft.metadata.image.replace('https://ipfs.io/ipfs/', '')
+                        : '', // fallback to empty string or some default
+                    modelHash: nft.metadata?.animation_url
+                        ? nft.metadata.animation_url.replace('https://ipfs.io/ipfs/', '')
+                        : '', // fallback to empty string or some default
+                    avatarMint: new PublicKey(nft.mint),
+                }));
+                console.log("Fetched Avatars:", avatars);
+                setRealAvatarList(avatars);
+            })
             .catch(e => console.error("Failed to fetch user NFTs:", e));
     }, [publicKey, connection]);
+
+    useEffect(() => {
+        if (realAvatarList.length > 0) {
+            const realMatch = realAvatarList.find(avatar => avatar.avatarMint.toString() === selectedAvatar.avatarMint.toString());
+            if (realMatch && realMatch.modelHash !== selectedAvatar.modelHash) {
+                setSelectedAvatar(realMatch);
+            }
+        }
+    }, [realAvatarList, selectedAvatar, setSelectedAvatar]);
+
+    const displayedAvatarList = realAvatarList.length > 0 ? realAvatarList : avatarList;
 
     return (
         <div>
@@ -73,14 +100,14 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
                 Browse &amp; Select 3D Avatars
             </h3>
             <div ref={containerRef} className="h-40 overflow-x-auto whitespace-nowrap flex gap-4 p-1">
-                {avatarList.map((avatar) => (
+                {displayedAvatarList.map((avatar) => (
                     <div
                         key={avatar.avatarMint.toString()}
                         className="p-1 inline-block"
-                        data-selected={avatar.avatarMint === selectedAvatar.avatarMint}
+                        data-selected={avatar.avatarMint.toString() === selectedAvatar.avatarMint.toString()}
                     >
                         <div
-                            className={`relative w-32 h-32 overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow duration-150 cursor-pointer ${avatar.avatarMint === selectedAvatar.avatarMint ? 'ring-4 ring-purple-500' : 'ring-0'}`}
+                            className={`relative group w-32 h-32 overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow duration-150 cursor-pointer ${avatar.avatarMint.toString() === selectedAvatar.avatarMint.toString() ? 'ring-4 ring-purple-500' : 'ring-0'}`}
                             onClick={() => setSelectedAvatar(avatar)}
                         >
                             <img
@@ -88,6 +115,22 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
                                 alt={avatar.imgHash}
                                 className="w-full h-full object-cover"
                             />
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleBurnInvalidNFTs(
+                                        publicKey,
+                                        connected,
+                                        [avatar.avatarMint.toString()],
+                                        sendTransaction
+                                    );
+                                }}
+                                disabled={!connected}
+                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                aria-label="Delete Avatar"
+                            >
+                                &times;
+                            </button>
                         </div>
                     </div>
                 ))}

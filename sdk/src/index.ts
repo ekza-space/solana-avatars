@@ -54,11 +54,21 @@ export default {
                 .rpc();
         }
 
+        async function getAllProfiles(): Promise<
+            {
+                publicKey: PublicKey;
+                account: anchor.IdlAccounts<UserProfile>["userProfile"];
+            }[]
+        > {
+            return await program.account.userProfile.all();
+        }
+
         return {
             getProfilePda,
             initializeProfile,
             updateProfile,
             deleteProfile,
+            getAllProfiles,
         };
     }
 };
