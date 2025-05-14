@@ -6,6 +6,7 @@ import Header from "~/components/header";
 import type { ActionFunctionArgs } from "@remix-run/node";
 import * as Tabs from '@radix-ui/react-tabs';
 import { Buffer } from "buffer";
+import { fetchUserNFTs } from "~/utils/fetchUserNfts";
 
 interface ActionData {
     imageUrl?: string;
@@ -56,6 +57,14 @@ export default function GenerateAvatar() {
             setTabValue('generate');
         }
     }, [previewUrl]);
+
+    // Fetch all NFTs for the connected wallet and log their mints/URIs
+    useEffect(() => {
+        if (!publicKey) return;
+        fetchUserNFTs(connection, publicKey)
+            .then(nfts => console.log("User NFTs with URIs:", nfts))
+            .catch(e => console.error("Failed to fetch user NFTs:", e));
+    }, [publicKey, connection]);
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -278,17 +287,6 @@ export default function GenerateAvatar() {
             </div>
         </div>
     );
-}
-
-// Polyfill Buffer for browser environments
-if (typeof window !== "undefined" && !window.Buffer) {
-    // @ts-ignore
-    window.Buffer = Buffer;
-}
-// Polyfill global for browser environments (required by some Metaplex deps)
-if (typeof window !== "undefined" && (window as any).global === undefined) {
-    // @ts-ignore
-    window.global = window;
 }
 
 export async function action({ request }: ActionFunctionArgs) {
