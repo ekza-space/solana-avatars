@@ -9,12 +9,12 @@ const METADATA_PROGRAM_ID = new PublicKey(
 export async function fetchUserNFTs(
     connection: Connection,
     ownerPk: PublicKey
-): Promise<Array<{ mint: string; uri: string }>> {
+): Promise<Array<{ mint: string; uri: string; metadata?: any }>> {
     const resp = await connection.getParsedTokenAccountsByOwner(ownerPk, {
         programId: TOKEN_PROGRAM_ID,
     });
     const decoder = new TextDecoder();
-    const results: Array<{ mint: string; uri: string }> = [];
+    const results: Array<{ mint: string; uri: string; metadata?: any }> = [];
 
     for (const { account } of resp.value) {
         const data = account.data as ParsedAccountData;
@@ -40,7 +40,17 @@ export async function fetchUserNFTs(
                 // URI field is 200 bytes starting at offset 107 (1+32+32+32+10)
                 const uriBytes = accountData.slice(107, 307);
                 const uri = decoder.decode(uriBytes).replace(/\0/g, "").trim();
-                results.push({ mint: mintPubkey.toString(), uri });
+                // Fetch metadata JSON from local IPFS gateway
+                let metadata = undefined;
+                try {
+                    const res = await fetch(`http://localhost:8080/ipfs/${uri.replace(/^.*\/ipfs\//, "")}`);
+                    if (res.ok) {
+                        metadata = await res.json();
+                    }
+                } catch (e) {
+                    console.warn("Failed to fetch metadata for", uri, e);
+                }
+                results.push({ mint: mintPubkey.toString(), uri, metadata });
             }
         }
     }
