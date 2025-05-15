@@ -53,10 +53,24 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
     const [modelUrl, setModelUrl] = useState<string>("");
 
     useEffect(() => {
-        if (!selectedAvatar.modelHash) return;
-        const ipfsUrl = `${IPFS_GATEWAY}${selectedAvatar.modelHash}`;
-        setModelUrl(ipfsUrl);
-        console.log("setUrl: ", ipfsUrl)
+        const { modelHash, imgHash } = selectedAvatar;
+        if (!modelHash) {
+            setModelUrl("");
+            return;
+        }
+        const ipfsUrl = `${IPFS_GATEWAY}${modelHash}`;
+        // Determine if this should be treated as a 3D model:
+        // 1. It has a recognized 3D extension, or
+        // 2. The modelHash differs from the imgHash (i.e., animation_url provided)
+        const has3DExtension = /\.(glb|gltf|usdz|vrm)$/i.test(modelHash);
+        const isAnimationUrl = modelHash !== imgHash;
+        if (has3DExtension || isAnimationUrl) {
+            setModelUrl(ipfsUrl);
+            console.log("setModelUrl:", ipfsUrl);
+        } else {
+            // Fallback: clear any previous URL so image will render
+            setModelUrl("");
+        }
     }, [selectedAvatar]);
 
 
@@ -115,8 +129,8 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
                 </div>
             </div> : <div className="mb-6">
                 <img
-                    src={`${IPFS_GATEWAY}${selectedAvatar.modelHash}`}
-                    alt={`3D visualization of model ${selectedAvatar.modelHash}`}
+                    src={`${IPFS_GATEWAY}${selectedAvatar.imgHash}`}
+                    alt={`Avatar preview ${selectedAvatar.imgHash}`}
                     className="w-full h-80 object-contain rounded-lg shadow-lg"
                 />
             </div>}
@@ -133,7 +147,10 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
                     >
                         <div
                             className={`relative group w-32 h-32 overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow duration-150 cursor-pointer ${avatar.avatarMint.toString() === selectedAvatar.avatarMint.toString() ? 'ring-4 ring-purple-500' : 'ring-0'}`}
-                            onClick={() => setSelectedAvatar(avatar)}
+                            onClick={() => {
+                                setSelectedAvatar(avatar)
+                                console.log("set selected avatar: ", avatar)
+                            }}
                         >
                             <img
                                 src={`${IPFS_GATEWAY}${avatar.imgHash}`}
@@ -163,12 +180,19 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
 
             {/* Selected Avatar IPFS Details */}
             <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                    <strong>Image IPFS Hash:</strong> {selectedAvatar.imgHash}
+
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                    <strong>Image IPFS Mint:</strong> <br/> {selectedAvatar.avatarMint.toString()}
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                    <strong>Model IPFS Hash:</strong> {selectedAvatar.modelHash}
+
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                    <strong>Image IPFS Hash:</strong> <br/> {selectedAvatar.imgHash}
                 </p>
+
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2 mt-1">
+                    <strong>Model IPFS Hash:</strong> <br/> {selectedAvatar.modelHash}
+                </p>
+
             </div>
         </div>
     );
