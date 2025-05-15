@@ -1,11 +1,13 @@
 import React, { useRef, useEffect, useState } from "react";
-const IPFS_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || "https://ipfs.io/ipfs/";
 import { PublicKey, Keypair } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 import { fetchUserNFTs } from "~/utils/fetchUserNfts";
 import { handleBurnInvalidNFTs } from "~/utils/burnNft";
+import SceneWithModel from "./3d/SceneWithModel";
 
+
+const IPFS_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || "https://ipfs.io/ipfs/";
 
 
 interface Avatar {
@@ -47,6 +49,15 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
     const { connection } = useConnection();
 
     const [realAvatarList, setRealAvatarList] = useState<Avatar[]>([]);
+
+    const [modelUrl, setModelUrl] = useState<string>("");
+
+    useEffect(() => {
+        if (!selectedAvatar.modelHash) return;
+        const ipfsUrl = `${IPFS_GATEWAY}${selectedAvatar.modelHash}`;
+        setModelUrl(ipfsUrl);
+        console.log("setUrl: ", ipfsUrl)
+    }, [selectedAvatar]);
 
 
     useEffect(() => {
@@ -98,13 +109,18 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
     return (
         <div>
             {/* 3D Visualization Placeholder */}
-            <div className="mb-6">
+            {modelUrl ? <div className="mb-6">
+                <div className="w-full h-[500px]">
+                    <SceneWithModel file={modelUrl} />
+                </div>
+            </div> : <div className="mb-6">
                 <img
                     src={`${IPFS_GATEWAY}${selectedAvatar.modelHash}`}
                     alt={`3D visualization of model ${selectedAvatar.modelHash}`}
                     className="w-full h-80 object-contain rounded-lg shadow-lg"
                 />
-            </div>
+            </div>}
+
             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
                 Browse &amp; Select 3D Avatars
             </h3>
