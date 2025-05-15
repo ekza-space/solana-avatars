@@ -16,6 +16,8 @@
     "@metaplex-foundation/umi-bundle-defaults": "^1.2.0",
     "@metaplex-foundation/umi-signer-wallet-adapters": "^1.2.0",
     "@radix-ui/react-tabs": "^1.1.9",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
     "@remix-run/node": "^2.16.5",
     "@remix-run/react": "^2.16.5",
     "@remix-run/serve": "^2.16.5",
@@ -29,7 +31,8 @@
     "ipfs-http-client": "^60.0.1",
     "isbot": "^4.1.0",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "three": "^0.176.0"
   },
   "devDependencies": {
     "@remix-run/dev": "^2.16.5",

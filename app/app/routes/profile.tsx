@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useAnchorWallet } from "@solana/wallet-adapter-react";
 import Header from "~/components/header";
 import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
@@ -23,6 +23,7 @@ export default function AvatarEditor() {
 
   // Burn invalid NFTs handler
   const { publicKey, connected, sendTransaction } = useWallet();
+  const anchorWallet = useAnchorWallet();
   // Prevent SSR/client markup mismatch
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
@@ -35,14 +36,21 @@ export default function AvatarEditor() {
 
   // On wallet connect, try loading the profile PDA to decide create vs update
   useEffect(() => {
-    if (!connected) return;
+    if (!connected || !anchorWallet) return;
     const connection = new Connection(clusterApiUrl("devnet"));
-    const provider = new AnchorProvider(connection, (window as any).solana, AnchorProvider.defaultOptions());
+    const provider = new AnchorProvider(connection, anchorWallet, AnchorProvider.defaultOptions());
     const program = new Program<UserProfile>(sdk.idlJson as UserProfile, provider);
 
     const avatars = sdk.create(provider, program);
-    const [pda] = avatars.getProfilePda();
-    setProfilePda(pda);
+    let pda: PublicKey;
+    try {
+      [pda] = avatars.getProfilePda();
+      setProfilePda(pda);
+    } catch (error) {
+      console.warn("Failed to derive profile PDA:", error);
+      setProfileExists(false);
+      return;
+    }
 
     program.account.userProfile.fetch(pda)
       .then((account: any) => {
@@ -119,6 +127,10 @@ export default function AvatarEditor() {
 
   // Save handler
   const handleSave = async () => {
+    if (!connected || !anchorWallet) {
+      console.error("Wallet not connected");
+      return;
+    }
     // Encode form inputs using the same symmetric helper
     const args: CreateUserAvatarArgs = {
       username: encodeString(usernameInput),
@@ -128,7 +140,7 @@ export default function AvatarEditor() {
     };
     // Initialize Anchor provider and SDK
     const connection = new Connection(clusterApiUrl("devnet"));
-    const provider = new AnchorProvider(connection, (window as any).solana, AnchorProvider.defaultOptions());
+    const provider = new AnchorProvider(connection, anchorWallet, AnchorProvider.defaultOptions());
     const program = new Program<UserProfile>(sdk.idlJson as UserProfile, provider);
     const avatars = sdk.create(provider, program);
 
@@ -157,10 +169,14 @@ export default function AvatarEditor() {
 
   // Delete handler
   const handleDelete = async () => {
+    if (!anchorWallet) {
+      console.error("Wallet not connected");
+      return;
+    }
     if (!profilePda) return;
     // Initialize provider and SDK
     const connection = new Connection(clusterApiUrl("devnet"));
-    const provider = new AnchorProvider(connection, (window as any).solana, AnchorProvider.defaultOptions());
+    const provider = new AnchorProvider(connection, anchorWallet, AnchorProvider.defaultOptions());
     const program = new Program<UserProfile>(sdk.idlJson as UserProfile, provider);
     const avatars = sdk.create(provider, program);
     try {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import Header from "~/components/header";
-import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
+import { Connection, clusterApiUrl } from "@solana/web3.js";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
 
 import sdk from "../../../sdk/src";

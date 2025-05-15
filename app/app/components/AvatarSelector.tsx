@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+const IPFS_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || "https://ipfs.io/ipfs/";
 import { PublicKey, Keypair } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
@@ -84,14 +85,22 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
         }
     }, [realAvatarList, selectedAvatar, setSelectedAvatar]);
 
-    const displayedAvatarList = realAvatarList.length > 0 ? realAvatarList : avatarList;
+    const displayedAvatarList = realAvatarList;
+
+    if (realAvatarList.length === 0) {
+        return (
+            <div className="p-4 bg-yellow-100 text-yellow-900 rounded-lg text-center flex justify-center items-center h-40">
+                No avatar found. Go and&nbsp;<a href="/mint" className="underline">create one first</a>.
+            </div>
+        );
+    }
 
     return (
         <div>
             {/* 3D Visualization Placeholder */}
             <div className="mb-6">
                 <img
-                    src={`https://ipfs.io/ipfs/${selectedAvatar.modelHash}`}
+                    src={`${IPFS_GATEWAY}${selectedAvatar.modelHash}`}
                     alt={`3D visualization of model ${selectedAvatar.modelHash}`}
                     className="w-full h-80 object-contain rounded-lg shadow-lg"
                 />
@@ -111,7 +120,7 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
                             onClick={() => setSelectedAvatar(avatar)}
                         >
                             <img
-                                src={`https://ipfs.io/ipfs/${avatar.imgHash}`}
+                                src={`${IPFS_GATEWAY}${avatar.imgHash}`}
                                 alt={avatar.imgHash}
                                 className="w-full h-full object-cover"
                             />
