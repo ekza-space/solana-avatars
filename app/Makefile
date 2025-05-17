@@ -10,7 +10,12 @@ docker-build:
 	docker build --platform=linux/amd64 -t dkeep-ui .
 
 docker-run:
-	docker run --rm --platform=linux/amd64 -p 3000:3000 dkeep-ui
+	docker run --rm --platform=linux/amd64 \
+		--env-file /app/env \
+		-v ./id.json:/app/id.json \
+		-p 3000:3000 \
+		--network host \
+		dkeep-ui
 
 deploy: docker-build
 	docker save dkeep-ui > dkeep-ui.tar
