@@ -4,12 +4,12 @@
 Each user is assigned a **Program Derived Address (PDA)** which stores their avatar profile on-chain. Users can:
 
 - Create, update, and delete their avatar account
-- Attach metadata such as username, description
-- Link **2D and 3D avatars** using IPFS hashes
+- Attach metadata such as username, description and **3D avatars** using NFT Mint Pubkey
 - Apply any **3D avatar NFT** to represent themselves in virtual reality environments
 
 This allows for seamless identity integration across decentralized worlds.
 
+[🎥 Watch the video demo](https://youtu.be/3O4QAiWlvlY)
 ---
 
 ## ✨ Features
@@ -39,24 +39,6 @@ solana config set --url https://api.devnet.solana.com
 solana-keygen new --outfile target-deploy-keypair.json
 solana-keygen pubkey target-deploy-keypair.json
 ```
-
----
-
-## 📁 Directory Overview
-
-```plaintext
-/programs/avatars/     # Anchor smart contract for avatar management
-/tests/avatars.ts      # Integration tests for on-chain functionality
-/target/               # Build artifacts and deployment keypairs
-```
-
----
-
-## 🚀 Coming Soon
-
-- 🧩 Avatar minting UI
-- 🎮 VR/3D integration examples
-- 📦 SDK for integrating avatar data in Web3 games and platforms
 
 ---
 
