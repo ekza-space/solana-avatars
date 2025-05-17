@@ -4,3 +4,5 @@ node_modules
 /.cache
 /build
 .env
+
+id.json

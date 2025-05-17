@@ -6,20 +6,18 @@ deploy:
 
 docker-build:
 	npm run build
-	- docker image rm dkeep-ui 
-	docker build --platform=linux/amd64 -t dkeep-ui .
+	- docker image rm ekza-avatars 
+	docker build --platform=linux/amd64 -t ekza-avatars .
 
 docker-run:
-	docker run --rm --platform=linux/amd64 \
-		--env-file /app/env \
-		-v ./id.json:/app/id.json \
+	docker run -d --restart always --platform=linux/amd64 \
 		-p 3000:3000 \
 		--network host \
-		dkeep-ui
+		ekza-avatars
 
 deploy: docker-build
-	docker save dkeep-ui > dkeep-ui.tar
-	scp dkeep-ui.tar vds-dreamkeepers:/root/docker_images
+	docker save ekza-avatars > ekza-avatars.tar
+	scp ekza-avatars.tar vds-dreamkeepers:/root/docker_images
 	ssh vds-dreamkeepers 'bash /root/docker_images/deploy-dkeeper.sh'
 
 deploy-remote:

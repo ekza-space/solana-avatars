@@ -96,7 +96,7 @@ export default function GenerateAvatar() {
 
     const [minting, setMinting] = useState(false);
 
-const handleMint = async () => {
+    const handleMint = async () => {
         if (!publicKey) return;
 
         setMinting(true);
@@ -311,7 +311,8 @@ const handleMint = async () => {
                                 className="w-2/3 max-w-sm bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
                             />
                             <button
-                                type="submit"
+                                onClick={() => alert("Sorry, this feature still in progress.")}
+                                type="button"
                                 className="w-1/4 px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-300 transition-colors duration-200"
                             >
                                 Generate

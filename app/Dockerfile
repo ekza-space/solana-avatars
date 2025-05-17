@@ -7,6 +7,8 @@ RUN npm install --legacy-peer-deps --omit=dev
 
 COPY build/ ./build
 COPY app/ ./app
+COPY .env .env
+COPY id.json id.json
 
 EXPOSE 3000
 

@@ -58,15 +58,16 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
             setModelUrl("");
             return;
         }
-        const ipfsUrl = `${IPFS_GATEWAY}${modelHash}`;
+        const ipfsUrl = `/ipfs/${modelHash}`;
+        console.log("ipfsUrl:", ipfsUrl);
         // Determine if this should be treated as a 3D model:
         // 1. It has a recognized 3D extension, or
         // 2. The modelHash differs from the imgHash (i.e., animation_url provided)
         const has3DExtension = /\.(glb|gltf|usdz|vrm)$/i.test(modelHash);
         const isAnimationUrl = modelHash !== imgHash;
         if (has3DExtension || isAnimationUrl) {
+            console.log("set model url: ", ipfsUrl);
             setModelUrl(ipfsUrl);
-            console.log("setModelUrl:", ipfsUrl);
         } else {
             // Fallback: clear any previous URL so image will render
             setModelUrl("");
@@ -88,10 +89,10 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
             .then(nfts => {
                 const avatars: Avatar[] = nfts.map(nft => ({
                     imgHash: nft.metadata?.image
-                        ? nft.metadata.image.replace('https://ipfs.io/ipfs/', '')
+                        ? nft.metadata.image
                         : '', // fallback to empty string or some default
                     modelHash: nft.metadata?.animation_url
-                        ? nft.metadata.animation_url.replace('https://ipfs.io/ipfs/', '')
+                        ? nft.metadata.animation_url
                         : '', // fallback to empty string or some default
                     avatarMint: new PublicKey(nft.mint),
                 }));
@@ -182,15 +183,15 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
             <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
 
                 <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                    <strong>Image IPFS Mint:</strong> <br/> {selectedAvatar.avatarMint.toString()}
+                    <strong>Image IPFS Mint:</strong> <br /> {selectedAvatar.avatarMint.toString()}
                 </p>
 
                 <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                    <strong>Image IPFS Hash:</strong> <br/> {selectedAvatar.imgHash}
+                    <strong>Image IPFS Hash:</strong> <br /> {selectedAvatar.imgHash}
                 </p>
 
                 <p className="text-sm text-gray-700 dark:text-gray-300 mb-2 mt-1">
-                    <strong>Model IPFS Hash:</strong> <br/> {selectedAvatar.modelHash}
+                    <strong>Model IPFS Hash:</strong> <br /> {selectedAvatar.modelHash}
                 </p>
 
             </div>

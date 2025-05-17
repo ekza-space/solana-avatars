@@ -6,6 +6,7 @@ import {
   ScrollRestoration,
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
+import SayHi from "~/components/SayHi.tsx"
 
 import { useMemo } from "react";
 
@@ -62,6 +63,7 @@ export default function App() {
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
+          <SayHi />
           <Outlet />
         </WalletModalProvider>
       </WalletProvider>
