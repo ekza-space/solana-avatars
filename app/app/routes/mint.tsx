@@ -335,12 +335,15 @@ export default function GenerateAvatar() {
                     </Tabs.Content>
 
                     <Tabs.Content value="upload" className="w-full flex flex-col space-y-4 items-center">
-                        <input
+                      <input
                             type="file"
                             accept="image/*,.glb,model/gltf-binary"
                             onChange={handleFileChange}
                             className="w-2/3 max-w-sm bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-4"
                         />
+                      <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                          Use a sample models to explore the interface: <a href="https://drive.google.com/drive/folders/11oQ8pwVMV9inSVV9cGceI8xTusDxhPC3?usp=drive_link" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">download here</a>
+                      </p>
                         {(uploadedPreviewUrl || previewUrl) && publicKey && (
                             <button
                                 onClick={handleMint}

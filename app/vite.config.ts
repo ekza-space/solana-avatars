@@ -1,7 +1,6 @@
 import { vitePlugin as remix } from "@remix-run/dev";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-import inject from '@rollup/plugin-inject';
 
 declare module "@remix-run/node" {
   interface Future {
@@ -9,11 +8,21 @@ declare module "@remix-run/node" {
   }
 }
 
+
+// server: {
+//   port: 3000,
+//   host: true,
+//   allowedHosts: ['avatar.ekza.io'],
+// },
+
 export default defineConfig({
   server: {
-    port: 3000,
-    host: true,
-    allowedHosts: ['avatar.ekza.io'],
+    proxy: {
+      '/ipfs': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
   },
   plugins: [
     remix({
@@ -26,13 +35,5 @@ export default defineConfig({
       },
     }),
     tsconfigPaths(),
-    inject({
-      Buffer: ['buffer', 'Buffer'],
-    }),
   ],
-  resolve: {
-    alias: {
-      buffer: 'buffer',
-    },
-  },
 });

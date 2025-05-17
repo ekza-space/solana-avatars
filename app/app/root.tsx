@@ -6,19 +6,18 @@ import {
   ScrollRestoration,
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
-import SayHi from "~/components/SayHi.tsx"
+import SayHi from "~/components/SayHi"
 
 import { useMemo } from "react";
 
-// import { Buffer } from "buffer";
+// TODO: move to vite config
+import { Buffer } from "buffer";
+globalThis.Buffer = Buffer;
 
-// if (typeof window !== 'undefined') {
-//   window.Buffer = Buffer;
-// }
 // Solana Wallet
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { clusterApiUrl } from "@solana/web3.js";
 import "@solana/wallet-adapter-react-ui/styles.css";

@@ -1,15 +1,16 @@
-FROM node:23.11.0-bullseye
+FROM node:22.15-alpine3.20
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm install --legacy-peer-deps --omit=dev
+# RUN apk add --no-cache python3 make g++ linux-headers eudev-dev libusb-dev
+
+COPY package.json package-lock.json* ./
+RUN npm install --omit=dev --legacy-peer-deps
 
 COPY build/ ./build
-COPY app/ ./app
 COPY .env .env
 COPY id.json id.json
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start"]
+CMD ["npx", "remix-serve", "build/server/index.js", "--port", "3000"]

@@ -5,14 +5,15 @@ deploy:
 	yarn build && scp -r ./build/* vds-amster:/var/www/avatar/html
 
 docker-build:
-	npm run build
-	- docker image rm ekza-avatars 
+	npm run build && \
+	docker image rm ekza-avatars || true && \
 	docker build --platform=linux/amd64 -t ekza-avatars .
 
 docker-run:
+	docker rm -f ekza-avatars-container || true
 	docker run -d --restart always --platform=linux/amd64 \
+		--name ekza-avatars-container \
 		-p 3000:3000 \
-		--network host \
 		ekza-avatars
 
 deploy: docker-build
