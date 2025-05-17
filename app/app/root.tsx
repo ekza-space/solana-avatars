@@ -9,6 +9,11 @@ import type { LinksFunction } from "@remix-run/node";
 
 import { useMemo } from "react";
 
+import { Buffer } from "buffer";
+
+if (typeof window !== 'undefined') {
+  window.Buffer = Buffer;
+}
 // Solana Wallet
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";

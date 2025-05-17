@@ -7,6 +7,7 @@ const METADATA_PROGRAM_ID = new PublicKey(
     "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
 );
 
+// todo: move to SDK
 export async function fetchUserNFTs(
     connection: Connection,
     ownerPk: PublicKey

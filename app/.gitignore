@@ -1,5 +1,6 @@
 node_modules
 
+*.tar
 /.cache
 /build
 .env
