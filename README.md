@@ -1,5 +1,8 @@
 # Solana Avatars
 
+<img src="logo.jpg" alt="ekza" width="400"/> 
+
+
 **Solana Avatars** is a smart contract that acts as a Web3 virtual world passport.  
 Each user is assigned a **Program Derived Address (PDA)** which stores their avatar profile on-chain. Users can:
 
@@ -33,6 +36,8 @@ Through the interface, users can:
 The UI is designed to simplify onboarding and customization in the Web3 realm.
 
 The frontend is located in `./app` and built using the [Remix](https://remix.run/) framework.
+
+Use [these models](https://drive.google.com/drive/u/1/folders/11oQ8pwVMV9inSVV9cGceI8xTusDxhPC3) to try out the interface, or feel free to find or create your own.
 
 ---
 
