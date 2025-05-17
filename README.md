@@ -1,4 +1,5 @@
 # Solana Avatars
+The project is currently live on devnet at https://avatar.ekza.io — try it out and mint your own Web3 Avatar NFT
 
 <img src="logo.jpg" alt="ekza" width="400"/> 
 
