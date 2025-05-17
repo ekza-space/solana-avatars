@@ -16,14 +16,14 @@ declare module "@remix-run/node" {
 // },
 
 export default defineConfig({
-  server: {
-    proxy: {
-      '/ipfs': {
-        target: 'http://localhost:8080',
-        changeOrigin: true,
-      },
-    },
-  },
+  // server: {
+  //   proxy: {
+  //     '/ipfs': {
+  //       target: 'http://localhost:8080',
+  //       changeOrigin: true,
+  //     },
+  //   },
+  // },
   plugins: [
     remix({
       future: {

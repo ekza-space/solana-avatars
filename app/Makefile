@@ -18,8 +18,8 @@ docker-run:
 
 deploy: docker-build
 	docker save ekza-avatars > ekza-avatars.tar
-	scp ekza-avatars.tar vds-dreamkeepers:/root/docker_images
-	ssh vds-dreamkeepers 'bash /root/docker_images/deploy-dkeeper.sh'
+	scp ekza-avatars.tar vds-amster:/root/docker_images
+	ssh vds-amster 'bash /root/docker_images/deploy-ekza-avatars.sh'
 
 deploy-remote:
-	ssh root@vds-dreamkeepers "bash -l -c 'cd /root/git/dkeeper-ui-remix && ./deploy.sh'"
+	ssh root@vds-amster "bash -l -c 'cd /root/git/solana-avatars && ./deploy.sh'"

@@ -7,7 +7,7 @@ import { handleBurnInvalidNFTs } from "~/utils/burnNft";
 import SceneWithModel from "./3d/SceneWithModel";
 
 
-const IPFS_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || "https://ipfs.io/ipfs/";
+const IPFS_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || "/ipfs/";
 
 
 interface Avatar {
