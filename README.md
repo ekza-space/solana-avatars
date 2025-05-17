@@ -21,6 +21,21 @@ This allows for seamless identity integration across decentralized worlds.
 
 ---
 
+## 🖼 Frontend Interface
+
+We built a complete UI for interacting with the Solana Avatars smart contract.  
+Through the interface, users can:
+
+- Mint their 3D avatar NFTs directly from the frontend
+- Configure their Web3 passport with custom usernames, descriptions, and NFT-linked avatars
+- Dynamically switch or update their on-chain identity for use across decentralized applications
+
+The UI is designed to simplify onboarding and customization in the Web3 realm.
+
+The frontend is located in `./app` and built using the [Remix](https://remix.run/) framework.
+
+---
+
 ## 🔧 Commands
 
 ### Switch between networks
