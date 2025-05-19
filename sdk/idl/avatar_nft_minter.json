@@ -8,6 +8,47 @@
   },
   "instructions": [
     {
+      "name": "claim_fee",
+      "discriminator": [
+        169,
+        32,
+        79,
+        137,
+        136,
+        232,
+        70,
+        137
+      ],
+      "accounts": [
+        {
+          "name": "avatar_data",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "avatar_data.ipfs_hash",
+                "account": "AvatarData"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "avatar_data"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "initialize_avatar",
       "discriminator": [
         234,
@@ -25,20 +66,6 @@
           "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  118,
-                  97,
-                  116,
-                  97,
-                  114,
-                  95,
-                  118,
-                  49
-                ]
-              },
               {
                 "kind": "arg",
                 "path": "ipfs_hash"
@@ -60,6 +87,14 @@
         {
           "name": "ipfs_hash",
           "type": "string"
+        },
+        {
+          "name": "max_supply",
+          "type": "u64"
+        },
+        {
+          "name": "minting_fee_per_mint",
+          "type": "u64"
         }
       ]
     },
@@ -81,20 +116,6 @@
           "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  118,
-                  97,
-                  116,
-                  97,
-                  114,
-                  95,
-                  118,
-                  49
-                ]
-              },
               {
                 "kind": "account",
                 "path": "avatar_data.ipfs_hash",
@@ -267,13 +288,28 @@
     },
     {
       "code": 6001,
-      "name": "NftAlreadyMinted",
-      "msg": "NFT for this avatar has already been minted."
+      "name": "MaxSupplyReached",
+      "msg": "Maximum supply for this avatar has been reached."
     },
     {
       "code": 6002,
       "name": "Unauthorized",
-      "msg": "Unauthorized action. Only the PDA creator can mint."
+      "msg": "Unauthorized action."
+    },
+    {
+      "code": 6003,
+      "name": "NoFeesToClaim",
+      "msg": "No fees have been accumulated to claim."
+    },
+    {
+      "code": 6004,
+      "name": "NumericalOverflow",
+      "msg": "Numerical overflow occurred."
+    },
+    {
+      "code": 6005,
+      "name": "InsufficientEscrowBalance",
+      "msg": "Escrow balance insufficient to cover fees and rent."
     }
   ],
   "types": [
@@ -291,17 +327,34 @@
             "type": "pubkey"
           },
           {
-            "name": "is_minted",
-            "type": "bool"
+            "name": "max_supply",
+            "type": "u64"
           },
           {
-            "name": "mint_key",
-            "type": {
-              "option": "pubkey"
-            }
+            "name": "current_supply",
+            "type": "u64"
+          },
+          {
+            "name": "minting_fee_per_mint",
+            "type": "u64"
+          },
+          {
+            "name": "total_unclaimed_fees",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
+    }
+  ],
+  "constants": [
+    {
+      "name": "AVATAR_SEED",
+      "type": "bytes",
+      "value": "[97, 118, 97, 116, 97, 114, 95, 118, 49]"
     }
   ]
 }

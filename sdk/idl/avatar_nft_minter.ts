@@ -14,6 +14,47 @@ export type AvatarNftMinter = {
   },
   "instructions": [
     {
+      "name": "claimFee",
+      "discriminator": [
+        169,
+        32,
+        79,
+        137,
+        136,
+        232,
+        70,
+        137
+      ],
+      "accounts": [
+        {
+          "name": "avatarData",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "avatar_data.ipfs_hash",
+                "account": "avatarData"
+              }
+            ]
+          }
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "avatarData"
+          ]
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "initializeAvatar",
       "discriminator": [
         234,
@@ -31,20 +72,6 @@ export type AvatarNftMinter = {
           "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  118,
-                  97,
-                  116,
-                  97,
-                  114,
-                  95,
-                  118,
-                  49
-                ]
-              },
               {
                 "kind": "arg",
                 "path": "ipfsHash"
@@ -66,6 +93,14 @@ export type AvatarNftMinter = {
         {
           "name": "ipfsHash",
           "type": "string"
+        },
+        {
+          "name": "maxSupply",
+          "type": "u64"
+        },
+        {
+          "name": "mintingFeePerMint",
+          "type": "u64"
         }
       ]
     },
@@ -87,20 +122,6 @@ export type AvatarNftMinter = {
           "writable": true,
           "pda": {
             "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  118,
-                  97,
-                  116,
-                  97,
-                  114,
-                  95,
-                  118,
-                  49
-                ]
-              },
               {
                 "kind": "account",
                 "path": "avatar_data.ipfs_hash",
@@ -273,13 +294,28 @@ export type AvatarNftMinter = {
     },
     {
       "code": 6001,
-      "name": "nftAlreadyMinted",
-      "msg": "NFT for this avatar has already been minted."
+      "name": "maxSupplyReached",
+      "msg": "Maximum supply for this avatar has been reached."
     },
     {
       "code": 6002,
       "name": "unauthorized",
-      "msg": "Unauthorized action. Only the PDA creator can mint."
+      "msg": "Unauthorized action."
+    },
+    {
+      "code": 6003,
+      "name": "noFeesToClaim",
+      "msg": "No fees have been accumulated to claim."
+    },
+    {
+      "code": 6004,
+      "name": "numericalOverflow",
+      "msg": "Numerical overflow occurred."
+    },
+    {
+      "code": 6005,
+      "name": "insufficientEscrowBalance",
+      "msg": "Escrow balance insufficient to cover fees and rent."
     }
   ],
   "types": [
@@ -297,17 +333,34 @@ export type AvatarNftMinter = {
             "type": "pubkey"
           },
           {
-            "name": "isMinted",
-            "type": "bool"
+            "name": "maxSupply",
+            "type": "u64"
           },
           {
-            "name": "mintKey",
-            "type": {
-              "option": "pubkey"
-            }
+            "name": "currentSupply",
+            "type": "u64"
+          },
+          {
+            "name": "mintingFeePerMint",
+            "type": "u64"
+          },
+          {
+            "name": "totalUnclaimedFees",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
+    }
+  ],
+  "constants": [
+    {
+      "name": "avatarSeed",
+      "type": "bytes",
+      "value": "[97, 118, 97, 116, 97, 114, 95, 118, 49]"
     }
   ]
 };

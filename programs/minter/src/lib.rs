@@ -16,6 +16,9 @@ use anchor_spl::{
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"); // Keep your original Program ID
 
+#[constant]
+const AVATAR_SEED: &[u8] = b"avatar_v1";
+
 #[program]
 pub mod avatar_nft_minter {
     use super::*;
@@ -56,7 +59,7 @@ pub mod avatar_nft_minter {
         ctx: Context<MintNft>,
         name: String,
         symbol: String,
-        uri: String, // This URI should ideally be unique per mint if content differs, or point to shared metadata
+        uri: String,
     ) -> Result<()> {
         let avatar_data = &mut ctx.accounts.avatar_data;
         let payer = &ctx.accounts.payer; // This is the minter
@@ -69,7 +72,7 @@ pub mod avatar_nft_minter {
         // 0. Transfer minting_fee_per_mint from minter (payer) to avatar_data PDA (escrow)
         if avatar_data.minting_fee_per_mint > 0 {
             let fee_to_pay = avatar_data.minting_fee_per_mint;
-            system_instruction::transfer(payer.key, avatar_data.to_account_info().key, fee_to_pay);
+
             // The actual invoke needs to be done through CPI if not directly signed by payer for SystemProgram
             let transfer_instruction = system_instruction::transfer(
                 payer.key,
@@ -85,7 +88,7 @@ pub mod avatar_nft_minter {
                     ctx.accounts.system_program.to_account_info(),
                 ],
             )?;
-            
+
             avatar_data.total_unclaimed_fees = avatar_data
                 .total_unclaimed_fees
                 .checked_add(fee_to_pay)
@@ -138,8 +141,8 @@ pub mod avatar_nft_minter {
         let data_v2 = DataV2 {
             name,
             symbol,
-            uri, // Ensure this URI is appropriate (unique per edition or points to shared metadata for the edition)
-            seller_fee_basis_points: 0, // Defaulting to 0, can be configured
+            uri,
+            seller_fee_basis_points: 0,
             creators,
             collection: None,
             uses: None,
@@ -179,7 +182,7 @@ pub mod avatar_nft_minter {
 
         let bump_seed = avatar_data.bump;
         let seeds = &[
-            b"avatar_v1".as_ref(),
+            AVATAR_SEED.as_ref(),
             avatar_data.ipfs_hash.as_bytes(),
             &[bump_seed],
         ];
@@ -219,7 +222,7 @@ pub struct InitializeAvatar<'info> {
         payer = payer,
         // Space: 8(disc) + (4+64 ipfs) + 32(creator) + 8(max_supply) + 8(current_supply) + 8(fee_per_mint) + 8(unclaimed_fees) + 1(bump)
         space = 8 + 68 + 32 + 8 + 8 + 8 + 8 + 1, // = 141 bytes
-        seeds = [b"avatar_v1".as_ref(), ipfs_hash.as_bytes()],
+        seeds = [AVATAR_SEED.as_ref(), ipfs_hash.as_bytes()],
         bump
     )]
     pub avatar_data: Account<'info, AvatarData>,
@@ -234,7 +237,7 @@ pub struct InitializeAvatar<'info> {
 pub struct MintNft<'info> {
     #[account(
         mut,
-        seeds = [b"avatar_v1".as_ref(), avatar_data.ipfs_hash.as_bytes()],
+        seeds = [AVATAR_SEED.as_ref(), avatar_data.ipfs_hash.as_bytes()],
         bump = avatar_data.bump,
     )]
     pub avatar_data: Account<'info, AvatarData>,
@@ -274,7 +277,7 @@ pub struct MintNft<'info> {
 pub struct ClaimFee<'info> {
     #[account(
         mut,
-        seeds = [b"avatar_v1".as_ref(), avatar_data.ipfs_hash.as_bytes()],
+        seeds = [AVATAR_SEED.as_ref(), avatar_data.ipfs_hash.as_bytes()],
         bump = avatar_data.bump,
         has_one = creator @ CustomError::Unauthorized,
     )]
