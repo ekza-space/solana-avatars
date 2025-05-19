@@ -22,4 +22,4 @@ deploy: docker-build
 	ssh vds-amster 'bash /root/docker_images/deploy-ekza-avatars.sh'
 
 deploy-remote:
-	ssh root@vds-amster "bash -l -c 'cd /root/git/solana-avatars && ./deploy.sh'"
+	ssh root@vds-amster "bash -l -c 'cd /root/git/avatars && ./deploy.sh'"

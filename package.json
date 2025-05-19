@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
-    "solana-avatars-sdk": "file:./sdk"
+    "avatars-sdk": "file:./sdk"
   },
   "devDependencies": {
     "chai": "^4.3.4",

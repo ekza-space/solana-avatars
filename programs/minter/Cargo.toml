@@ -1,5 +1,5 @@
 [package]
-name = "solana-avatars"
+name = "minter"
 version = "0.1.0"
 description = "Created with Anchor"
 edition = "2021"
@@ -7,7 +7,7 @@ build = "build.rs"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "solana_avatars"
+name = "minter"
 
 [features]
 default = []

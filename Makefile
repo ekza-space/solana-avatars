@@ -1,5 +1,5 @@
 anchor-deploy:
-	anchor build && anchor deploy --program-name solana-avatars --program-keypair target-deploy-keypair.json
+	anchor build && anchor deploy --program-name avatars --program-keypair target-deploy-keypair.json
 
 anchor-test-local:
 	anchor test --provider.cluster localnet
@@ -14,7 +14,7 @@ build-sdk:
 	npx tsc --build sdk/tsconfig.json
 
 build-sdk-2:
-	yarn workspace solana-avatars-sdk build
+	yarn workspace avatars-sdk build
 
 solana-set-devnet:
 	solana config set --url https://api.devnet.solana.com

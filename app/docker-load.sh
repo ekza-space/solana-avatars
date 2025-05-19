@@ -32,7 +32,7 @@ docker run -d \
   --name "$CONTAINER_NAME" \
   --network "$NETWORK_MODE" \
   --restart "$RESTART_POLICY" \
-  --env-file /root/git/solana-avatars/app/.env \
+  --env-file /root/git/avatars/app/.env \
   "$IMAGE_NAME"
 
 echo "Deployment complete."

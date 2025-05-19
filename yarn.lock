@@ -891,7 +891,7 @@ serialize-javascript@6.0.0:
   dependencies:
     randombytes "^2.1.0"
 
-"solana-avatars-sdk@file:./sdk":
+"avatars-sdk@file:./sdk":
   version "0.1.0"
   dependencies:
     "@coral-xyz/anchor" "^0.31.1"
