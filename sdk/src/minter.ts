@@ -36,6 +36,7 @@ const REGISTRY_PDA_SEED = "avatar_registry";
 
 // --- Interfaces ---
 export type AvatarDataAccount = anchor.IdlAccounts<AvatarNftMinterIDLType>['avatarData'];
+export type AvatarRegistryAccount = anchor.IdlAccounts<AvatarNftMinterIDLType>['avatarRegistry'];
 
 const ESCROW_PDA_SEED = "avatar_escrow";
 
@@ -175,6 +176,62 @@ export class AvatarNftMinterClient {
         };
     }
 
+    /**
+     * Convenience wrapper for front‑end usage when you only have the connected
+     * wallet (via AnchorProvider) and its public key – i.e. **no Keypair signer**
+     * for the user. The wallet itself will sign the transaction automatically;
+     * we only need to sign with the freshly‑generated mint keypair.
+     */
+    async mintNftWithWallet(
+        minterPublicKey: PublicKey,
+        index: number,
+        name: string,
+        symbol: string,
+        uri: string,
+        mintKeypair?: Keypair
+    ): Promise<{
+        signature: string;
+        mintPk: PublicKey;
+        tokenAccountPk: PublicKey;
+        metadataPk: PublicKey;
+    }> {
+        const mint = mintKeypair || Keypair.generate();
+        const tokenAccount = getAssociatedTokenAddressSync(
+            mint.publicKey,
+            minterPublicKey
+        );
+        const [metadataPda] = this.getMetadataPda(mint.publicKey);
+        const [avatarDataPda] = this.getAvatarDataPda(index);
+        const [escrowPda] = this.getEscrowPda(index);
+
+        const signature = await this.program.methods
+            .mintNft(name, symbol, uri)
+            .accountsStrict({
+                avatarData: avatarDataPda,
+                mint: mint.publicKey,
+                tokenAccount,
+                metadataAccount: metadataPda,
+                payer: minterPublicKey,
+                escrow: escrowPda,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                tokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+                rent: SYSVAR_RENT_PUBKEY,
+            })
+            // wallet (provider.wallet) will sign automatically; only the mint keypair
+            // needs to be supplied in `signers`
+            .signers([mint])
+            .rpc();
+
+        return {
+            signature,
+            mintPk: mint.publicKey,
+            tokenAccountPk: tokenAccount,
+            metadataPk: metadataPda,
+        };
+    }
+
     async claimFee(
         creatorSigner: Signer, // Renamed for clarity, this is the 'creator' account from IDL
         index: number
@@ -223,6 +280,48 @@ export class AvatarNftMinterClient {
             }
             throw e;
         }
+    }
+
+    /**
+     * Fetch the AvatarRegistry account (if it exists).
+     * @returns `{ registryPda, registry }` where `registry` is null if the account is absent.
+     */
+    async getAvatarRegistry(): Promise<{ registryPda: PublicKey; registry: AvatarRegistryAccount | null }> {
+        const [registryPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from(REGISTRY_PDA_SEED)],
+            this.program.programId,
+        );
+
+        try {
+            const registry = await this.program.account.avatarRegistry.fetch(registryPda);
+            return { registryPda, registry };
+        } catch (_e) {
+            // Registry not yet created
+            return { registryPda, registry: null };
+        }
+    }
+
+    /**
+     * Fetch all existing AvatarData PDAs by iterating from 0 to `nextIndex - 1`.
+     * Skips any missing or corrupted PDAs.
+     */
+    async getAllAvatarData(): Promise<{ index: number; data: AvatarDataAccount }[]> {
+        const { registry } = await this.getAvatarRegistry();
+        const results: { index: number; data: AvatarDataAccount }[] = [];
+
+        const maxIndex = registry ? registry.nextIndex.toNumber() : 0;
+        for (let i = 0; i < maxIndex; i++) {
+            const [avatarDataPda] = this.getAvatarDataPda(i);
+            try {
+                const data = await this.program.account.avatarData.fetch(avatarDataPda);
+                results.push({ index: i, data });
+            } catch (_e) {
+                // Avatar PDA might be missing (e.g., failed init). Ignore and continue.
+                continue;
+            }
+        }
+
+        return results;
     }
 }
 
