@@ -12,6 +12,7 @@ import {
     getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 import { MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-metadata";
+import { Metadata } from "@metaplex-foundation/mpl-token-metadata";
 
 // ---- IDL ----
 import idl from "../../target/idl/avatar_nft_minter.json";
@@ -187,6 +188,12 @@ export default {
             return out;
         }
 
+
+        async function getAvatarDataByIndex(index: number) {
+            const [pda] = getAvatarDataPda(index);
+            return getAvatarData(pda);
+        }
+
         // ---- Returned API ----
         return {
             // PDAs
@@ -201,6 +208,7 @@ export default {
             getAvatarData,
             getAvatarRegistry,
             getAllAvatarData,
+            getAvatarDataByIndex,
         };
     }
 };

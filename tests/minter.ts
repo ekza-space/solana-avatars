@@ -146,13 +146,16 @@ describe("avatar‑nft‑minter (SDK v2)", () => {
         const nftSymbol = "AVTR";
         const nftUri = `https://arweave.net/${testIpfsHash}/metadata.json`;
 
+        let firstMintPk: PublicKey;
+
         it("Mints an NFT and pays fee", async () => {
-            const { tokenAccountPk } = await minterClient.mintNft({
+            const { tokenAccountPk, mintPk } = await minterClient.mintNft({
                 index: avatarIndex.toNumber(),
                 name: nftName,
                 symbol: nftSymbol,
                 uri: nftUri,
             });
+            firstMintPk = mintPk;
 
             // supply & fees
             const data = await creatorClient.getAvatarData(avatarDataPda);
@@ -306,5 +309,34 @@ describe("avatar‑nft‑minter (SDK v2)", () => {
         const bogus = Keypair.generate().publicKey;
         const data = await creatorClient.getAvatarData(bogus);
         expect(data).to.be.null;
+    });
+
+    it.skip("Registry helpers return consistent snapshot", async () => {
+        // Fetch the global registry
+        const { registry } = await creatorClient.getAvatarRegistry();
+        console.log("Fetched registry:", registry);
+        expect(registry).to.not.be.null;
+
+        // Fetch all AvatarData accounts via helper
+        const all = await creatorClient.getAllAvatarData();
+        console.log("Total avatar data entries:", all.length);
+
+        // The helper should return exactly `nextIndex` entries
+        expect(all.length).to.equal(registry!.nextIndex.toNumber());
+
+        // Each returned entry's `index` field should match its position
+        all.forEach(({ index, data }) => {
+            console.log(`Checking entry at index ${index}:`, data.index.toNumber());
+            expect(data.index.eqn(index)).to.be.true;
+        });
+
+        // Also verify getAvatarDataByIndex returns the same data
+        for (let i = 0; i < all.length; i++) {
+            const viaIndex = await creatorClient.getAvatarDataByIndex(i);
+            console.log(viaIndex)
+            expect(viaIndex).to.not.be.null;
+            expect(viaIndex!.index.toNumber()).to.equal(i);
+            expect(viaIndex!.ipfsHash).to.equal(all[i].data.ipfsHash);
+        }
     });
 });

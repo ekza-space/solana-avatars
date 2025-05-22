@@ -341,7 +341,7 @@ pub struct ClaimFee<'info> {
 
 #[account]
 pub struct AvatarData {
-    pub ipfs_hash: String,
+    pub ipfs_hash: String, // TODO: This should be a URI pointing to avatar metadata that includes a description, image, 3D model, etc.
     pub creator: Pubkey,
     pub max_supply: u64, // u64::MAX for unlimited
     pub current_supply: u64,
