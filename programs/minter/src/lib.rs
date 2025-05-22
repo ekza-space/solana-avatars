@@ -3,8 +3,9 @@ use sha2::{Digest, Sha256};
 
 use anchor_lang::{
     prelude::*,
-    solana_program::{program::invoke_signed, system_instruction},
+    solana_program::system_instruction,
 };
+
 use anchor_spl::{
     associated_token::AssociatedToken,
     metadata::{
@@ -20,6 +21,14 @@ declare_id!("EXmcLULN3Nx9kwkYZmv1cPxKr74mPjuMwfoKGsJ6Npb");
 #[constant]
 const AVATAR_SEED: &[u8] = b"avatar_v1";
 
+#[constant]
+const ESCROW_SEED: &[u8] = b"avatar_escrow";
+
+#[account]
+pub struct Escrow {
+    pub bump: u8,
+}
+
 #[program]
 pub mod avatar_nft_minter {
     use super::*;
@@ -34,6 +43,7 @@ pub mod avatar_nft_minter {
             ipfs_hash.len() > 0 && ipfs_hash.len() <= 64,
             CustomError::InvalidIpfsHashLength
         );
+
         // It's good practice to ensure max_supply isn't ridiculously small if fees are involved,
         // or handle max_supply = 0 explicitly if it means something special (e.g. unmintable)
         // For now, max_supply = 0 will mean it's unmintable due to the mint_nft check.
@@ -70,22 +80,22 @@ pub mod avatar_nft_minter {
             CustomError::MaxSupplyReached
         );
 
-        // 0. Transfer minting_fee_per_mint from minter (payer) to avatar_data PDA (escrow)
+        // 0. Transfer minting_fee_per_mint from minter (payer) to ESCROW PDA
         if avatar_data.minting_fee_per_mint > 0 {
             let fee_to_pay = avatar_data.minting_fee_per_mint;
+            let escrow_key = ctx.accounts.escrow.key();
 
-            // The actual invoke needs to be done through CPI if not directly signed by payer for SystemProgram
-            let transfer_instruction = system_instruction::transfer(
+            let ix = system_instruction::transfer(
                 payer.key,
-                avatar_data.to_account_info().key,
+                &escrow_key,
                 fee_to_pay,
             );
 
             anchor_lang::solana_program::program::invoke(
-                &transfer_instruction,
+                &ix,
                 &[
                     payer.to_account_info(),
-                    avatar_data.to_account_info(),
+                    ctx.accounts.escrow.to_account_info(),
                     ctx.accounts.system_program.to_account_info(),
                 ],
             )?;
@@ -98,7 +108,7 @@ pub mod avatar_nft_minter {
             msg!(
                 "Transferred {} lamports fee to escrow PDA {}",
                 fee_to_pay,
-                avatar_data.to_account_info().key
+                escrow_key
             );
         }
 
@@ -166,50 +176,27 @@ pub mod avatar_nft_minter {
     }
 
     pub fn claim_fee(ctx: Context<ClaimFee>) -> Result<()> {
-        let avatar_data = &mut ctx.accounts.avatar_data;
-        let creator = &ctx.accounts.creator;
-
-        require!(
-            avatar_data.total_unclaimed_fees > 0,
-            CustomError::NoFeesToClaim
-        );
+       let avatar_data = &mut ctx.accounts.avatar_data;
+        let creator_info = ctx.accounts.creator.to_account_info();
+        let escrow_info  = ctx.accounts.escrow.to_account_info();
 
         let fees_to_claim = avatar_data.total_unclaimed_fees;
+        require!(fees_to_claim > 0, CustomError::NoFeesToClaim);
+        require!(
+            escrow_info.lamports() >= fees_to_claim,
+            CustomError::InsufficientEscrowBalance
+        );
 
-        // Check PDA's actual balance (optional, as transfer will fail if insufficient)
-        // let pda_balance = avatar_data.to_account_info().lamports();
-        // let rent_exempt_minimum = Rent::get()?.minimum_balance(avatar_data.to_account_info().data_len());
-        // require!(pda_balance >= rent_exempt_minimum + fees_to_claim, CustomError::InsufficientEscrowBalance);
-
-        let bump_seed = avatar_data.bump;
-        let seeds = &[
-            AVATAR_SEED.as_ref(),
-            &Sha256::digest(avatar_data.ipfs_hash.as_bytes())[..],
-            &[bump_seed],
-        ];
-        let signer_seeds = &[&seeds[..]];
-
-        invoke_signed(
-            &system_instruction::transfer(
-                avatar_data.to_account_info().key,
-                creator.key,
-                fees_to_claim,
-            ),
-            &[
-                avatar_data.to_account_info(),
-                creator.to_account_info(),
-                ctx.accounts.system_program.to_account_info(),
-            ],
-            signer_seeds,
-        )?;
+        **creator_info.try_borrow_mut_lamports()? += fees_to_claim;
+        **escrow_info.try_borrow_mut_lamports()?  -= fees_to_claim;
 
         avatar_data.total_unclaimed_fees = 0;
 
         msg!(
-            "Fees of {} lamports claimed by creator {} from PDA {}",
+            "Fees of {} lamports claimed by creator {} from escrow {}",
             fees_to_claim,
-            creator.key(),
-            avatar_data.to_account_info().key
+            creator_info.key(),
+            escrow_info.key()
         );
         Ok(())
     }
@@ -233,6 +220,15 @@ pub struct InitializeAvatar<'info> {
 
     #[account(mut)]
     pub payer: Signer<'info>, // This is the creator
+
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + 1,
+        seeds = [ESCROW_SEED, &Sha256::digest(ipfs_hash.as_bytes())[..]],
+        bump
+    )]
+    pub escrow: Account<'info, Escrow>,
 
     pub system_program: Program<'info, System>,
 }
@@ -273,6 +269,16 @@ pub struct MintNft<'info> {
     #[account(mut)]
     pub payer: Signer<'info>, // This is the minter
 
+    #[account(
+        mut,
+        seeds = [
+            ESCROW_SEED,
+            &Sha256::digest(avatar_data.ipfs_hash.as_bytes())[..]
+        ],
+        bump
+    )]
+    pub escrow: Account<'info, Escrow>,
+
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_metadata_program: Program<'info, Metadata>,
@@ -295,6 +301,16 @@ pub struct ClaimFee<'info> {
 
     #[account(mut)]
     pub creator: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            ESCROW_SEED,
+            &Sha256::digest(avatar_data.ipfs_hash.as_bytes())[..]
+        ],
+        bump
+    )]
+    pub escrow: Account<'info, Escrow>,
 
     pub system_program: Program<'info, System>,
 }

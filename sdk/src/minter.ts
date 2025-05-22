@@ -37,6 +37,8 @@ const AVATAR_PDA_SEED = "avatar_v1";
 // --- Interfaces ---
 export type AvatarDataAccount = anchor.IdlAccounts<AvatarNftMinterIDLType>['avatarData'];
 
+const ESCROW_PDA_SEED = "avatar_escrow";
+
 
 // --- SDK Client Class ---
 export class AvatarNftMinterClient {
@@ -67,6 +69,14 @@ export class AvatarNftMinterClient {
         );
     }
 
+    public getEscrowPda(ipfsHash: string): [PublicKey, number] {
+      const digest = Buffer.from(sha256.arrayBuffer(ipfsHash));
+      return PublicKey.findProgramAddressSync(
+        [Buffer.from(ESCROW_PDA_SEED), digest],
+        this.program.programId
+      );
+    }
+
 
     public getMetadataPda(mintPublicKey: PublicKey): [PublicKey, number] {
         return PublicKey.findProgramAddressSync(
@@ -88,11 +98,13 @@ export class AvatarNftMinterClient {
         mintingFeePerMint: BN
     ): Promise<{ signature: string; avatarDataPda: PublicKey }> {
         const [avatarDataPda] = this.getAvatarDataPda(ipfsHash);
+        const [escrowPda] = this.getEscrowPda(ipfsHash);
         const signature = await this.program.methods
             .initializeAvatar(ipfsHash, maxSupply, mintingFeePerMint)
             .accountsStrict({
                 avatarData: avatarDataPda,
                 payer: payer.publicKey,
+                escrow: escrowPda,
                 systemProgram: SystemProgram.programId,
             })
             .signers([payer])
@@ -115,6 +127,7 @@ export class AvatarNftMinterClient {
         metadataPk: PublicKey;
     }> {
         const [avatarDataPda] = this.getAvatarDataPda(ipfsHash);
+        const [escrowPda] = this.getEscrowPda(ipfsHash);
         const mint = mintKeypair || Keypair.generate();
         const tokenAccount = getAssociatedTokenAddressSync(
             mint.publicKey,
@@ -132,6 +145,7 @@ export class AvatarNftMinterClient {
                 tokenAccount: tokenAccount,
                 metadataAccount: metadataPda,
                 payer: minter.publicKey,
+                escrow: escrowPda,
                 tokenProgram: TOKEN_PROGRAM_ID,
                 associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
                 tokenMetadataProgram: MPL_TOKEN_METADATA_PROGRAM_ID,
@@ -154,12 +168,14 @@ export class AvatarNftMinterClient {
         ipfsHash: string
     ): Promise<{ signature: string }> {
         const [avatarDataPda] = this.getAvatarDataPda(ipfsHash);
+        const [escrowPda] = this.getEscrowPda(ipfsHash);
 
         const signature = await this.program.methods
             .claimFee()
             .accounts({
                 avatarData: avatarDataPda, // Matches 'avatar_data' in IDL
                 creator: creatorSigner.publicKey, // Matches 'creator' account in IDL
+                escrow: escrowPda,
                 systemProgram: SystemProgram.programId,
             })
             .signers([creatorSigner])

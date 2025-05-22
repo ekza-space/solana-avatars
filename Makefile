@@ -4,14 +4,13 @@ anchor-deploy:
 anchor-deploy-minter:
 	anchor build && anchor deploy --program-name minter --program-keypair target-deploy-keypair-minter.json
 
-anchor-ted-devnet:
+anchor-test-devnet:
 	anchor test --skip-build --skip-deploy
 
 anchor-test-local:
 	anchor test --provider.cluster localnet
 
-anchor-test-dev:
-	anchor test --provider.cluster devnet
+
 
 ts-check:
 	npx tsc --noEmit -p .

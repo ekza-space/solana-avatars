@@ -7,62 +7,87 @@ import {
 } from "@solana/web3.js";
 import { getAccount as getTokenAccount } from "@solana/spl-token";
 import { expect } from "chai";
-import { sha256 } from "js-sha256";
 
-// Import your SDK client and related types
 import {
-    AvatarNftMinterClient,
     getAvatarNftMinterClient,
-    PROGRAM_ID as AVATAR_NFT_MINTER_PROGRAM_ID // Assuming PROGRAM_ID is exported
+    PROGRAM_ID as AVATAR_NFT_MINTER_PROGRAM_ID
 } from "../sdk/src/minter";
 
+import fs from "fs";
+import { KEYPAIR_1, KEYPAIR_2 } from "./constants";
+
 describe("avatar-nft-minter", () => {
-    // Configure the client to use the local cluster.
+    // Configure provider from env, then override for non-local networks
     anchor.setProvider(anchor.AnchorProvider.env());
-    const provider = anchor.getProvider() as anchor.AnchorProvider;
+    let provider = anchor.getProvider() as anchor.AnchorProvider;
     const connection = provider.connection;
 
-    // The program instance, directly from anchor.workspace or via SDK
-    // const program = anchor.workspace.AvatarNftMinter as Program<AvatarNftMinterIDLType>;
+    // Detect local validator
+    const isLocal = connection.rpcEndpoint.includes("127.0.0.1") || connection.rpcEndpoint.includes("localhost");
 
-    // SDK Client instance
-    let client: AvatarNftMinterClient;
+    // Setup creator and minter based on environment
+    let creator: anchor.Wallet;
+    let minter: Keypair;
 
-    // Test accounts
-    const creator = provider.wallet as anchor.Wallet; // Use the default wallet as the creator
-    const minter = Keypair.generate(); // A new keypair for a minter
+    let client = getAvatarNftMinterClient(connection, creator, AVATAR_NFT_MINTER_PROGRAM_ID);
+
+    if (isLocal) {
+        // Local validator: use default wallet and generate fresh minter
+        creator = provider.wallet as anchor.Wallet;
+        minter = Keypair.generate();
+    } else {
+        // Devnet/testnet: load keypairs from constants and skip airdrop
+        const creatorKeypair = Keypair.fromSecretKey(
+            Uint8Array.from(JSON.parse(fs.readFileSync(KEYPAIR_1, "utf-8")))
+        );
+        const minterKeypair = Keypair.fromSecretKey(
+            Uint8Array.from(JSON.parse(fs.readFileSync(KEYPAIR_2, "utf-8")))
+        );
+        creator = new anchor.Wallet(creatorKeypair);
+        const newProvider = new anchor.AnchorProvider(connection, creator, anchor.AnchorProvider.defaultOptions());
+        anchor.setProvider(newProvider);
+        provider = newProvider;
+        minter = minterKeypair;
+    }
 
     // Test data
-    const testIpfsHash = "QmPLhiFxQRJEStgFxQvUaETjFZYi7dndkGpwzbWga8ECDo";
-    const testIpfsHash2 = "QmZtmowGHPPJeav229rjtr5sNhJgHcrgeh4QXPcNYn7Kom";
+    const testIpfsHash = "Qm" + Array.from({ length: 44 }, () => Math.floor(Math.random() * 36).toString(36)).join("");
+    const testIpfsHash2 = "Qm" + Array.from({ length: 44 }, () => Math.floor(Math.random() * 36).toString(36)).join("");
+    const testIpfsHash3 = "Qm" + Array.from({ length: 44 }, () => Math.floor(Math.random() * 36).toString(36)).join("");
+
+
     const maxSupply = new BN(100);
     const mintingFeePerMint = new BN(0.01 * LAMPORTS_PER_SOL); // 0.01 SOL
     const zeroMintingFee = new BN(0);
 
     let avatarDataPda: PublicKey;
     let avatarDataPdaZeroFee: PublicKey;
+    let escrowPda: PublicKey;
+    let escrowPdaZero: PublicKey;
 
     before(async () => {
         // Initialize SDK client
-        // If your SDK constructor uses anchor.workspace internally, ensure it's available
-        // Otherwise, if it needs the program ID, pass it:
         client = getAvatarNftMinterClient(connection, creator, AVATAR_NFT_MINTER_PROGRAM_ID);
-        // Or if your SDK gets program from anchor.workspace.AvatarNftMinter
-        // client = new AvatarNftMinterClient(provider);
+        // Derive escrow PDAs for test hashes
+        const [escrowPdaLocal] = client.getEscrowPda(testIpfsHash);
+        const [escrowPdaZeroLocal] = client.getEscrowPda(testIpfsHash2);
+        escrowPda = escrowPdaLocal;
+        escrowPdaZero = escrowPdaZeroLocal;
 
-
-        // Airdrop SOL to the minter for transactions and fees
-        const airdropSignature = await connection.requestAirdrop(
-            minter.publicKey,
-            2 * LAMPORTS_PER_SOL // Airdrop 2 SOL
-        );
-        const latestBlockhash = await connection.getLatestBlockhash();
-        await connection.confirmTransaction({
-            blockhash: latestBlockhash.blockhash,
-            lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-            signature: airdropSignature,
-        });
-        console.log(`Airdropped 2 SOL to minter: ${minter.publicKey.toBase58()}`);
+        if (isLocal) {
+            // Airdrop SOL to the minter for transactions and fees
+            const airdropSignature = await connection.requestAirdrop(
+                minter.publicKey,
+                2 * LAMPORTS_PER_SOL // Airdrop 2 SOL
+            );
+            const latestBlockhash = await connection.getLatestBlockhash();
+            await connection.confirmTransaction({
+                blockhash: latestBlockhash.blockhash,
+                lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+                signature: airdropSignature,
+            });
+            console.log(`Airdropped 2 SOL to minter: ${minter.publicKey.toBase58()}`);
+        }
     });
 
     it("Initializes AvatarData correctly", async () => {
@@ -159,7 +184,7 @@ describe("avatar-nft-minter", () => {
             expect(initialAvatarData).to.not.be.null;
             if (!initialAvatarData) throw new Error("Avatar data not found for fee test");
 
-            const initialAvatarDataBalance = await connection.getBalance(avatarDataPda);
+            const initialEscrowBalance = await connection.getBalance(escrowPda);
 
             const { signature, mintPk: newMintPk, tokenAccountPk: newTokenAccountPk } = await client.mintNft(
                 minter, // Signer is minter
@@ -190,15 +215,10 @@ describe("avatar-nft-minter", () => {
 
             // Check balances (approximate due to gas fees)
             const finalMinterBalance = await connection.getBalance(minter.publicKey);
-            const finalAvatarDataBalance = await connection.getBalance(avatarDataPda);
+            const finalEscrowBalance = await connection.getBalance(escrowPda);
 
             expect(finalMinterBalance).to.be.lessThan(initialMinterBalance - mintingFeePerMint.toNumber());
-            expect(finalAvatarDataBalance).to.equal(initialAvatarDataBalance + mintingFeePerMint.toNumber());
-
-            // Optionally: Fetch and verify metadata account (more involved)
-            // const [metadataPda] = client.getMetadataPda(mintPk);
-            // const metadataAccountInfo = await connection.getAccountInfo(metadataPda);
-            // expect(metadataAccountInfo).to.not.be.null;
+            expect(finalEscrowBalance).to.equal(initialEscrowBalance + mintingFeePerMint.toNumber());
         });
 
         it("Mints a second NFT", async () => {
@@ -226,7 +246,7 @@ describe("avatar-nft-minter", () => {
             expect(feesToClaim.gtn(0)).to.be.true; // Expecting 2 * mintingFeePerMint
 
             const initialCreatorBalance = await connection.getBalance(creator.publicKey);
-            const initialAvatarDataBalance = await connection.getBalance(avatarDataPda);
+            const initialEscrowBalance = await connection.getBalance(escrowPda);
 
             const { signature } = await client.claimFee(
                 creator.payer, // Signer is creator.payer
@@ -242,12 +262,12 @@ describe("avatar-nft-minter", () => {
             }
 
             const finalCreatorBalance = await connection.getBalance(creator.publicKey);
-            const finalAvatarDataBalance = await connection.getBalance(avatarDataPda);
+            const finalEscrowBalance = await connection.getBalance(escrowPda);
 
             // Creator balance should increase by feesToClaim (minus gas for claim tx)
-            // AvatarData PDA balance should decrease by feesToClaim
+            // Escrow PDA balance should decrease by feesToClaim
             expect(finalCreatorBalance).to.be.greaterThan(initialCreatorBalance); // Simplified check
-            expect(finalAvatarDataBalance).to.equal(initialAvatarDataBalance - feesToClaim.toNumber());
+            expect(finalEscrowBalance).to.equal(initialEscrowBalance - feesToClaim.toNumber());
         });
 
         it("Fails to claim fee if no fees are available", async () => {
@@ -269,13 +289,15 @@ describe("avatar-nft-minter", () => {
 
             const wrongClaimer = Keypair.generate(); // A random keypair
             // Airdrop some SOL to wrongClaimer to pay for tx fees
-            const airdropSig = await connection.requestAirdrop(wrongClaimer.publicKey, 0.1 * LAMPORTS_PER_SOL);
-            const latestBlockhash = await connection.getLatestBlockhash();
-            await connection.confirmTransaction({
-                blockhash: latestBlockhash.blockhash,
-                lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-                signature: airdropSig,
-            });
+            if (isLocal) {
+                const airdropSig = await connection.requestAirdrop(wrongClaimer.publicKey, 0.1 * LAMPORTS_PER_SOL);
+                const latestBlockhash = await connection.getLatestBlockhash();
+                await connection.confirmTransaction({
+                    blockhash: latestBlockhash.blockhash,
+                    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+                    signature: airdropSig,
+                });
+            }
 
             try {
                 await client.claimFee(wrongClaimer, testIpfsHash); // Attempt claim with wrongClaimer
@@ -288,7 +310,6 @@ describe("avatar-nft-minter", () => {
                 // In this case, it's `Unauthorized` from the `CustomError` enum.
                 expect(error.message).to.include("Unauthorized");
                 // expect(error.error.errorCode.code).to.equal("Unauthorized");
-
             }
             // Creator should still be able to claim
             await client.claimFee(creator.payer, testIpfsHash);
@@ -308,7 +329,7 @@ describe("avatar-nft-minter", () => {
             expect(initialAvatarData).to.not.be.null;
             if (!initialAvatarData) throw new Error("Avatar data (zero fee) not found");
 
-            const initialAvatarDataBalance = await connection.getBalance(avatarDataPdaZeroFee);
+            const initialEscrowBalance = await connection.getBalance(escrowPdaZero);
 
             const { signature, mintPk, tokenAccountPk } = await client.mintNft(
                 minter,
@@ -330,8 +351,8 @@ describe("avatar-nft-minter", () => {
             const tokenAccountInfo = await getTokenAccount(connection, tokenAccountPk);
             expect(tokenAccountInfo.amount).to.equal(BigInt(1));
 
-            const finalAvatarDataBalance = await connection.getBalance(avatarDataPdaZeroFee);
-            expect(finalAvatarDataBalance).to.equal(initialAvatarDataBalance); // No fee transferred
+            const finalEscrowBalance = await connection.getBalance(escrowPdaZero);
+            expect(finalEscrowBalance).to.equal(initialEscrowBalance); // No fee transferred
         });
 
         it("Fails to claim fee if minting fee was zero", async () => {
@@ -347,11 +368,10 @@ describe("avatar-nft-minter", () => {
 
 
     it("Fails to mint NFT if max supply is reached", async () => {
-        const quickIpfs = "QmMaxSupplyTestHash";
         const smallMaxSupply = new BN(1);
         const { avatarDataPda: pdaMaxSupply } = await client.initializeAvatar(
             creator.payer,
-            quickIpfs,
+            testIpfsHash3,
             smallMaxSupply,
             mintingFeePerMint
         );
@@ -359,7 +379,7 @@ describe("avatar-nft-minter", () => {
         // Mint 1 successfully
         await client.mintNft(
             minter,
-            quickIpfs,
+            testIpfsHash3,
             "Max Supply Test NFT 1", "MAXS", "uri1"
         );
 
@@ -370,7 +390,7 @@ describe("avatar-nft-minter", () => {
         try {
             await client.mintNft(
                 minter,
-                quickIpfs,
+                testIpfsHash3,
                 "Max Supply Test NFT 2", "MAXS", "uri2"
             );
             expect.fail("Should have thrown an error for max supply reached");

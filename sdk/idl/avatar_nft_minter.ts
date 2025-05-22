@@ -39,6 +39,10 @@ export type AvatarNftMinter = {
           ]
         },
         {
+          "name": "escrow",
+          "writable": true
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -66,6 +70,10 @@ export type AvatarNftMinter = {
           "name": "payer",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "escrow",
+          "writable": true
         },
         {
           "name": "systemProgram",
@@ -102,30 +110,7 @@ export type AvatarNftMinter = {
       "accounts": [
         {
           "name": "avatarData",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  97,
-                  118,
-                  97,
-                  116,
-                  97,
-                  114,
-                  95,
-                  118,
-                  49
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "avatar_data.ipfs_hash",
-                "account": "avatarData"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "mint",
@@ -232,6 +217,10 @@ export type AvatarNftMinter = {
           "signer": true
         },
         {
+          "name": "escrow",
+          "writable": true
+        },
+        {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         },
@@ -280,6 +269,19 @@ export type AvatarNftMinter = {
         44,
         87,
         218
+      ]
+    },
+    {
+      "name": "escrow",
+      "discriminator": [
+        31,
+        213,
+        123,
+        187,
+        186,
+        22,
+        218,
+        155
       ]
     }
   ],
@@ -351,6 +353,18 @@ export type AvatarNftMinter = {
           }
         ]
       }
+    },
+    {
+      "name": "escrow",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
     }
   ],
   "constants": [
@@ -358,6 +372,11 @@ export type AvatarNftMinter = {
       "name": "avatarSeed",
       "type": "bytes",
       "value": "[97, 118, 97, 116, 97, 114, 95, 118, 49]"
+    },
+    {
+      "name": "escrowSeed",
+      "type": "bytes",
+      "value": "[97, 118, 97, 116, 97, 114, 95, 101, 115, 99, 114, 111, 119]"
     }
   ]
 };
