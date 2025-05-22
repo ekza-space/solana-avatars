@@ -22,7 +22,30 @@
       "accounts": [
         {
           "name": "avatar_data",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  118,
+                  49
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "avatar_data.index",
+                "account": "AvatarData"
+              }
+            ]
+          }
         },
         {
           "name": "creator",
@@ -34,7 +57,34 @@
         },
         {
           "name": "escrow",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "avatar_data.index",
+                "account": "AvatarData"
+              }
+            ]
+          }
         },
         {
           "name": "system_program",
@@ -57,8 +107,59 @@
       ],
       "accounts": [
         {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "avatar_data",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  118,
+                  49
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "registry.next_index",
+                "account": "AvatarRegistry"
+              }
+            ]
+          }
         },
         {
           "name": "payer",
@@ -67,7 +168,34 @@
         },
         {
           "name": "escrow",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "registry.next_index",
+                "account": "AvatarRegistry"
+              }
+            ]
+          }
         },
         {
           "name": "system_program",
@@ -104,7 +232,30 @@
       "accounts": [
         {
           "name": "avatar_data",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  118,
+                  49
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "avatar_data.index",
+                "account": "AvatarData"
+              }
+            ]
+          }
         },
         {
           "name": "mint",
@@ -212,7 +363,34 @@
         },
         {
           "name": "escrow",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "avatar_data.index",
+                "account": "AvatarData"
+              }
+            ]
+          }
         },
         {
           "name": "token_program",
@@ -263,6 +441,19 @@
         44,
         87,
         218
+      ]
+    },
+    {
+      "name": "AvatarRegistry",
+      "discriminator": [
+        32,
+        236,
+        2,
+        104,
+        106,
+        31,
+        84,
+        61
       ]
     },
     {
@@ -339,6 +530,26 @@
           },
           {
             "name": "total_unclaimed_fees",
+            "type": "u64"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AvatarRegistry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "next_index",
             "type": "u64"
           },
           {

@@ -28,7 +28,30 @@ export type AvatarNftMinter = {
       "accounts": [
         {
           "name": "avatarData",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  118,
+                  49
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "avatar_data.index",
+                "account": "avatarData"
+              }
+            ]
+          }
         },
         {
           "name": "creator",
@@ -40,7 +63,34 @@ export type AvatarNftMinter = {
         },
         {
           "name": "escrow",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "avatar_data.index",
+                "account": "avatarData"
+              }
+            ]
+          }
         },
         {
           "name": "systemProgram",
@@ -63,8 +113,59 @@ export type AvatarNftMinter = {
       ],
       "accounts": [
         {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "avatarData",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  118,
+                  49
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "registry.next_index",
+                "account": "avatarRegistry"
+              }
+            ]
+          }
         },
         {
           "name": "payer",
@@ -73,7 +174,34 @@ export type AvatarNftMinter = {
         },
         {
           "name": "escrow",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "registry.next_index",
+                "account": "avatarRegistry"
+              }
+            ]
+          }
         },
         {
           "name": "systemProgram",
@@ -110,7 +238,30 @@ export type AvatarNftMinter = {
       "accounts": [
         {
           "name": "avatarData",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  118,
+                  49
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "avatar_data.index",
+                "account": "avatarData"
+              }
+            ]
+          }
         },
         {
           "name": "mint",
@@ -218,7 +369,34 @@ export type AvatarNftMinter = {
         },
         {
           "name": "escrow",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "avatar_data.index",
+                "account": "avatarData"
+              }
+            ]
+          }
         },
         {
           "name": "tokenProgram",
@@ -269,6 +447,19 @@ export type AvatarNftMinter = {
         44,
         87,
         218
+      ]
+    },
+    {
+      "name": "avatarRegistry",
+      "discriminator": [
+        32,
+        236,
+        2,
+        104,
+        106,
+        31,
+        84,
+        61
       ]
     },
     {
@@ -345,6 +536,26 @@ export type AvatarNftMinter = {
           },
           {
             "name": "totalUnclaimedFees",
+            "type": "u64"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "avatarRegistry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "nextIndex",
             "type": "u64"
           },
           {

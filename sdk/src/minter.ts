@@ -22,7 +22,6 @@ import type { AvatarNftMinter as AvatarNftMinterIDLType } from "../idl/avatar_nf
 
 // 2. Import the JSON IDL:
 import idlJson from "../idl/avatar_nft_minter.json";
-import { sha256 } from "js-sha256";
 
 // 3. Create a correctly typed IDL constant:
 const TYPED_IDL = idlJson as AvatarNftMinterIDLType; // Cast the JSON to the generated type
@@ -33,6 +32,7 @@ const METADATA_PROGRAM_ID = new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID);
 export const PROGRAM_ID = new PublicKey(TYPED_IDL.address);
 const METADATA_SEED = "metadata";
 const AVATAR_PDA_SEED = "avatar_v1";
+const REGISTRY_PDA_SEED = "avatar_registry";
 
 // --- Interfaces ---
 export type AvatarDataAccount = anchor.IdlAccounts<AvatarNftMinterIDLType>['avatarData'];
@@ -55,26 +55,20 @@ export class AvatarNftMinterClient {
         this.program = anchor.workspace.avatarNftMinter as Program<AvatarNftMinterIDLType>
     }
 
-    // ... (rest of your class methods should now be correctly typed)
-    // Make sure account names in .accounts({}) match the camelCased versions from your IDL.
-    // e.g., avatar_data in Rust/IDL becomes avatarData in TS.
-
     // --- PDA Derivation ---
 
-    public getAvatarDataPda(ipfsHash: string): [PublicKey, number] {
-        const digest = Buffer.from(sha256.arrayBuffer(ipfsHash));
+    public getAvatarDataPda(index: number): [PublicKey, number] {
         return PublicKey.findProgramAddressSync(
-            [Buffer.from(AVATAR_PDA_SEED), digest],
+            [Buffer.from("avatar_v1"), new BN(index).toArrayLike(Buffer, "le", 8)],
             this.program.programId
         );
     }
 
-    public getEscrowPda(ipfsHash: string): [PublicKey, number] {
-      const digest = Buffer.from(sha256.arrayBuffer(ipfsHash));
-      return PublicKey.findProgramAddressSync(
-        [Buffer.from(ESCROW_PDA_SEED), digest],
-        this.program.programId
-      );
+    public getEscrowPda(index: number): [PublicKey, number] {
+        return PublicKey.findProgramAddressSync(
+            [Buffer.from("avatar_escrow"), new BN(index).toArrayLike(Buffer, "le", 8)],
+            this.program.programId
+        );
     }
 
 
@@ -97,14 +91,32 @@ export class AvatarNftMinterClient {
         maxSupply: BN,
         mintingFeePerMint: BN
     ): Promise<{ signature: string; avatarDataPda: PublicKey }> {
-        const [avatarDataPda] = this.getAvatarDataPda(ipfsHash);
-        const [escrowPda] = this.getEscrowPda(ipfsHash);
+        // Derive registry PDA (holds the running avatar index)
+        const [registryPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from(REGISTRY_PDA_SEED)],
+            this.program.programId
+        );
+
+        // Try to fetch the registry; if it does not exist yet we start with index 0
+        let nextIndex: number;
+        try {
+            const registryAccount = await this.program.account.avatarRegistry.fetch(registryPda);
+            nextIndex = registryAccount.nextIndex.toNumber();
+        } catch (_e) {
+            // Registry wasn't created yet – we'll initialise it implicitly in the
+            // program and start counting from zero.
+            nextIndex = 0;
+        }
+
+        const [avatarDataPda] = this.getAvatarDataPda(nextIndex);
+        const [escrowPda] = this.getEscrowPda(nextIndex);
         const signature = await this.program.methods
             .initializeAvatar(ipfsHash, maxSupply, mintingFeePerMint)
             .accountsStrict({
+                registry:  registryPda,
                 avatarData: avatarDataPda,
-                payer: payer.publicKey,
-                escrow: escrowPda,
+                payer:      payer.publicKey,
+                escrow:     escrowPda,
                 systemProgram: SystemProgram.programId,
             })
             .signers([payer])
@@ -115,7 +127,7 @@ export class AvatarNftMinterClient {
 
     async mintNft(
         minter: Signer,
-        ipfsHash: string,
+        index: number,
         name: string,
         symbol: string,
         uri: string,
@@ -126,8 +138,8 @@ export class AvatarNftMinterClient {
         tokenAccountPk: PublicKey;
         metadataPk: PublicKey;
     }> {
-        const [avatarDataPda] = this.getAvatarDataPda(ipfsHash);
-        const [escrowPda] = this.getEscrowPda(ipfsHash);
+        const [avatarDataPda] = this.getAvatarDataPda(index);
+        const [escrowPda] = this.getEscrowPda(index);
         const mint = mintKeypair || Keypair.generate();
         const tokenAccount = getAssociatedTokenAddressSync(
             mint.publicKey,
@@ -165,10 +177,10 @@ export class AvatarNftMinterClient {
 
     async claimFee(
         creatorSigner: Signer, // Renamed for clarity, this is the 'creator' account from IDL
-        ipfsHash: string
+        index: number
     ): Promise<{ signature: string }> {
-        const [avatarDataPda] = this.getAvatarDataPda(ipfsHash);
-        const [escrowPda] = this.getEscrowPda(ipfsHash);
+        const [avatarDataPda] = this.getAvatarDataPda(index);
+        const [escrowPda] = this.getEscrowPda(index);
 
         const signature = await this.program.methods
             .claimFee()

@@ -15,6 +15,9 @@ anchor-test-local:
 ts-check:
 	npx tsc --noEmit -p .
 
+ts-check-tests:
+	npx tsc --noEmit tests/**/*.ts
+
 build-sdk:
 	npx tsc --build sdk/tsconfig.json
 

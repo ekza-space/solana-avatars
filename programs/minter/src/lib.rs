@@ -1,6 +1,4 @@
 #![allow(unexpected_cfgs)] // TODO: wtf?!
-use sha2::{Digest, Sha256};
-
 use anchor_lang::{
     prelude::*,
     solana_program::system_instruction,
@@ -24,8 +22,15 @@ const AVATAR_SEED: &[u8] = b"avatar_v1";
 #[constant]
 const ESCROW_SEED: &[u8] = b"avatar_escrow";
 
+
 #[account]
 pub struct Escrow {
+    pub bump: u8,
+}
+
+#[account]
+pub struct AvatarRegistry {
+    pub next_index: u64,
     pub bump: u8,
 }
 
@@ -39,6 +44,15 @@ pub mod avatar_nft_minter {
         max_supply: u64, // New: maximum number of mints (u64::MAX for unlimited)
         minting_fee_per_mint: u64, // Renamed for clarity
     ) -> Result<()> {
+        let registry = &mut ctx.accounts.registry;
+        // grab current index
+        let index = registry.next_index;
+        // bump counter for next call
+        registry.next_index = registry
+            .next_index
+            .checked_add(1)
+            .ok_or(CustomError::NumericalOverflow)?;
+
         require!(
             ipfs_hash.len() > 0 && ipfs_hash.len() <= 64,
             CustomError::InvalidIpfsHashLength
@@ -56,6 +70,7 @@ pub mod avatar_nft_minter {
         avatar_data.minting_fee_per_mint = minting_fee_per_mint;
         avatar_data.total_unclaimed_fees = 0;
         avatar_data.bump = ctx.bumps.avatar_data;
+        avatar_data.index = index;
 
         msg!(
             "Avatar PDA initialized for IPFS hash: {}, Max Supply: {}, Fee per Mint: {}",
@@ -206,13 +221,22 @@ pub mod avatar_nft_minter {
 #[instruction(ipfs_hash: String, max_supply: u64, minting_fee_per_mint: u64)]
 pub struct InitializeAvatar<'info> {
     #[account(
+        init_if_needed,
+        payer = payer,
+        space = 8 + 8 + 1, // discriminator + next_index (u64) + bump
+        seeds = [b"avatar_registry"],
+        bump
+    )]
+    pub registry: Account<'info, AvatarRegistry>,
+
+    #[account(
         init,
         payer = payer,
-        // Space: 8(disc) + (4+64 ipfs) + 32(creator) + 8(max_supply) + 8(current_supply) + 8(fee_per_mint) + 8(unclaimed_fees) + 1(bump)
-        space = 8 + 68 + 32 + 8 + 8 + 8 + 8 + 1, // = 141 bytes
+        // Space: 8(disc) + (4+64 ipfs) + 32(creator) + 8(max_supply) + 8(current_supply) + 8(fee_per_mint) + 8(unclaimed_fees) + 8(index) + 1(bump)
+        space = 8 + 68 + 32 + 8 + 8 + 8 + 8 + 8 + 1, // = 149 bytes
         seeds = [
-            AVATAR_SEED.as_ref(), 
-            &Sha256::digest(ipfs_hash.as_bytes())[..]
+            AVATAR_SEED.as_ref(),
+            &registry.next_index.to_le_bytes()
         ],
         bump
     )]
@@ -225,7 +249,7 @@ pub struct InitializeAvatar<'info> {
         init,
         payer = payer,
         space = 8 + 1,
-        seeds = [ESCROW_SEED, &Sha256::digest(ipfs_hash.as_bytes())[..]],
+        seeds = [ESCROW_SEED, &registry.next_index.to_le_bytes()],
         bump
     )]
     pub escrow: Account<'info, Escrow>,
@@ -239,7 +263,7 @@ pub struct MintNft<'info> {
         mut,
         seeds = [
             AVATAR_SEED.as_ref(),
-            &Sha256::digest(avatar_data.ipfs_hash.as_bytes())[..]
+            &avatar_data.index.to_le_bytes()
         ],
         bump = avatar_data.bump,
     )]
@@ -273,7 +297,7 @@ pub struct MintNft<'info> {
         mut,
         seeds = [
             ESCROW_SEED,
-            &Sha256::digest(avatar_data.ipfs_hash.as_bytes())[..]
+            &avatar_data.index.to_le_bytes()
         ],
         bump
     )]
@@ -292,7 +316,7 @@ pub struct ClaimFee<'info> {
         mut,
         seeds = [
             AVATAR_SEED.as_ref(), 
-            &Sha256::digest(avatar_data.ipfs_hash.as_bytes())[..]
+            &avatar_data.index.to_le_bytes()
         ],
         bump = avatar_data.bump,
         has_one = creator @ CustomError::Unauthorized,
@@ -306,7 +330,7 @@ pub struct ClaimFee<'info> {
         mut,
         seeds = [
             ESCROW_SEED,
-            &Sha256::digest(avatar_data.ipfs_hash.as_bytes())[..]
+            &avatar_data.index.to_le_bytes()
         ],
         bump
     )]
@@ -323,9 +347,10 @@ pub struct AvatarData {
     pub current_supply: u64,
     pub minting_fee_per_mint: u64, // Fee for each mint
     pub total_unclaimed_fees: u64, // Accumulated fees in PDA from successful mints
+    pub index: u64,
     pub bump: u8,
 }
-// Expected space: 8 + 68 + 32 + 8 + 8 + 8 + 8 + 1 = 141 bytes
+// Expected space: 8 + 68 + 32 + 8 + 8 + 8 + 8 + 8 + 1 = 149 bytes
 
 #[error_code]
 pub enum CustomError {
