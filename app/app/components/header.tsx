@@ -30,12 +30,12 @@ export default function Header() {
           Profile
         </Link>
 
-        {/* <Link
+        <Link
           to="/market"
           className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
         >
           Market
-        </Link> */}
+        </Link>
 
         <Link
           to="/mint"

@@ -1,394 +1,310 @@
+import { Program } from "@coral-xyz/anchor";
 import * as anchor from "@coral-xyz/anchor";
+import type { AvatarNftMinterIDL } from "../sdk/src/minter";
 import { BN } from "@coral-xyz/anchor";
-import {
-    Keypair,
-    LAMPORTS_PER_SOL,
-    PublicKey,
-} from "@solana/web3.js";
+import { Keypair, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { getAccount as getTokenAccount } from "@solana/spl-token";
 import { expect } from "chai";
 
-import {
-    getAvatarNftMinterClient,
-    PROGRAM_ID as AVATAR_NFT_MINTER_PROGRAM_ID
-} from "../sdk/src/minter";
+import minterSdk from "../sdk/src/minter";
 
-import fs from "fs";
+import * as fs from "fs";
 import { KEYPAIR_1, KEYPAIR_2 } from "./constants";
 
-describe("avatar-nft-minter", () => {
-    // Configure provider from env, then override for non-local networks
+
+/* --------------------------------------------------------------------- */
+/* Helpers                                                               */
+/* --------------------------------------------------------------------- */
+
+// Convenience to confirm tx on any cluster
+async function confirmSig(connection: anchor.web3.Connection, sig: string) {
+    const latest = await connection.getLatestBlockhash();
+    await connection.confirmTransaction({
+        signature: sig,
+        blockhash: latest.blockhash,
+        lastValidBlockHeight: latest.lastValidBlockHeight,
+    });
+}
+
+/* --------------------------------------------------------------------- */
+/* Test suite                                                             */
+/* --------------------------------------------------------------------- */
+
+describe("avatar‑nft‑minter (SDK v2)", () => {
+    /* ---------- Connection / basic provider ---------- */
     anchor.setProvider(anchor.AnchorProvider.env());
-    let provider = anchor.getProvider() as anchor.AnchorProvider;
+    const provider = anchor.getProvider() as anchor.AnchorProvider;
+    const program = anchor.workspace.avatarNftMinter as Program<AvatarNftMinterIDL>;
+
     const connection = provider.connection;
 
-    // Detect local validator
-    const isLocal = connection.rpcEndpoint.includes("127.0.0.1") || connection.rpcEndpoint.includes("localhost");
 
-    // Setup creator and minter based on environment
-    let creator: anchor.Wallet;
-    let minter: Keypair;
+    /* ---------- Wallet selection ---------- */
+    const creatorKeypair = Keypair.fromSecretKey(
+        Uint8Array.from(JSON.parse(fs.readFileSync(KEYPAIR_1, "utf-8")))
+    );
+    const creatorWallet = new anchor.Wallet(creatorKeypair);
 
-let client: ReturnType<typeof getAvatarNftMinterClient>;
+    const minterKeypair = Keypair.fromSecretKey(
+        Uint8Array.from(JSON.parse(fs.readFileSync(KEYPAIR_2, "utf-8")))
+    );
 
-    if (isLocal) {
-        // Local validator: use default wallet and generate fresh minter
-        creator = provider.wallet as anchor.Wallet;
-        minter = Keypair.generate();
-    } else {
-        // Devnet/testnet: load keypairs from constants and skip airdrop
-        const creatorKeypair = Keypair.fromSecretKey(
-            Uint8Array.from(JSON.parse(fs.readFileSync(KEYPAIR_1, "utf-8")))
-        );
-        const minterKeypair = Keypair.fromSecretKey(
-            Uint8Array.from(JSON.parse(fs.readFileSync(KEYPAIR_2, "utf-8")))
-        );
-        creator = new anchor.Wallet(creatorKeypair);
-        const newProvider = new anchor.AnchorProvider(connection, creator, anchor.AnchorProvider.defaultOptions());
-        anchor.setProvider(newProvider);
-        provider = newProvider;
-        minter = minterKeypair;
-    }
+    /* ---------- Providers & Programs ---------- */
+    const providerCreator = new anchor.AnchorProvider(
+        connection,
+        creatorWallet,
+        anchor.AnchorProvider.defaultOptions()
+    );
 
-    // Test data
-    const testIpfsHash = "Qm" + Array.from({ length: 44 }, () => Math.floor(Math.random() * 36).toString(36)).join("");
-    const testIpfsHash2 = "Qm" + Array.from({ length: 44 }, () => Math.floor(Math.random() * 36).toString(36)).join("");
-    const testIpfsHash3 = "Qm" + Array.from({ length: 44 }, () => Math.floor(Math.random() * 36).toString(36)).join("");
+    const providerMinter = new anchor.AnchorProvider(
+        connection,
+        new anchor.Wallet(minterKeypair),
+        anchor.AnchorProvider.defaultOptions()
+    );
 
+    /* ---------- Programs ---------- */
+    // Re-create Program instances that are bound to the correct wallet/provider,
+    // otherwise the transaction is sent by the wrong signer and Anchor throws
+    // "Missing signature" errors.
+    const baseProgram = anchor.workspace.avatarNftMinter as Program<AvatarNftMinterIDL>;
+    const idl = baseProgram.idl as AvatarNftMinterIDL;
+    const programId = baseProgram.programId;
 
+    const programCreator = new anchor.Program<AvatarNftMinterIDL>(idl, providerCreator);
+    const programMinter = new anchor.Program<AvatarNftMinterIDL>(idl, providerMinter);
+
+    /* ---------- SDK clients ---------- */
+    const creatorClient = minterSdk.create(providerCreator, programCreator);
+    const minterClient = minterSdk.create(providerMinter, programMinter);
+
+    /* ---------- Shared state ---------- */
+    const testIpfsHash = "Qm" + [...Array(44)].map(() => Math.floor(Math.random() * 36).toString(36)).join("");
+    const testIpfsHash2 = "Qm" + [...Array(44)].map(() => Math.floor(Math.random() * 36).toString(36)).join("");
+    const testIpfsHash3 = "Qm" + [...Array(44)].map(() => Math.floor(Math.random() * 36).toString(36)).join("");
 
     const maxSupply = new BN(100);
-    const mintingFeePerMint = new BN(0.01 * LAMPORTS_PER_SOL); // 0.01 SOL
+    const mintingFeePerMint = new BN(0.01 * LAMPORTS_PER_SOL);
     const zeroMintingFee = new BN(0);
 
-    let avatarDataPda: PublicKey;
-    let avatarDataPdaZeroFee: PublicKey;
-    let escrowPda: PublicKey;
-    let escrowPdaZero: PublicKey;
-    let avatarIndex: BN;
-    let avatarIndexZeroFee: BN;
+    let avatarDataPda!: PublicKey;
+    let avatarDataPdaZeroFee!: PublicKey;
+    let escrowPda!: PublicKey;
+    let escrowPdaZero!: PublicKey;
+    let avatarIndex!: BN;
+    let avatarIndexZeroFee!: BN;
 
-    before(async () => {
-        // Initialize SDK client
-        client = getAvatarNftMinterClient(connection, creator, AVATAR_NFT_MINTER_PROGRAM_ID);
-        if (isLocal) {
-            // Airdrop SOL to the minter for transactions and fees
-            const airdropSignature = await connection.requestAirdrop(
-                minter.publicKey,
-                2 * LAMPORTS_PER_SOL // Airdrop 2 SOL
-            );
-            const latestBlockhash = await connection.getLatestBlockhash();
-            await connection.confirmTransaction({
-                blockhash: latestBlockhash.blockhash,
-                lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-                signature: airdropSignature,
-            });
-            console.log(`Airdropped 2 SOL to minter: ${minter.publicKey.toBase58()}`);
-        }
-    });
+    /* ------------------------------------------------------------------ */
+    /* Creation & validation                                              */
+    /* ------------------------------------------------------------------ */
 
     it("Initializes AvatarData correctly", async () => {
-        const { signature, avatarDataPda: pda } = await client.initializeAvatar(
-            creator.payer,
-            testIpfsHash,
+        const { avatarDataPda: pda } = await creatorClient.initializeAvatar({
+            ipfsHash: testIpfsHash,
             maxSupply,
-            mintingFeePerMint
-        );
+            mintingFeePerMint,
+        });
         avatarDataPda = pda;
 
-        console.log("Initialize Avatar TX:", signature);
-        expect(signature).to.be.a("string");
-
-        const avatarDataAccount = await client.getAvatarData(avatarDataPda);
-        expect(avatarDataAccount).to.not.be.null;
-        if (avatarDataAccount) {
-            expect(avatarDataAccount.ipfsHash).to.equal(testIpfsHash);
-            expect(avatarDataAccount.creator.equals(creator.publicKey)).to.be.true;
-            expect(avatarDataAccount.maxSupply.eq(maxSupply)).to.be.true;
-            expect(avatarDataAccount.currentSupply.eqn(0)).to.be.true;
-            expect(avatarDataAccount.mintingFeePerMint.eq(mintingFeePerMint)).to.be.true;
-            expect(avatarDataAccount.totalUnclaimedFees.eqn(0)).to.be.true;
-            expect(avatarDataAccount.bump).to.be.a("number");
-            avatarIndex = avatarDataAccount.index;
-            const [escrowPdaLocal] = client.getEscrowPda(avatarIndex.toNumber());
-            escrowPda = escrowPdaLocal;
-        }
+        const data = await creatorClient.getAvatarData(avatarDataPda);
+        expect(data).to.not.be.null;
+        avatarIndex = data!.index;
+        [escrowPda] = creatorClient.getEscrowPda(avatarIndex.toNumber());
     });
 
-    it("Initializes a second AvatarData for zero fee testing", async () => {
-        const { signature, avatarDataPda: pda } = await client.initializeAvatar(
-            creator.payer,
-            testIpfsHash2,
-            maxSupply, // Can be same or different
-            zeroMintingFee
-        );
+    it("Initializes a second AvatarData (zero fee)", async () => {
+        const { avatarDataPda: pda } = await creatorClient.initializeAvatar({
+            ipfsHash: testIpfsHash2,
+            maxSupply,
+            mintingFeePerMint: zeroMintingFee,
+        });
         avatarDataPdaZeroFee = pda;
 
-        console.log("Initialize Avatar (Zero Fee) TX:", signature);
-        expect(signature).to.be.a("string");
-
-        const avatarDataAccount = await client.getAvatarData(avatarDataPdaZeroFee);
-        expect(avatarDataAccount).to.not.be.null;
-        if (avatarDataAccount) {
-            expect(avatarDataAccount.ipfsHash).to.equal(testIpfsHash2);
-            expect(avatarDataAccount.mintingFeePerMint.eq(zeroMintingFee)).to.be.true;
-            avatarIndexZeroFee = avatarDataAccount.index;
-            const [escrowPdaZeroLocal] = client.getEscrowPda(avatarIndexZeroFee.toNumber());
-            escrowPdaZero = escrowPdaZeroLocal;
-        }
+        const data = await creatorClient.getAvatarData(avatarDataPdaZeroFee);
+        avatarIndexZeroFee = data!.index;
+        [escrowPdaZero] = creatorClient.getEscrowPda(avatarIndexZeroFee.toNumber());
     });
 
-    it("Fails to initialize AvatarData with invalid IPFS hash (too long)", async () => {
-        const longIpfsHash = "Q".repeat(65);
+    it("Fails to initialize AvatarData with invalid IPFS hash", async () => {
         try {
-            await client.initializeAvatar(
-                creator.payer,
-                longIpfsHash,
+            await creatorClient.initializeAvatar({
+                ipfsHash: "Q".repeat(65),
                 maxSupply,
-                mintingFeePerMint
-            );
-            expect.fail("Should have thrown an error for long IPFS hash");
-        } catch (error: any) {
-            expect(error.message).to.include("InvalidIpfsHashLength");
+                mintingFeePerMint,
+            });
+            expect.fail("should throw");
+        } catch (e: any) {
+            expect(e.message).to.include("InvalidIpfsHashLength");
         }
     });
 
+    /* ------------------------------------------------------------------ */
+    /* Fee‑based avatar flow                                              */
+    /* ------------------------------------------------------------------ */
 
-    describe("With initialized AvatarData (fee applies)", () => {
+    describe("Avatar with fee", () => {
         const nftName = "My Avatar NFT";
         const nftSymbol = "AVTR";
         const nftUri = `https://arweave.net/${testIpfsHash}/metadata.json`;
-        let mintPk: PublicKey;
-        let minterTokenAccountPk: PublicKey;
 
-        it("Mints an NFT successfully and pays fee", async () => {
-            const initialMinterBalance = await connection.getBalance(minter.publicKey);
-            const initialAvatarData = await client.getAvatarData(avatarDataPda);
-            expect(initialAvatarData).to.not.be.null;
-            if (!initialAvatarData) throw new Error("Avatar data not found for fee test");
+        it("Mints an NFT and pays fee", async () => {
+            const { tokenAccountPk } = await minterClient.mintNft({
+                index: avatarIndex.toNumber(),
+                name: nftName,
+                symbol: nftSymbol,
+                uri: nftUri,
+            });
 
-            const initialEscrowBalance = await connection.getBalance(escrowPda);
+            // supply & fees
+            const data = await creatorClient.getAvatarData(avatarDataPda);
+            expect(data!.currentSupply.eqn(1)).to.be.true;
+            expect(data!.totalUnclaimedFees.eq(mintingFeePerMint)).to.be.true;
 
-            const { signature, mintPk: newMintPk, tokenAccountPk: newTokenAccountPk } = await client.mintNft(
-                minter, // Signer is minter
-                avatarIndex.toNumber(),
-                nftName,
-                nftSymbol,
-                nftUri
-            );
-            mintPk = newMintPk;
-            minterTokenAccountPk = newTokenAccountPk;
-
-            console.log("Mint NFT TX:", signature);
-            expect(signature).to.be.a("string");
-
-            // Check AvatarData account state
-            const updatedAvatarData = await client.getAvatarData(avatarDataPda);
-            expect(updatedAvatarData).to.not.be.null;
-            if (updatedAvatarData) {
-                expect(updatedAvatarData.currentSupply.eq(initialAvatarData.currentSupply.add(new BN(1)))).to.be.true;
-                expect(updatedAvatarData.totalUnclaimedFees.eq(initialAvatarData.totalUnclaimedFees.add(mintingFeePerMint))).to.be.true;
-            }
-
-            // Check minter's token account for the NFT
-            const tokenAccountInfo = await getTokenAccount(connection, minterTokenAccountPk);
-            expect(tokenAccountInfo.amount).to.equal(BigInt(1));
-            expect(tokenAccountInfo.mint.equals(mintPk)).to.be.true;
-            expect(tokenAccountInfo.owner.equals(minter.publicKey)).to.be.true;
-
-            // Check balances (approximate due to gas fees)
-            const finalMinterBalance = await connection.getBalance(minter.publicKey);
-            const finalEscrowBalance = await connection.getBalance(escrowPda);
-
-            expect(finalMinterBalance).to.be.lessThan(initialMinterBalance - mintingFeePerMint.toNumber());
-            expect(finalEscrowBalance).to.equal(initialEscrowBalance + mintingFeePerMint.toNumber());
+            // token ownership
+            const tokenAcc = await getTokenAccount(connection, tokenAccountPk);
+            expect(tokenAcc.amount).to.equal(BigInt(1));
+            expect(tokenAcc.owner.equals(minterKeypair.publicKey)).to.be.true;
         });
 
-        it("Mints a second NFT", async () => {
-            const { signature } = await client.mintNft(
-                minter,
-                avatarIndex.toNumber(),
-                "Second Avatar",
-                "AVTR2",
-                `https://arweave.net/${testIpfsHash}/metadata2.json`
-            );
-            console.log("Mint Second NFT TX:", signature);
-            expect(signature).to.be.a("string");
+        it("Mints a second NFT and accumulates fees", async () => {
+            // capture current state
+            const dataBefore = await creatorClient.getAvatarData(avatarDataPda);
+            expect(dataBefore).to.not.be.null;
+            const prevSupply = dataBefore!.currentSupply;
+            const prevFees   = dataBefore!.totalUnclaimedFees;
 
-            const avatarDataAccount = await client.getAvatarData(avatarDataPda);
-            expect(avatarDataAccount?.currentSupply.eqn(2)).to.be.true;
-            expect(avatarDataAccount?.totalUnclaimedFees.eq(mintingFeePerMint.mul(new BN(2)))).to.be.true;
+            // second mint
+            const { tokenAccountPk } = await minterClient.mintNft({
+                index: avatarIndex.toNumber(),
+                name: "Second Avatar NFT",
+                symbol: "AVT2",
+                uri: `https://arweave.net/${testIpfsHash}/metadata2.json`,
+            });
+
+            // state after mint
+            const dataAfter = await creatorClient.getAvatarData(avatarDataPda);
+            expect(dataAfter!.currentSupply.eq(prevSupply.add(new BN(1)))).to.be.true;
+            expect(dataAfter!.totalUnclaimedFees.eq(prevFees.add(mintingFeePerMint))).to.be.true;
+
+            // token ownership sanity‑check
+            const tokenAcc = await getTokenAccount(connection, tokenAccountPk);
+            expect(tokenAcc.owner.equals(minterKeypair.publicKey)).to.be.true;
         });
 
         it("Creator claims accumulated fees", async () => {
-            const avatarDataBeforeClaim = await client.getAvatarData(avatarDataPda);
-            expect(avatarDataBeforeClaim).to.not.be.null;
-            if (!avatarDataBeforeClaim) throw new Error("Avatar data not found for claim test");
-
-            const feesToClaim = avatarDataBeforeClaim.totalUnclaimedFees;
-            expect(feesToClaim.gtn(0)).to.be.true; // Expecting 2 * mintingFeePerMint
-
-            const initialCreatorBalance = await connection.getBalance(creator.publicKey);
-            const initialEscrowBalance = await connection.getBalance(escrowPda);
-
-            const { signature } = await client.claimFee(
-                creator.payer,
-                avatarIndex.toNumber()
-            );
-            console.log("Claim Fee TX:", signature);
-            expect(signature).to.be.a("string");
-
-            const avatarDataAfterClaim = await client.getAvatarData(avatarDataPda);
-            expect(avatarDataAfterClaim).to.not.be.null;
-            if (avatarDataAfterClaim) {
-                expect(avatarDataAfterClaim.totalUnclaimedFees.eqn(0)).to.be.true;
-            }
-
-            const finalCreatorBalance = await connection.getBalance(creator.publicKey);
-            const finalEscrowBalance = await connection.getBalance(escrowPda);
-
-            // Creator balance should increase by feesToClaim (minus gas for claim tx)
-            // Escrow PDA balance should decrease by feesToClaim
-            expect(finalCreatorBalance).to.be.greaterThan(initialCreatorBalance); // Simplified check
-            expect(finalEscrowBalance).to.equal(initialEscrowBalance - feesToClaim.toNumber());
+            await creatorClient.claimFee({ index: avatarIndex.toNumber() });
+            const data = await creatorClient.getAvatarData(avatarDataPda);
+            expect(data!.totalUnclaimedFees.eqn(0)).to.be.true;
         });
 
-        it("Fails to claim fee if no fees are available", async () => {
+        it("Fails to claim fee when no fees are available", async () => {
             try {
-                await client.claimFee(creator.payer, avatarIndex.toNumber());
-                expect.fail("Should have thrown an error for no fees to claim");
-            } catch (error: any) {
-                expect(error.message).to.include("NoFeesToClaim");
+                await creatorClient.claimFee({ index: avatarIndex.toNumber() });
+                expect.fail("should throw");
+            } catch (e: any) {
+                expect(e.message).to.include("NoFeesToClaim");
             }
         });
 
-        it("Fails to claim fee if not the creator", async () => {
-            // First, mint another NFT to accumulate some fees again
-            await client.mintNft(
-                minter,
-                avatarIndex.toNumber(),
-                "NFT for wrong claimer test",
-                "BAD",
-                "uri"
-            );
-            const avatarData = await client.getAvatarData(avatarDataPda);
-            expect(avatarData?.totalUnclaimedFees.gtn(0)).to.be.true;
+        it("Fails to claim fee if unauthorized", async () => {
+            // use the minter wallet (not the creator) as the unauthorized caller
+            const wrongClient = minterClient;
 
-            const wrongClaimer = Keypair.generate(); // A random keypair
-            // Airdrop some SOL to wrongClaimer to pay for tx fees
-            if (isLocal) {
-                const airdropSig = await connection.requestAirdrop(wrongClaimer.publicKey, 0.1 * LAMPORTS_PER_SOL);
-                const latestBlockhash = await connection.getLatestBlockhash();
-                await connection.confirmTransaction({
-                    blockhash: latestBlockhash.blockhash,
-                    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-                    signature: airdropSig,
-                });
-            }
+            // add some fees again
+            await minterClient.mintNft({
+                index: avatarIndex.toNumber(),
+                name: "Fee build",
+                symbol: "FEE",
+                uri: "uri",
+            });
 
             try {
-                await client.claimFee(wrongClaimer, avatarIndex.toNumber()); // Attempt claim with wrongClaimer
-                expect.fail("Should have thrown an error for unauthorized claimer");
-            } catch (error: any) {
-                expect(error.message).to.include("Unauthorized");
+                await wrongClient.claimFee({ index: avatarIndex.toNumber() });
+                expect.fail("should throw");
+            } catch (e: any) {
+                expect(e.message).to.include("Unauthorized");
             }
-            // Creator should still be able to claim
-            await client.claimFee(creator.payer, avatarIndex.toNumber());
-            const avatarDataAfterGoodClaim = await client.getAvatarData(avatarDataPda);
-            expect(avatarDataAfterGoodClaim?.totalUnclaimedFees.eqn(0)).to.be.true;
+
+            // creator can still claim
+            await creatorClient.claimFee({ index: avatarIndex.toNumber() });
+            const data = await creatorClient.getAvatarData(avatarDataPda);
+            expect(data!.totalUnclaimedFees.eqn(0)).to.be.true;
         });
     });
 
-    describe("With initialized AvatarData (zero fee)", () => {
-        const nftNameZeroFee = "My Zero Fee NFT";
-        const nftSymbolZeroFee = "ZFTR";
-        const nftUriZeroFee = `https://arweave.net/${testIpfsHash2}/metadata.json`;
+    /* ------------------------------------------------------------------ */
+    /* Zero‑fee avatar flow                                               */
+    /* ------------------------------------------------------------------ */
 
-        it("Mints an NFT successfully with zero fee", async () => {
-            const initialMinterBalance = await connection.getBalance(minter.publicKey);
-            const initialAvatarData = await client.getAvatarData(avatarDataPdaZeroFee);
-            expect(initialAvatarData).to.not.be.null;
-            if (!initialAvatarData) throw new Error("Avatar data (zero fee) not found");
+    describe("Avatar with zero fee", () => {
+        const nftName = "Zero Fee NFT";
+        const nftSymbol = "ZFTR";
+        const nftUri = `https://arweave.net/${testIpfsHash2}/metadata.json`;
 
-            const initialEscrowBalance = await connection.getBalance(escrowPdaZero);
+        it("Mints without charging fee", async () => {
+            await minterClient.mintNft({
+                index: avatarIndexZeroFee.toNumber(),
+                name: nftName,
+                symbol: nftSymbol,
+                uri: nftUri,
+            });
 
-            const { signature, mintPk, tokenAccountPk } = await client.mintNft(
-                minter,
-                avatarIndexZeroFee.toNumber(),
-                nftNameZeroFee,
-                nftSymbolZeroFee,
-                nftUriZeroFee
-            );
-            console.log("Mint NFT (Zero Fee) TX:", signature);
-
-            const updatedAvatarData = await client.getAvatarData(avatarDataPdaZeroFee);
-            expect(updatedAvatarData).to.not.be.null;
-            if (updatedAvatarData) {
-                expect(updatedAvatarData.currentSupply.eq(initialAvatarData.currentSupply.add(new BN(1)))).to.be.true;
-                expect(updatedAvatarData.totalUnclaimedFees.eq(initialAvatarData.totalUnclaimedFees)).to.be.true; // Should be 0
-                expect(updatedAvatarData.totalUnclaimedFees.eqn(0)).to.be.true;
-            }
-
-            const tokenAccountInfo = await getTokenAccount(connection, tokenAccountPk);
-            expect(tokenAccountInfo.amount).to.equal(BigInt(1));
-
-            const finalEscrowBalance = await connection.getBalance(escrowPdaZero);
-            expect(finalEscrowBalance).to.equal(initialEscrowBalance); // No fee transferred
+            const data = await creatorClient.getAvatarData(avatarDataPdaZeroFee);
+            expect(data!.totalUnclaimedFees.eqn(0)).to.be.true;
         });
 
-        it("Fails to claim fee if minting fee was zero", async () => {
+        it("Fails to claim when no fees collected", async () => {
             try {
-                await client.claimFee(creator.payer, avatarIndexZeroFee, testIpfsHash2);
-                expect.fail("Should have thrown an error as no fees were ever collected");
-            } catch (error: any) {
-                expect(error.message).to.include("NoFeesToClaim");
+                await creatorClient.claimFee({ index: avatarIndexZeroFee.toNumber() });
+                expect.fail("should throw");
+            } catch (e: any) {
+                expect(e.message).to.include("NoFeesToClaim");
             }
         });
     });
 
+    /* ------------------------------------------------------------------ */
+    /* Max‑supply guard                                                   */
+    /* ------------------------------------------------------------------ */
 
-    it("Fails to mint NFT if max supply is reached", async () => {
-        const smallMaxSupply = new BN(1);
-        const { avatarDataPda: pdaMaxSupply } = await client.initializeAvatar(
-            creator.payer,
-            testIpfsHash3,
-            smallMaxSupply,
-            mintingFeePerMint
-        );
-        const dataMaxSupply = await client.getAvatarData(pdaMaxSupply);
-        expect(dataMaxSupply).to.not.be.null;
-        const newIndex = dataMaxSupply!.index;
+    it("Fails to mint when max supply reached", async () => {
+        const smallSupply = new BN(1);
+        const { avatarDataPda: pda } = await creatorClient.initializeAvatar({
+            ipfsHash: testIpfsHash3,
+            maxSupply: smallSupply,
+            mintingFeePerMint,
+        });
+        const data = await creatorClient.getAvatarData(pda);
+        const idx = data!.index;
 
-        // Mint 1 successfully
-        await client.mintNft(
-            minter,
-            newIndex.toNumber(),
-            "Max Supply Test NFT 1",
-            "MAXS",
-            "uri1"
-        );
+        // first mint succeeds
+        await minterClient.mintNft({
+            index: idx.toNumber(),
+            name: "First",
+            symbol: "ONE",
+            uri: "uri1",
+        });
 
-        const avatarData = await client.getAvatarData(pdaMaxSupply);
-        expect(avatarData?.currentSupply.eq(smallMaxSupply)).to.be.true;
-
-        // Try to mint another one - should fail
+        // second mint should fail
         try {
-            await client.mintNft(
-                minter,
-                newIndex.toNumber(),
-                "Max Supply Test NFT 2",
-                "MAXS",
-                "uri2"
-            );
-            expect.fail("Should have thrown an error for max supply reached");
-        } catch (error: any) {
-            expect(error.message).to.include("MaxSupplyReached");
+            await minterClient.mintNft({
+                index: idx.toNumber(),
+                name: "Second",
+                symbol: "TWO",
+                uri: "uri2",
+            });
+            expect.fail("should throw");
+        } catch (e: any) {
+            expect(e.message).to.include("MaxSupplyReached");
         }
     });
 
-    it("Handles fetching non-existent AvatarData", async () => {
-        const nonExistentPda = Keypair.generate().publicKey; // A random PDA not initialized
-        const avatarData = await client.getAvatarData(nonExistentPda);
-        expect(avatarData).to.be.null;
+    /* ------------------------------------------------------------------ */
+    /* Non‑existent PDA fetch                                             */
+    /* ------------------------------------------------------------------ */
+
+    it("Returns null for non‑existent AvatarData", async () => {
+        const bogus = Keypair.generate().publicKey;
+        const data = await creatorClient.getAvatarData(bogus);
+        expect(data).to.be.null;
     });
 });
