@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/avatar_nft_minter.json`.
  */
 export type AvatarNftMinter = {
-  "address": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+  "address": "EXmcLULN3Nx9kwkYZmv1cPxKr74mPjuMwfoKGsJ6Npb",
   "metadata": {
     "name": "avatarNftMinter",
     "version": "0.1.0",
@@ -28,16 +28,7 @@ export type AvatarNftMinter = {
       "accounts": [
         {
           "name": "avatarData",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "avatar_data.ipfs_hash",
-                "account": "avatarData"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "creator",
@@ -69,15 +60,7 @@ export type AvatarNftMinter = {
       "accounts": [
         {
           "name": "avatarData",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "arg",
-                "path": "ipfsHash"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "payer",
@@ -122,6 +105,20 @@ export type AvatarNftMinter = {
           "writable": true,
           "pda": {
             "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  118,
+                  49
+                ]
+              },
               {
                 "kind": "account",
                 "path": "avatar_data.ipfs_hash",

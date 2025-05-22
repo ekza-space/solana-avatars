@@ -1,6 +1,12 @@
 anchor-deploy:
 	anchor build && anchor deploy --program-name avatars --program-keypair target-deploy-keypair.json
 
+anchor-deploy-minter:
+	anchor build && anchor deploy --program-name minter --program-keypair target-deploy-keypair-minter.json
+
+anchor-ted-devnet:
+	anchor test --skip-build --skip-deploy
+
 anchor-test-local:
 	anchor test --provider.cluster localnet
 

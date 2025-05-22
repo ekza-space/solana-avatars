@@ -1,5 +1,5 @@
 {
-  "address": "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS",
+  "address": "EXmcLULN3Nx9kwkYZmv1cPxKr74mPjuMwfoKGsJ6Npb",
   "metadata": {
     "name": "avatar_nft_minter",
     "version": "0.1.0",
@@ -22,16 +22,7 @@
       "accounts": [
         {
           "name": "avatar_data",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "avatar_data.ipfs_hash",
-                "account": "AvatarData"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "creator",
@@ -63,15 +54,7 @@
       "accounts": [
         {
           "name": "avatar_data",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "arg",
-                "path": "ipfs_hash"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "payer",
@@ -116,6 +99,20 @@
           "writable": true,
           "pda": {
             "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  118,
+                  49
+                ]
+              },
               {
                 "kind": "account",
                 "path": "avatar_data.ipfs_hash",

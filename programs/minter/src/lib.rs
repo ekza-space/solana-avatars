@@ -1,4 +1,5 @@
 #![allow(unexpected_cfgs)] // TODO: wtf?!
+use sha2::{Digest, Sha256};
 
 use anchor_lang::{
     prelude::*,
@@ -14,7 +15,7 @@ use anchor_spl::{
     token::{mint_to, Mint, MintTo, Token, TokenAccount},
 };
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"); // Keep your original Program ID
+declare_id!("EXmcLULN3Nx9kwkYZmv1cPxKr74mPjuMwfoKGsJ6Npb");
 
 #[constant]
 const AVATAR_SEED: &[u8] = b"avatar_v1";
@@ -183,7 +184,7 @@ pub mod avatar_nft_minter {
         let bump_seed = avatar_data.bump;
         let seeds = &[
             AVATAR_SEED.as_ref(),
-            avatar_data.ipfs_hash.as_bytes(),
+            &Sha256::digest(avatar_data.ipfs_hash.as_bytes())[..],
             &[bump_seed],
         ];
         let signer_seeds = &[&seeds[..]];
@@ -222,7 +223,10 @@ pub struct InitializeAvatar<'info> {
         payer = payer,
         // Space: 8(disc) + (4+64 ipfs) + 32(creator) + 8(max_supply) + 8(current_supply) + 8(fee_per_mint) + 8(unclaimed_fees) + 1(bump)
         space = 8 + 68 + 32 + 8 + 8 + 8 + 8 + 1, // = 141 bytes
-        seeds = [AVATAR_SEED.as_ref(), ipfs_hash.as_bytes()],
+        seeds = [
+            AVATAR_SEED.as_ref(), 
+            &Sha256::digest(ipfs_hash.as_bytes())[..]
+        ],
         bump
     )]
     pub avatar_data: Account<'info, AvatarData>,
@@ -237,7 +241,10 @@ pub struct InitializeAvatar<'info> {
 pub struct MintNft<'info> {
     #[account(
         mut,
-        seeds = [AVATAR_SEED.as_ref(), avatar_data.ipfs_hash.as_bytes()],
+        seeds = [
+            AVATAR_SEED.as_ref(),
+            &Sha256::digest(avatar_data.ipfs_hash.as_bytes())[..]
+        ],
         bump = avatar_data.bump,
     )]
     pub avatar_data: Account<'info, AvatarData>,
@@ -277,7 +284,10 @@ pub struct MintNft<'info> {
 pub struct ClaimFee<'info> {
     #[account(
         mut,
-        seeds = [AVATAR_SEED.as_ref(), avatar_data.ipfs_hash.as_bytes()],
+        seeds = [
+            AVATAR_SEED.as_ref(), 
+            &Sha256::digest(avatar_data.ipfs_hash.as_bytes())[..]
+        ],
         bump = avatar_data.bump,
         has_one = creator @ CustomError::Unauthorized,
     )]

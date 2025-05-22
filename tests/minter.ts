@@ -33,8 +33,8 @@ describe("avatar-nft-minter", () => {
     const minter = Keypair.generate(); // A new keypair for a minter
 
     // Test data
-    const testIpfsHash = "QmTestHash"; // TODO: use real hash!
-    const testIpfsHash2 = "QmAnother"; // TODO: use real hash!
+    const testIpfsHash = "QmPLhiFxQRJEStgFxQvUaETjFZYi7dndkGpwzbWga8ECDo";
+    const testIpfsHash2 = "QmZtmowGHPPJeav229rjtr5sNhJgHcrgeh4QXPcNYn7Kom";
     const maxSupply = new BN(100);
     const mintingFeePerMint = new BN(0.01 * LAMPORTS_PER_SOL); // 0.01 SOL
     const zeroMintingFee = new BN(0);
@@ -65,14 +65,14 @@ describe("avatar-nft-minter", () => {
         console.log(`Airdropped 2 SOL to minter: ${minter.publicKey.toBase58()}`);
     });
 
-    it.only("Initializes AvatarData correctly", async () => {
+    it("Initializes AvatarData correctly", async () => {
         const { signature, avatarDataPda: pda } = await client.initializeAvatar(
-            creator.payer, // Signer is creator.payer
+            creator.payer,
             testIpfsHash,
             maxSupply,
             mintingFeePerMint
         );
-        avatarDataPda = pda; // Store for later tests
+        avatarDataPda = pda;
 
         console.log("Initialize Avatar TX:", signature);
         expect(signature).to.be.a("string");
@@ -93,7 +93,7 @@ describe("avatar-nft-minter", () => {
     it("Initializes a second AvatarData for zero fee testing", async () => {
         const { signature, avatarDataPda: pda } = await client.initializeAvatar(
             creator.payer,
-            sha256(testIpfsHash2),
+            testIpfsHash2,
             maxSupply, // Can be same or different
             zeroMintingFee
         );
@@ -132,7 +132,7 @@ describe("avatar-nft-minter", () => {
         try {
             await client.initializeAvatar(
                 creator.payer,
-                sha256(testIpfsHash), // Using the same hash as the first test
+                testIpfsHash, // Using the same hash as the first test
                 maxSupply,
                 mintingFeePerMint
             );
@@ -163,7 +163,7 @@ describe("avatar-nft-minter", () => {
 
             const { signature, mintPk: newMintPk, tokenAccountPk: newTokenAccountPk } = await client.mintNft(
                 minter, // Signer is minter
-                sha256(testIpfsHash),
+                testIpfsHash,
                 nftName,
                 nftSymbol,
                 nftUri
@@ -204,7 +204,7 @@ describe("avatar-nft-minter", () => {
         it("Mints a second NFT", async () => {
             const { signature } = await client.mintNft(
                 minter,
-                sha256(testIpfsHash),
+                testIpfsHash,
                 "Second Avatar",
                 "AVTR2",
                 `https://arweave.net/${testIpfsHash}/metadata2.json`
@@ -230,7 +230,7 @@ describe("avatar-nft-minter", () => {
 
             const { signature } = await client.claimFee(
                 creator.payer, // Signer is creator.payer
-                sha256(testIpfsHash)
+                testIpfsHash
             );
             console.log("Claim Fee TX:", signature);
             expect(signature).to.be.a("string");
@@ -252,7 +252,7 @@ describe("avatar-nft-minter", () => {
 
         it("Fails to claim fee if no fees are available", async () => {
             try {
-                await client.claimFee(creator.payer, sha256(testIpfsHash));
+                await client.claimFee(creator.payer, testIpfsHash);
                 expect.fail("Should have thrown an error for no fees to claim");
             } catch (error: any) {
                 // console.log("Error details (no fees):", JSON.stringify(error, null, 2));
@@ -263,7 +263,7 @@ describe("avatar-nft-minter", () => {
 
         it("Fails to claim fee if not the creator", async () => {
             // First, mint another NFT to accumulate some fees again
-            await client.mintNft(minter, sha256(testIpfsHash), "NFT for wrong claimer test", "BAD", "uri");
+            await client.mintNft(minter, testIpfsHash, "NFT for wrong claimer test", "BAD", "uri");
             const avatarData = await client.getAvatarData(avatarDataPda);
             expect(avatarData?.totalUnclaimedFees.gtn(0)).to.be.true;
 
@@ -278,7 +278,7 @@ describe("avatar-nft-minter", () => {
             });
 
             try {
-                await client.claimFee(wrongClaimer, sha256(testIpfsHash)); // Attempt claim with wrongClaimer
+                await client.claimFee(wrongClaimer, testIpfsHash); // Attempt claim with wrongClaimer
                 expect.fail("Should have thrown an error for unauthorized claimer");
             } catch (error: any) {
                 // console.log("Error details (unauthorized):", JSON.stringify(error, null, 2));
@@ -291,7 +291,7 @@ describe("avatar-nft-minter", () => {
 
             }
             // Creator should still be able to claim
-            await client.claimFee(creator.payer, sha256(testIpfsHash));
+            await client.claimFee(creator.payer, testIpfsHash);
             const avatarDataAfterGoodClaim = await client.getAvatarData(avatarDataPda);
             expect(avatarDataAfterGoodClaim?.totalUnclaimedFees.eqn(0)).to.be.true;
         });
@@ -312,7 +312,7 @@ describe("avatar-nft-minter", () => {
 
             const { signature, mintPk, tokenAccountPk } = await client.mintNft(
                 minter,
-                sha256(testIpfsHash2),
+                testIpfsHash2,
                 nftNameZeroFee,
                 nftSymbolZeroFee,
                 nftUriZeroFee
@@ -336,7 +336,7 @@ describe("avatar-nft-minter", () => {
 
         it("Fails to claim fee if minting fee was zero", async () => {
             try {
-                await client.claimFee(creator.payer, sha256(testIpfsHash2));
+                await client.claimFee(creator.payer, testIpfsHash2);
                 expect.fail("Should have thrown an error as no fees were ever collected");
             } catch (error: any) {
                 expect(error.message).to.include("NoFeesToClaim");
@@ -351,7 +351,7 @@ describe("avatar-nft-minter", () => {
         const smallMaxSupply = new BN(1);
         const { avatarDataPda: pdaMaxSupply } = await client.initializeAvatar(
             creator.payer,
-            sha256(quickIpfs),
+            quickIpfs,
             smallMaxSupply,
             mintingFeePerMint
         );
@@ -359,7 +359,7 @@ describe("avatar-nft-minter", () => {
         // Mint 1 successfully
         await client.mintNft(
             minter,
-            sha256(quickIpfs),
+            quickIpfs,
             "Max Supply Test NFT 1", "MAXS", "uri1"
         );
 
@@ -370,7 +370,7 @@ describe("avatar-nft-minter", () => {
         try {
             await client.mintNft(
                 minter,
-                sha256(quickIpfs),
+                quickIpfs,
                 "Max Supply Test NFT 2", "MAXS", "uri2"
             );
             expect.fail("Should have thrown an error for max supply reached");

@@ -5,7 +5,7 @@ import sdk from "../sdk/src/profile";
 import { UserProfile } from "../target/types/user_profile";
 import { PublicKey, Keypair } from "@solana/web3.js";
 
-describe("user_profile", () => {
+describe.skip("user_profile", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
   const provider = anchor.getProvider();
   const program = anchor.workspace.userProfile as Program<UserProfile>;

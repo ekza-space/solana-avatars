@@ -1,5 +1,3 @@
-// avatarNftMinterSdk.ts
-
 import * as anchor from "@coral-xyz/anchor";
 import { Program, web3, BN } from "@coral-xyz/anchor";
 import {
@@ -24,9 +22,11 @@ import type { AvatarNftMinter as AvatarNftMinterIDLType } from "../idl/avatar_nf
 
 // 2. Import the JSON IDL:
 import idlJson from "../idl/avatar_nft_minter.json";
+import { sha256 } from "js-sha256";
 
 // 3. Create a correctly typed IDL constant:
 const TYPED_IDL = idlJson as AvatarNftMinterIDLType; // Cast the JSON to the generated type
+const METADATA_PROGRAM_ID = new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID);
 
 // --- Constants ---
 // Use the top-level 'address' from the JSON IDL
@@ -60,20 +60,22 @@ export class AvatarNftMinterClient {
     // --- PDA Derivation ---
 
     public getAvatarDataPda(ipfsHash: string): [PublicKey, number] {
+        const digest = Buffer.from(sha256.arrayBuffer(ipfsHash));
         return PublicKey.findProgramAddressSync(
-            [Buffer.from(AVATAR_PDA_SEED), Buffer.from(ipfsHash)],
+            [Buffer.from(AVATAR_PDA_SEED), digest],
             this.program.programId
         );
     }
+
 
     public getMetadataPda(mintPublicKey: PublicKey): [PublicKey, number] {
         return PublicKey.findProgramAddressSync(
             [
                 Buffer.from(METADATA_SEED),
-                MPL_TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+                METADATA_PROGRAM_ID.toBuffer(),
                 mintPublicKey.toBuffer(),
             ],
-            MPL_TOKEN_METADATA_PROGRAM_ID
+            METADATA_PROGRAM_ID
         );
     }
 
@@ -86,7 +88,6 @@ export class AvatarNftMinterClient {
         mintingFeePerMint: BN
     ): Promise<{ signature: string; avatarDataPda: PublicKey }> {
         const [avatarDataPda] = this.getAvatarDataPda(ipfsHash);
-
         const signature = await this.program.methods
             .initializeAvatar(ipfsHash, maxSupply, mintingFeePerMint)
             .accountsStrict({
