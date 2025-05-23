@@ -7,6 +7,8 @@ const METADATA_PROGRAM_ID = new PublicKey(
     "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
 );
 
+const DEFAULT_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || "http://localhost:8080/ipfs/";
+
 // todo: move to SDK
 export async function fetchUserNFTs(
     connection: Connection,
@@ -59,20 +61,24 @@ export async function fetchUserNFTs(
                 readBorshString(); // symbol
                 const uri = readBorshString();
 
-                // Filter out invalid IPFS CIDs (CIDv0 or CIDv1)
-                const isValidIpfsCid = (cid: string): boolean => {
-                    return /^Qm[1-9A-HJ-NP-Za-km-z]{44}$/.test(cid) || /^bafy[0-9a-z]{50,}$/.test(cid);
-                };
-
-                if (!isValidIpfsCid(uri)) {
-                    console.warn("Skipping NFT with invalid URI:", uri, "mint pubkey: ", mintPubkey.toString());
-                    continue;
+                // Resolve metadata URL.
+                // Possible cases:
+                //  - raw CID          => DEFAULT_GATEWAY + cid
+                //  - ipfs://<cid>     => DEFAULT_GATEWAY + cid
+                //  - http(s)://...    => use as‑is
+                let metadataUrl: string;
+                if (uri.startsWith("http://") || uri.startsWith("https://")) {
+                    metadataUrl = uri;
+                } else if (uri.startsWith("ipfs://")) {
+                    metadataUrl = uri.replace("ipfs://", DEFAULT_GATEWAY);
+                } else {
+                    metadataUrl = `${DEFAULT_GATEWAY}${uri}`;
                 }
 
                 // Fetch metadata JSON from local IPFS gateway
                 let metadata: NftMetadata | undefined = undefined;
                 try {
-                    const res = await fetch(`http://localhost:8080/ipfs/${uri}`); // TODO: read from .env
+                    const res = await fetch(metadataUrl);
                     if (res.ok) {
                         metadata = await res.json() as NftMetadata;
                     }

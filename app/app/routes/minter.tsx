@@ -2,7 +2,7 @@ import Header from "~/components/header"; // Assuming this is your existing head
 import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
 import * as anchor from "@coral-xyz/anchor";
 import minterClient from "~/../../sdk/src/minter";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { getIpfsUrl } from "~/utils/ipfsUrls";
 import { NftMetadata } from "~/types/nft";
@@ -98,6 +98,13 @@ export default function MarketPage() {
     const { connection } = useConnection();
     const anchorWallet = useAnchorWallet();
     const [avatars, setAvatars] = useState<AvatarItem[]>([]);
+    const minter = useMemo(() => {
+      if (!connection || !anchorWallet) return null;
+      const provider = new anchor.AnchorProvider(connection, anchorWallet, {});
+      const program = new anchor.Program(minterClient.idlJson as any, provider);
+      // @ts-ignore
+      return minterClient.create(provider, program);
+    }, [connection, anchorWallet]);
 
     // Initialise with the local mock while no wallet/cluster is yet queried
     useEffect(() => {
@@ -217,6 +224,23 @@ export default function MarketPage() {
                                 )}{" "}
                                 SOL
                             </p>
+                            {/* Mint button */}
+                            <button
+                              onClick={async () => {
+                                if (!minter || !metadata) return;
+                                const result = await minter.mintNft({
+                                  index,
+                                  name: metadata.name,
+                                  symbol: metadata.symbol,
+                                  uri: getIpfsUrl(data.uriIpfsHash),
+                                });
+                                console.log("Minted NFT:", result);
+                                alert(`Minted NFT!\nSignature: ${result.signature}`);
+                              }}
+                              className="mt-4 w-full bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 transition"
+                            >
+                              Mint
+                            </button>
                         </div>
                     ))}
                 </div>
