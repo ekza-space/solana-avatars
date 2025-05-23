@@ -49,6 +49,14 @@ export default function Header() {
           Minter
         </Link>
 
+        <Link
+          to="/about"
+          className={`${location.pathname === "/about" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
+            } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
+        >
+          About
+        </Link>
+
         <a
           href="https://space.ekza.io"
           target="_blank"

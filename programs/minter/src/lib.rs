@@ -14,7 +14,7 @@ use anchor_spl::{
     token::{mint_to, Mint, MintTo, Token, TokenAccount},
 };
 
-declare_id!("EXmcLULN3Nx9kwkYZmv1cPxKr74mPjuMwfoKGsJ6Npb");
+declare_id!("29KLLArkfCfRGPgTh4k4qzXvR2JkkXfRnnNZTKn54TKz");
 
 #[constant]
 const AVATAR_SEED: &[u8] = b"avatar_v1";

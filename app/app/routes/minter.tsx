@@ -166,7 +166,7 @@ export default function MarketPage() {
 
     return (
         <div className="min-h-screen text-slate-800"> {/* Softer background */}
-              <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+              <main className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <h1 className="text-4xl font-bold text-slate-900 mb-10 text-center"> {/* Page Title */}
                     Explore the Avatar NFT Marketplace
                 </h1>

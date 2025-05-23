@@ -46,7 +46,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body style={{ paddingTop: "64px" }}>
+      <body style={{ paddingTop: "120px" }}>
         {children}
         <Footer />
         <ScrollRestoration />
