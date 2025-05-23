@@ -21,6 +21,8 @@ import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { clusterApiUrl } from "@solana/web3.js";
 import "@solana/wallet-adapter-react-ui/styles.css";
+import Footer from "./components/footer";
+import Header from "./components/header";
 
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -44,8 +46,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body>
+      <body style={{ paddingTop: "64px" }}>
         {children}
+        <Footer />
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -62,6 +65,7 @@ export default function App() {
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
+          <Header />
           <SayHi />
           <Outlet />
         </WalletModalProvider>

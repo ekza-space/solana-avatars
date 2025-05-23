@@ -5,6 +5,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { fetchUserNFTs } from "~/utils/fetchUserNfts";
 import { handleBurnInvalidNFTs } from "~/utils/burnNft";
 import SceneWithModel from "./3d/SceneWithModel";
+
 import { getIpfsUrl } from "~/utils/ipfsUrls";
 
 
@@ -117,7 +118,7 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
     if (realAvatarList.length === 0) {
         return (
             <div className="p-4 bg-yellow-100 text-yellow-900 rounded-lg text-center flex justify-center items-center h-40">
-                No avatar found. Go and&nbsp;<a href="/mint" className="underline">create one first</a>.
+                No avatar found. Go and&nbsp;<a href="/minter" className="underline">mint one first</a>.
             </div>
         );
     }
@@ -126,9 +127,11 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
         <div>
             {/* 3D Visualization Placeholder */}
             {modelUrl ? <div className="mb-6">
-                <div className="w-full h-[500px]">
-                    <SceneWithModel file={modelUrl} />
-                </div>
+                {modelUrl && (
+                    <div className="w-full h-[500px]">
+                        <SceneWithModel file={modelUrl} />
+                    </div>
+                )}
             </div> : <div className="mb-6">
                 <img
                     src={`${IPFS_GATEWAY}${selectedAvatar.imgHash}`}

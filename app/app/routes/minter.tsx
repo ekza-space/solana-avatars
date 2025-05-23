@@ -6,6 +6,9 @@ import { useEffect, useMemo, useState } from "react";
 
 import { getIpfsUrl } from "~/utils/ipfsUrls";
 import { NftMetadata } from "~/types/nft";
+import SceneWithModel from "~/components/3d/SceneWithModel";
+
+let DISABLE_CACHE = true;
 
 let mocked = [
     {
@@ -54,7 +57,7 @@ type AvatarItem = (typeof mocked)[number] & { metadata?: NftMetadata | null };
 const LS_KEY = "avatarsCache";
 
 function loadCachedAvatars(): AvatarItem[] {
-  if (typeof window === "undefined") return [];
+  if (DISABLE_CACHE || typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(LS_KEY);
     return raw ? (JSON.parse(raw) as AvatarItem[]) : [];
@@ -64,7 +67,7 @@ function loadCachedAvatars(): AvatarItem[] {
 }
 
 function saveCachedAvatars(avatars: AvatarItem[]) {
-  if (typeof window === "undefined") return;
+  if (DISABLE_CACHE || typeof window === "undefined") return;
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(avatars));
   } catch {
@@ -97,7 +100,9 @@ const enrichWithMetadata = async (raw: AvatarItem[]): Promise<AvatarItem[]> => {
 export default function MarketPage() {
     const { connection } = useConnection();
     const anchorWallet = useAnchorWallet();
-    const [avatars, setAvatars] = useState<AvatarItem[]>([]);
+    const [avatars, setAvatars] = useState<AvatarItem[] | null>(null);
+    const [iframeSrc, setIframeSrc] = useState<string | null>(null);
+    const [modalDescription, setModalDescription] = useState<string | null>(null);
     const minter = useMemo(() => {
       if (!connection || !anchorWallet) return null;
       const provider = new anchor.AnchorProvider(connection, anchorWallet, {});
@@ -111,8 +116,6 @@ export default function MarketPage() {
       const cached = loadCachedAvatars();
       if (cached.length) {
         setAvatars(cached);
-      } else {
-        enrichWithMetadata(mocked as AvatarItem[]).then(setAvatars);
       }
     }, []);
 
@@ -163,16 +166,28 @@ export default function MarketPage() {
 
     return (
         <div className="min-h-screen text-slate-800"> {/* Softer background */}
-            <Header />
-            <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+              <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <h1 className="text-4xl font-bold text-slate-900 mb-10 text-center"> {/* Page Title */}
                     Explore the Avatar NFT Marketplace
                 </h1>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                    {avatars && avatars.map(({ index, data, metadata }) => (
+                    {avatars === null ? (
+                      <p className="text-center col-span-full text-slate-500">Loading avatars...</p>
+                    ) : (
+                      avatars.map(({ index, data, metadata }) => (
                         <div
                             key={index}
+                            onClick={(e) => {
+                              const tag = (e.target as HTMLElement).tagName.toLowerCase();
+                              if (tag === "button" || tag === "a") return;
+                              const modal = document.getElementById("model-modal");
+                              if (modal && metadata?.animation_url) {
+                                modal.style.display = "flex";
+                                setIframeSrc(getIpfsUrl(metadata.animation_url));
+                                setModalDescription(metadata.description || null);
+                              }
+                            }}
                             className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1 p-6"
                         >
                             {metadata?.image && (
@@ -185,14 +200,19 @@ export default function MarketPage() {
 
                             {metadata?.animation_url &&
                               metadata?.properties?.category === "vrmodel" && (
-                                <a
-                                  href={getIpfsUrl(metadata.animation_url)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <button
+                                  onClick={() => {
+                                    const modal = document.getElementById("model-modal");
+                                    if (modal && metadata.animation_url) {
+                                      modal.style.display = "flex";
+                                      setIframeSrc(getIpfsUrl(metadata.animation_url));
+                                      setModalDescription(metadata.description || null);
+                                    }
+                                  }}
                                   className="block text-indigo-600 underline text-sm mb-4"
                                 >
                                   View 3D model
-                                </a>
+                                </button>
                               )}
 
                             <h3 className="text-xl font-semibold text-slate-900 mb-4">
@@ -202,7 +222,27 @@ export default function MarketPage() {
                               <p className="text-slate-700 font-medium mb-2">{metadata.name}</p>
                             )}
                             {metadata?.description && (
-                              <p className="text-sm text-slate-500 mb-4">{metadata.description}</p>
+                              <p className="text-sm text-slate-500 mb-4">
+                                {metadata.description.slice(0, 250)}
+                                {metadata.description.length > 250 && (
+                                  <>
+                                    ...{" "}
+                                    <button
+                                      onClick={() => {
+                                        const modal = document.getElementById("text-modal");
+                                        const content = document.getElementById("text-modal-content");
+                                        if (modal && content) {
+                                          content.textContent = metadata.description;
+                                          modal.style.display = "flex";
+                                        }
+                                      }}
+                                      className="text-indigo-600 underline text-sm"
+                                    >
+                                      Read more
+                                    </button>
+                                  </>
+                                )}
+                              </p>
                             )}
                             <p className="text-sm text-slate-500 mb-2">
                                 Creator:{" "}
@@ -211,7 +251,7 @@ export default function MarketPage() {
                                 </span>
                             </p>
                             <p className="text-sm text-slate-600 mb-2">
-                                Max supply: {Number(data.maxSupply)}
+                                Max supply: {Number(data.maxSupply) > 1000000000000 ? "∞" : Number(data.maxSupply)}
                             </p>
                             <p className="text-sm text-slate-600 mb-2">
                                 Current supply: {Number(data.currentSupply)}
@@ -242,12 +282,153 @@ export default function MarketPage() {
                               Mint
                             </button>
                         </div>
-                    ))}
+                      ))
+                    )}
                 </div>
             </main>
-            <footer className="text-center py-8 text-slate-500 text-sm">
-                © {new Date().getFullYear()} NFT Marketplace. All rights reserved.
-            </footer>
+        {/* 3D Model Modal */}
+        <div
+          id="model-modal"
+          style={{
+            display: "none",
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={(e) => {
+            const modal = document.getElementById("model-modal");
+            if (modal && e.target === modal) {
+              modal.style.display = "none";
+              setIframeSrc(null);
+              setModalDescription(null);
+            }
+          }}
+        >
+          <div
+            style={{
+              padding: "25px",
+              position: "relative",
+              width: "60%",
+              height: "80%",
+              backgroundColor: "white",
+              borderRadius: "8px",
+              overflow: "hidden",
+            }}
+          >
+            <button
+              onClick={() => {
+                const modal = document.getElementById("model-modal");
+                if (modal) modal.style.display = "none";
+                setIframeSrc(null);
+                setModalDescription(null);
+              }}
+              style={{
+                position: "absolute",
+                top: "16px",
+                right: "16px",
+                fontSize: "24px",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                zIndex: 1001,
+              }}
+            >
+              ×
+            </button>
+            {iframeSrc && (
+              <div className="w-full h-[500px]">
+                <SceneWithModel file={iframeSrc} />
+              </div>
+            )}
+            {modalDescription && (
+              <div
+                style={{
+                  padding: "16px",
+                  maxHeight: "20vh",
+                  overflowY: "auto",
+                  backgroundColor: "#f9f9f9",
+                  fontSize: "14px",
+                  color: "#333",
+                }}
+                className="mt-4 rounded"
+              >
+                {modalDescription}
+              </div>
+            )}
+          </div>
+        {/* Full Description Modal */}
+        <div
+          id="text-modal"
+          style={{
+            display: "none",
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={(e) => {
+            const modal = document.getElementById("text-modal");
+            const content = document.getElementById("text-modal-content");
+            if (modal && content && e.target === modal) {
+              modal.style.display = "none";
+              content.textContent = "";
+            }
+          }}
+        >
+          <div
+            style={{
+              position: "relative",
+              width: "60%",
+              maxHeight: "80vh",
+              backgroundColor: "white",
+              borderRadius: "8px",
+              overflow: "hidden",
+            }}
+          >
+            <button
+              onClick={() => {
+                const modal = document.getElementById("text-modal");
+                const content = document.getElementById("text-modal-content");
+                if (modal && content) {
+                  modal.style.display = "none";
+                  content.textContent = "";
+                }
+              }}
+              style={{
+                position: "absolute",
+                top: "8px",
+                right: "8px",
+                fontSize: "24px",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                zIndex: 1001,
+              }}
+            >
+              ×
+            </button>
+            <div
+              id="text-modal-content"
+              style={{
+                padding: "16px",
+                overflowY: "auto",
+                maxHeight: "calc(80vh - 32px)",
+              }}
+            ></div>
+          </div>
+        </div>
+        </div>
         </div>
     );
 }
