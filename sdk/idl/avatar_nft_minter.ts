@@ -210,7 +210,7 @@ export type AvatarNftMinter = {
       ],
       "args": [
         {
-          "name": "ipfsHash",
+          "name": "uriIpfsHash",
           "type": "string"
         },
         {
@@ -515,7 +515,7 @@ export type AvatarNftMinter = {
         "kind": "struct",
         "fields": [
           {
-            "name": "ipfsHash",
+            "name": "uriIpfsHash",
             "type": "string"
           },
           {

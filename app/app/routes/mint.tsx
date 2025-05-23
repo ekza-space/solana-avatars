@@ -267,7 +267,7 @@ export default function GenerateAvatar() {
                     className="flex flex-col items-center space-y-8"
                 >
                     <div className="flex items-center justify-center w-full md:w-3/4 mx-auto mb-4">
-                        {uploadedFile?.name.endsWith('.glb') ? (
+                        {uploadedFile?.name.match(/\.(glb|vrm)$/i) ? (
                             <div className="w-full max-w-xl mx-auto mb-8" style={{ aspectRatio: "16 / 10", height: "450px" }}>
                                 <SceneWithModel file={URL.createObjectURL(uploadedFile)} screenshot={true} />
                             </div>
@@ -337,7 +337,7 @@ export default function GenerateAvatar() {
                     <Tabs.Content value="upload" className="w-full flex flex-col space-y-4 items-center">
                       <input
                             type="file"
-                            accept="image/*,.glb,model/gltf-binary"
+                            accept=".vrm,.glb,model/gltf-binary"
                             onChange={handleFileChange}
                             className="w-2/3 max-w-sm bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-4"
                         />

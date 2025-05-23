@@ -204,7 +204,7 @@
       ],
       "args": [
         {
-          "name": "ipfs_hash",
+          "name": "uri_ipfs_hash",
           "type": "string"
         },
         {
@@ -509,7 +509,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "ipfs_hash",
+            "name": "uri_ipfs_hash",
             "type": "string"
           },
           {

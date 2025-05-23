@@ -22,6 +22,15 @@ interface AvatarSelectorProps {
     setSelectedAvatar: (avatar: Avatar) => void;
 }
 
+function getIpfsUrl(modelHash: string): string {
+    const isDev = import.meta.env.DEV; // Vite sets this flag
+    const baseUrl = isDev
+        ? "http://localhost:8080/ipfs/"
+        : "https://ekza.io/ipfs/";
+
+    return `${baseUrl}${modelHash}`;
+}
+
 // Default list of free-to-use 3D avatars
 export const avatarList: Avatar[] = [
     { imgHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", modelHash: "QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF", avatarMint: new Keypair().publicKey },
@@ -58,7 +67,7 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
             setModelUrl("");
             return;
         }
-        const ipfsUrl = `/ipfs/${modelHash}`;
+        const ipfsUrl = getIpfsUrl(modelHash);
         console.log("ipfsUrl:", ipfsUrl);
         // Determine if this should be treated as a 3D model:
         // 1. It has a recognized 3D extension, or
@@ -139,6 +148,7 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
                 Browse &amp; Select 3D Avatars
             </h3>
+
             <div ref={containerRef} className="h-40 overflow-x-auto whitespace-nowrap flex gap-4 p-1">
                 {displayedAvatarList.map((avatar) => (
                     <div
