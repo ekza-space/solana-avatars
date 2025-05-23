@@ -94,7 +94,7 @@ export default function MarketPage() {
                                         </p>
                                     </div>
                                     <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-5 rounded-lg text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                                        Buy Now
+                                        Mint
                                     </button>
                                 </div>
                             </div>

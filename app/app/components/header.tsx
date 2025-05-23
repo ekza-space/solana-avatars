@@ -19,38 +19,34 @@ export default function Header() {
 
         <Link
           to="/"
-          className={`${
-            location.pathname === "/" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
-          } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
+          className={`${location.pathname === "/" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
+            } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
         >
           Home
         </Link>
 
         <Link
           to="/profile"
-          className={`${
-            location.pathname === "/profile" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
-          } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
+          className={`${location.pathname === "/profile" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
+            } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
         >
           Profile
         </Link>
 
         <Link
-          to="/market"
-          className={`${
-            location.pathname === "/market" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
-          } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
+          to="/deployer"
+          className={`${location.pathname === "/deployer" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
+            } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
         >
-          Market
+          Deployer
         </Link>
 
         <Link
-          to="/mint"
-          className={`${
-            location.pathname === "/mint" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
-          } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
+          to="/minter"
+          className={`${location.pathname === "/minter" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
+            } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
         >
-          Mint
+          Minter
         </Link>
 
         <a
