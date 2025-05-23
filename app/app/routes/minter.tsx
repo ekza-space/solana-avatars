@@ -1,58 +1,159 @@
 import Header from "~/components/header"; // Assuming this is your existing header
+import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
+import * as anchor from "@coral-xyz/anchor";
+import minterClient from "~/../../sdk/src/minter";
+import { useEffect, useState } from "react";
 
-// Mock data for NFTs - more realistic
-const mockNFTs = [
+import { getIpfsUrl } from "~/utils/ipfsUrls";
+import { NftMetadata } from "~/types/nft";
+
+let mocked = [
     {
-        id: 1,
-        name: "CryptoPioneer #001",
-        owner: "0xAlice",
-        description: "A pioneering spirit, digitally immortalized. One of the first.",
-        price: "2.5",
-        imageUrl: `https://ipfs.io/ipfs/QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF`, // Original image
+        "index": 0,
+        "data": {
+            "uriIpfsHash": "QmasLmFRuRJQd8iJKQpzq2M1vFXLsKa3q6mMfQHy2rsN19",
+            "creator": "FCMPSxbmyMugTRyfdGPNx4mdeAaVDcSnVaN3p82zBcT8",
+            "maxSupply": "64",
+            "currentSupply": "04",
+            "mintingFeePerMint": "989680",
+            "totalUnclaimedFees": "989680",
+            "index": "00",
+            "bump": 252
+        }
     },
     {
-        id: 2,
-        name: "Pixel Paladin #042",
-        owner: "UserBob",
-        description: "Defender of the digital realm, pixel by pixel.",
-        price: "1.8",
-        imageUrl: `https://ipfs.io/ipfs/QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF`, // Using picsum for variety
+        "index": 1,
+        "data": {
+            "uriIpfsHash": "QmasLmFRuRJQd8iJKQpzq2M1vFXLsKa3q6mMfQHy2rsN19",
+            "creator": "FCMPSxbmyMugTRyfdGPNx4mdeAaVDcSnVaN3p82zBcT8",
+            "maxSupply": "64",
+            "currentSupply": "01",
+            "mintingFeePerMint": "00",
+            "totalUnclaimedFees": "00",
+            "index": "01",
+            "bump": 253
+        }
     },
     {
-        id: 3,
-        name: "Galactic Guardian #7",
-        owner: "CryptoChad",
-        description: "Guardian of the metaverse, watching over the stars.",
-        price: "3.1",
-        imageUrl: `https://ipfs.io/ipfs/QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF`,
-    },
-    {
-        id: 4,
-        name: "Neon Nomad #23",
-        owner: "NFQueen",
-        description: "Wandering the vibrant landscapes of the digital frontier.",
-        price: "0.9",
-        imageUrl: `https://ipfs.io/ipfs/QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF`,
-    },
-    {
-        id: 5,
-        name: "Abstract Artifice #99",
-        owner: "ArtCollector",
-        description: "A unique algorithmic creation, defying definition.",
-        price: "5.0",
-        imageUrl: `https://ipfs.io/ipfs/QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF`,
-    },
-    {
-        id: 6,
-        name: "Robo Buddy #123",
-        owner: "TechSavvy",
-        description: "Your friendly neighborhood robot companion.",
-        price: "1.2",
-        imageUrl: `https://ipfs.io/ipfs/QmbCrNSEck2ZMGxoVJBMcsxF6fdiaGxCiSykxD8HLCKxbF`,
-    },
-];
+        "index": 2,
+        "data": {
+            "uriIpfsHash": "QmasLmFRuRJQd8iJKQpzq2M1vFXLsKa3q6mMfQHy2rsN19",
+            "creator": "FCMPSxbmyMugTRyfdGPNx4mdeAaVDcSnVaN3p82zBcT8",
+            "maxSupply": "01",
+            "currentSupply": "01",
+            "mintingFeePerMint": "989680",
+            "totalUnclaimedFees": "989680",
+            "index": "02",
+            "bump": 255
+        }
+    }
+]
+
+type AvatarItem = (typeof mocked)[number] & { metadata?: NftMetadata | null };
+
+const LS_KEY = "avatarsCache";
+
+function loadCachedAvatars(): AvatarItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? (JSON.parse(raw) as AvatarItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCachedAvatars(avatars: AvatarItem[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(avatars));
+  } catch {
+    /* ignore quota errors */
+  }
+}
+
+/**
+ * Resolves the on‑chain NFT metadata JSON for each avatar and attaches it
+ * under `metadata`. Errors are swallowed so that a single bad fetch
+ * does not break the whole grid.
+ */
+const enrichWithMetadata = async (raw: AvatarItem[]): Promise<AvatarItem[]> => {
+  return Promise.all(
+    raw.map(async avatar => {
+      try {
+        const metadataUrl = getIpfsUrl(avatar.data.uriIpfsHash);
+        const res = await fetch(metadataUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const metadata: NftMetadata = await res.json();
+        return { ...avatar, metadata };
+      } catch (err) {
+        console.error(`Cannot load metadata for avatar #${avatar.index}`, err);
+        return { ...avatar, metadata: null };
+      }
+    })
+  );
+};
 
 export default function MarketPage() {
+    const { connection } = useConnection();
+    const anchorWallet = useAnchorWallet();
+    const [avatars, setAvatars] = useState<AvatarItem[]>([]);
+
+    // Initialise with the local mock while no wallet/cluster is yet queried
+    useEffect(() => {
+      const cached = loadCachedAvatars();
+      if (cached.length) {
+        setAvatars(cached);
+      } else {
+        enrichWithMetadata(mocked as AvatarItem[]).then(setAvatars);
+      }
+    }, []);
+
+    useEffect(() => {
+        if (!connection || !anchorWallet) return;
+
+        (async () => {
+          const provider = new anchor.AnchorProvider(
+            connection,
+            anchorWallet as any,
+            anchor.AnchorProvider.defaultOptions()
+          );
+          const program = new anchor.Program(minterClient.idlJson as any, provider);
+          // @ts-ignore – minterClient.create has a generic signature
+          const minter = minterClient.create(provider, program);
+
+          // --- On‑chain count ---
+          const { registry } = await minter.getAvatarRegistry();
+          const onChainCount = registry ? registry.nextIndex.toNumber() : 0;
+
+          // --- Local cache ---
+          let cached = loadCachedAvatars();
+
+          // If cache is up‑to‑date just ensure it is in state and quit
+          if (cached.length === onChainCount) {
+            setAvatars(cached);
+            return;
+          }
+
+          // Otherwise fetch only the missing slice (or reset if cache is longer)
+          const start = Math.min(cached.length, onChainCount);
+          const limit = onChainCount - start;
+          const range = await minter.getAvatarDataRange({ start, limit });
+          const enriched = await enrichWithMetadata(range as AvatarItem[]);
+
+          // Merge or reset as needed
+          let merged: AvatarItem[];
+          if (cached.length > onChainCount) {
+            merged = enriched; // chain rolled back? unlikely, but handle
+          } else {
+            merged = [...cached, ...enriched];
+          }
+
+          saveCachedAvatars(merged);
+          setAvatars(merged);
+        })();
+    }, [connection, anchorWallet]);
+
     return (
         <div className="min-h-screen text-slate-800"> {/* Softer background */}
             <Header />
@@ -61,43 +162,61 @@ export default function MarketPage() {
                     Explore the Avatar NFT Marketplace
                 </h1>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"> {/* Adjusted gap and responsive cols */}
-                    {mockNFTs.map((nft) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                    {avatars && avatars.map(({ index, data, metadata }) => (
                         <div
-                            key={nft.id}
-                            className="group bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1 flex flex-col"
-                        // Added group for image hover effect, better shadow, rounded-xl, subtle lift
+                            key={index}
+                            className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1 p-6"
                         >
-                            <div className="aspect-square w-full overflow-hidden"> {/* Ensures square images */}
-                                <img
-                                    src={nft.imageUrl}
-                                    alt={nft.name} // More descriptive alt
-                                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" // Image zoom on hover
-                                />
-                            </div>
-                            <div className="p-5 flex flex-col flex-grow"> {/* Increased padding, flex-grow for content */}
-                                <h3 className="text-xl font-semibold text-slate-900 mb-2 truncate" title={nft.name}>
-                                    {nft.name}
-                                </h3>
-                                <p className="text-sm text-slate-500 mb-1">
-                                    Owned by: <span className="font-medium text-slate-700">{nft.owner}</span>
-                                </p>
-                                <p className="text-sm text-slate-600 mb-4 leading-relaxed line-clamp-2"> {/* Limited lines for description */}
-                                    {nft.description}
-                                </p>
+                            {metadata?.image && (
+                              <img
+                                src={getIpfsUrl(metadata.image)}
+                                alt={metadata.name}
+                                className="w-full h-48 object-cover rounded mb-4"
+                              />
+                            )}
 
-                                <div className="mt-auto pt-4 border-t border-slate-200"> {/* Price and button section pushed to bottom */}
-                                    <div className="flex justify-between items-center mb-4">
-                                        <p className="text-xs text-slate-500">Current Price:</p>
-                                        <p className="text-xl font-bold text-indigo-600">
-                                            {`${nft.price} SOL`}
-                                        </p>
-                                    </div>
-                                    <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-5 rounded-lg text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                                        Mint
-                                    </button>
-                                </div>
-                            </div>
+                            {metadata?.animation_url &&
+                              metadata?.properties?.category === "vrmodel" && (
+                                <a
+                                  href={getIpfsUrl(metadata.animation_url)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block text-indigo-600 underline text-sm mb-4"
+                                >
+                                  View 3D model
+                                </a>
+                              )}
+
+                            <h3 className="text-xl font-semibold text-slate-900 mb-4">
+                                Avatar #{index}
+                            </h3>
+                            {metadata?.name && (
+                              <p className="text-slate-700 font-medium mb-2">{metadata.name}</p>
+                            )}
+                            {metadata?.description && (
+                              <p className="text-sm text-slate-500 mb-4">{metadata.description}</p>
+                            )}
+                            <p className="text-sm text-slate-500 mb-2">
+                                Creator:{" "}
+                                <span className="font-medium text-slate-700 break-all">
+                                    {data.creator.toString()}
+                                </span>
+                            </p>
+                            <p className="text-sm text-slate-600 mb-2">
+                                Max supply: {Number(data.maxSupply)}
+                            </p>
+                            <p className="text-sm text-slate-600 mb-2">
+                                Current supply: {Number(data.currentSupply)}
+                            </p>
+                            <p className="text-sm text-slate-600">
+                                Minting fee:{" "}
+                                {(Number(data.mintingFeePerMint) / 1_000_000_000).toLocaleString(
+                                    undefined,
+                                    { maximumFractionDigits: 9 }
+                                )}{" "}
+                                SOL
+                            </p>
                         </div>
                     ))}
                 </div>

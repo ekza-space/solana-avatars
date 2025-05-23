@@ -176,16 +176,27 @@ export default {
             }
         }
 
-        async function getAllAvatarData() {
+        /**
+         * Fetches avatar‑data PDAs in a paginated way.
+         * @param start ‑ zero‑based index to begin from
+         * @param limit ‑ how many entries to return; if omitted fetches until `nextIndex`
+         */
+        async function getAvatarDataRange(args: { start: number; limit?: number }) {
             const { registry } = await getAvatarRegistry();
-            const out: { index: number; data: any }[] = [];
             const max = registry ? registry.nextIndex.toNumber() : 0;
-            for (let i = 0; i < max; i++) {
+            const start = Math.max(0, args.start);
+            const end = args.limit ? Math.min(max, start + args.limit) : max;
+            const out: { index: number; data: any }[] = [];
+            for (let i = start; i < end; i++) {
                 const [pda] = getAvatarDataPda(i);
                 const data = await getAvatarData(pda);
                 if (data) out.push({ index: i, data });
             }
             return out;
+        }
+
+        async function getAllAvatarData() {
+            return getAvatarDataRange({ start: 0 });
         }
 
 
@@ -208,6 +219,7 @@ export default {
             getAvatarData,
             getAvatarRegistry,
             getAllAvatarData,
+            getAvatarDataRange,
             getAvatarDataByIndex,
         };
     }

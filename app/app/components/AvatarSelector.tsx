@@ -5,6 +5,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { fetchUserNFTs } from "~/utils/fetchUserNfts";
 import { handleBurnInvalidNFTs } from "~/utils/burnNft";
 import SceneWithModel from "./3d/SceneWithModel";
+import { getIpfsUrl } from "~/utils/ipfsUrls";
 
 
 const IPFS_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || "/ipfs/";
@@ -20,15 +21,6 @@ interface AvatarSelectorProps {
     avatarList: Avatar[];
     selectedAvatar: Avatar;
     setSelectedAvatar: (avatar: Avatar) => void;
-}
-
-function getIpfsUrl(modelHash: string): string {
-    const isDev = import.meta.env.DEV; // Vite sets this flag
-    const baseUrl = isDev
-        ? "http://localhost:8080/ipfs/"
-        : "https://ekza.io/ipfs/";
-
-    return `${baseUrl}${modelHash}`;
 }
 
 // Default list of free-to-use 3D avatars
