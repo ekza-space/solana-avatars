@@ -26,11 +26,11 @@ export default function Header() {
         </Link>
 
         <Link
-          to="/profile"
-          className={`${location.pathname === "/profile" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
+          to="/users"
+          className={`${location.pathname === "/users" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
             } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
         >
-          Profile
+          Users
         </Link>
 
         <Link
