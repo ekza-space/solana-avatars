@@ -161,6 +161,7 @@ export default function MarketPage() {
 
           saveCachedAvatars(merged);
           setAvatars(merged);
+          console.log("setAvatars: ", merged)
         })();
     }, [connection, anchorWallet]);
 

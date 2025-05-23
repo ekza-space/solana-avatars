@@ -1,44 +1,61 @@
 # Solana Avatars
-The project is currently live on devnet at https://avatar.ekza.io — try it out and mint your own Web3 Avatar NFT
 
-<img src="logo.jpg" alt="ekza" width="400"/> 
+**Solana Avatars** is a decentralized identity system for the metaverse.  
+[🚀 Try it live on Devnet](https://avatar.ekza.io) — mint your own 3D Web3 avatar NFT and explore!
 
+<img src="logo.jpg" alt="ekza" width="400"/>
 
-**Solana Avatars** is a smart contract that acts as a Web3 virtual world passport.  
-Each user is assigned a **Program Derived Address (PDA)** which stores their avatar profile on-chain. Users can:
+---
 
-- Create, update, and delete their avatar account
-- Attach metadata such as username, description and **3D avatars** using NFT Mint Pubkey
-- Apply any **3D avatar NFT** to represent themselves in virtual reality environments
+## 🧠 Overview
 
-This allows for seamless identity integration across decentralized worlds.
+Solana Avatars enables users to create persistent, customizable identities for use across decentralized applications and virtual worlds. It combines two core smart contracts to power a flexible, user-centric avatar system:
 
-[🎥 Watch the video demo](https://youtu.be/3O4QAiWlvlY)
+- 🪪 **Profile Contract** — Acts as your Web3 passport, storing identity data such as usernames, bios, and chosen avatar NFTs on-chain via PDAs (Program Derived Addresses).
+- 🛠 **Avatar Minter Contract** — Allows creators to deploy NFT avatar collections with configurable fees and total supply, enabling others to mint and use them in metaverses.
+
+Creators earn rewards from minting fees (UI for claiming is coming soon).
+
+---
+
+## ⚙️ How It Works
+
+1. **Create Your Profile** — Set up your Web3 passport with a username, description, and linked avatar NFT.
+2. **Deploy or Mint Avatars** — Use the Minter UI to publish collections or mint from existing ones.
+3. **Explore the Metaverse** — Represent yourself anywhere in the decentralized world using your 3D avatar.
+
 ---
 
 ## ✨ Features
 
-- 🔐 On-chain user profiles (PDAs)
-- 🎭 Avatar metadata: name, description, IPFS for 2D/3D models
-- 🧬 NFT-based avatar customization
-- 🌐 Designed for metaverse and Web3 platforms
+- 🔐 Store on-chain user identities with Program Derived Addresses (PDAs)
+- 🎭 Attach metadata: usernames, descriptions, and IPFS links to 2D/3D avatars
+- 🧬 Customize avatars using NFT ownership
+- 🌐 Seamlessly integrate identity across Web3 and metaverse platforms
 
 ---
 
 ## 🖼 Frontend Interface
 
-We built a complete UI for interacting with the Solana Avatars smart contract.  
-Through the interface, users can:
+We built a full-featured UI using [Remix](https://remix.run/) located in `./app`. The interface allows users to:
 
-- Mint their 3D avatar NFTs directly from the frontend
-- Configure their Web3 passport with custom usernames, descriptions, and NFT-linked avatars
-- Dynamically switch or update their on-chain identity for use across decentralized applications
+- Mint their 3D avatar NFTs directly from the browser
+- Create and update their Web3 profile (username, bio, avatar NFT)
+- Dynamically manage and switch on-chain identities
+- Deploy their own NFT avatar collections
+- Set mint price and supply
+- Mint avatars via UI for personal use
 
-The UI is designed to simplify onboarding and customization in the Web3 realm.
+This intuitive interface lowers the barrier for both users and creators to participate in Web3 identity creation.
 
-The frontend is located in `./app` and built using the [Remix](https://remix.run/) framework.
+> Try it with [these sample models](https://drive.google.com/drive/u/1/folders/11oQ8pwVMV9inSVV9cGceI8xTusDxhPC3) or use your own!
 
-Use [these models](https://drive.google.com/drive/u/1/folders/11oQ8pwVMV9inSVV9cGceI8xTusDxhPC3) to try out the interface, or feel free to find or create your own.
+---
+
+## 🧱 Smart Contracts
+
+- `user_profile`: Stores user data and links to avatar NFTs
+- `avatar_nft_minter`: Enables publishing and minting of NFT-based avatars
 
 ---
 
@@ -65,4 +82,4 @@ solana-keygen pubkey target-deploy-keypair.json
 
 ## 📬 Feedback
 
-Feel free to contribute, open issues, or suggest features!
+We welcome issues, contributions, and feature suggestions. Let's build the future of identity together!

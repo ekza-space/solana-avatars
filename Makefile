@@ -10,8 +10,6 @@ anchor-test-devnet:
 anchor-test-local:
 	anchor test --provider.cluster localnet
 
-
-
 ts-check:
 	npx tsc --noEmit -p .
 
