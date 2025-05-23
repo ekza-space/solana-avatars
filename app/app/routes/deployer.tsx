@@ -165,29 +165,29 @@ export default function GenerateAvatar() {
             const metadataUri = uploadJson.ipfsHash;
             console.log("Metadata uploaded: ", uploadJson);
 
-            // ── fee ──
-            // TODO: batch this transaction
-            if (!sendTransaction) {
-                alert("Wallet is not connected or cannot send transactions.");
-                setMinting(false);
-                return;
-            }
-            const transaction = new Transaction().add(
-                SystemProgram.transfer({
-                    fromPubkey: publicKey,
-                    toPubkey: getTreasury(),
-                    lamports: PRICE_LAMPORTS,
-                })
-            );
-            transaction.feePayer = publicKey!;
-            transaction.recentBlockhash = (await connection.getLatestBlockhash("confirmed")).blockhash;
+            // // ── fee ──
+            // // TODO: batch this transaction
+            // if (!sendTransaction) {
+            //     alert("Wallet is not connected or cannot send transactions.");
+            //     setMinting(false);
+            //     return;
+            // }
+            // const transaction = new Transaction().add(
+            //     SystemProgram.transfer({
+            //         fromPubkey: publicKey,
+            //         toPubkey: getTreasury(),
+            //         lamports: PRICE_LAMPORTS,
+            //     })
+            // );
+            // transaction.feePayer = publicKey!;
+            // transaction.recentBlockhash = (await connection.getLatestBlockhash("confirmed")).blockhash;
 
-            const paymentSig = await sendTransaction(transaction, connection);
-            const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-            await connection.confirmTransaction(
-                { signature: paymentSig, blockhash, lastValidBlockHeight },
-                "confirmed"
-            );
+            // const paymentSig = await sendTransaction(transaction, connection);
+            // const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+            // await connection.confirmTransaction(
+            //     { signature: paymentSig, blockhash, lastValidBlockHeight },
+            //     "confirmed"
+            // );
 
             // ---- Mint on‑chain directly from the browser via our Anchor SDK ----
             try {
@@ -224,9 +224,6 @@ export default function GenerateAvatar() {
 
     return (
         <div className="min-h-screen flex flex-col">
-            {/* Header with nav + wallet */}
-            <Header />
-
             {/* Main panel */}
             <div className="flex-1 px-8 py-4 bg-white dark:bg-gray-900">
                 <Tabs.Root
@@ -319,21 +316,21 @@ export default function GenerateAvatar() {
                         />
                         <div className="w-2/3 max-w-sm flex items-center space-x-2">
                             <input
-                              type="checkbox"
-                              className="h-5 w-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                              checked={nftMaxSupply === "18446744073709551615"}
-                              onChange={(e) =>
-                                setNftMaxSupply(e.target.checked ? "18446744073709551615" : "")
-                              }
+                                type="checkbox"
+                                className="h-5 w-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                                checked={nftMaxSupply === "18446744073709551615"}
+                                onChange={(e) =>
+                                    setNftMaxSupply(e.target.checked ? "18446744073709551615" : "")
+                                }
                             />
                             <span className="text-gray-700 dark:text-gray-300">Infinity</span>
                             <input
-                              type="text"
-                              placeholder="Max supply"
-                              value={nftMaxSupply === "18446744073709551615" ? "∞" : nftMaxSupply}
-                              onChange={(e) => setNftMaxSupply(e.target.value)}
-                              disabled={nftMaxSupply === "18446744073709551615"}
-                              className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
+                                type="text"
+                                placeholder="Max supply"
+                                value={nftMaxSupply === "18446744073709551615" ? "∞" : nftMaxSupply}
+                                onChange={(e) => setNftMaxSupply(e.target.value)}
+                                disabled={nftMaxSupply === "18446744073709551615"}
+                                className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
                             />
                         </div>
                         <input
@@ -388,21 +385,21 @@ export default function GenerateAvatar() {
                         />
                         <div className="w-2/3 max-w-sm flex items-center space-x-2">
                             <input
-                              type="checkbox"
-                              className="h-5 w-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                              checked={nftMaxSupply === "18446744073709551615"}
-                              onChange={(e) =>
-                                setNftMaxSupply(e.target.checked ? "18446744073709551615" : "")
-                              }
+                                type="checkbox"
+                                className="h-5 w-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                                checked={nftMaxSupply === "18446744073709551615"}
+                                onChange={(e) =>
+                                    setNftMaxSupply(e.target.checked ? "18446744073709551615" : "")
+                                }
                             />
                             <span className="text-gray-700 dark:text-gray-300">Infinity</span>
                             <input
-                              type="text"
-                              placeholder="Max supply"
-                              value={nftMaxSupply === "18446744073709551615" ? "∞" : nftMaxSupply}
-                              onChange={(e) => setNftMaxSupply(e.target.value)}
-                              disabled={nftMaxSupply === "18446744073709551615"}
-                              className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
+                                type="text"
+                                placeholder="Max supply"
+                                value={nftMaxSupply === "18446744073709551615" ? "∞" : nftMaxSupply}
+                                onChange={(e) => setNftMaxSupply(e.target.value)}
+                                disabled={nftMaxSupply === "18446744073709551615"}
+                                className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
                             />
                         </div>
                         <input

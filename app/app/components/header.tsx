@@ -8,7 +8,7 @@ export default function Header() {
   const location = useLocation();
 
   return (
-    <header className="flex justify-between items-center py-4 px-8 bg-gray-100 dark:bg-gray-900 mb-8">
+    <header className="fixed top-0 left-0 w-full z-50 flex justify-between items-center py-4 px-8 bg-gray-100 dark:bg-gray-900 mb-8">
       <Link
         to="/"
         className="text-2xl font-bold text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
@@ -47,6 +47,14 @@ export default function Header() {
             } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
         >
           Minter
+        </Link>
+
+        <Link
+          to="/about"
+          className={`${location.pathname === "/about" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
+            } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
+        >
+          About
         </Link>
 
         <a

@@ -34,7 +34,6 @@ export default function IndexPage() {
 
   return (
     <div className="w-full h-screen overflow-hidden">
-      <Header />
       <div className="p-8 overflow-auto h-full">
         <h2 className="text-xl font-semibold mb-2">All Created Profiles:</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">

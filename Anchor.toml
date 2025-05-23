@@ -7,11 +7,11 @@ skip-lint = false
 
 [programs.localnet]
 solana_avatars = "56kfTdE1xmCkZ2eDuikD7S5Mr15nmdzQENDWfmdMVtt"
-minter = "EXmcLULN3Nx9kwkYZmv1cPxKr74mPjuMwfoKGsJ6Npb"
+minter = "29KLLArkfCfRGPgTh4k4qzXvR2JkkXfRnnNZTKn54TKz"
 
 [programs.devnet]
 solana_avatars = "56kfTdE1xmCkZ2eDuikD7S5Mr15nmdzQENDWfmdMVtt"
-minter = "EXmcLULN3Nx9kwkYZmv1cPxKr74mPjuMwfoKGsJ6Npb"
+minter = "29KLLArkfCfRGPgTh4k4qzXvR2JkkXfRnnNZTKn54TKz"
 
 [registry]
 url = "https://api.apr.dev"
