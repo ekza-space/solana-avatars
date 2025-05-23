@@ -3,8 +3,8 @@ import Header from "~/components/header";
 import { Connection, clusterApiUrl } from "@solana/web3.js";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
 
-import sdk from "../../../sdk/src";
-import type { UserProfile } from "../../../sdk/src";
+import sdk from "../../../sdk/src/profile";
+import type { UserProfile } from "../../../sdk/src/profile";
 import { decodeByteArray } from "~/utils/bytes";
 
 export default function IndexPage() {

@@ -7,16 +7,26 @@ skip-lint = false
 
 [programs.localnet]
 solana_avatars = "56kfTdE1xmCkZ2eDuikD7S5Mr15nmdzQENDWfmdMVtt"
+minter = "EXmcLULN3Nx9kwkYZmv1cPxKr74mPjuMwfoKGsJ6Npb"
 
 [programs.devnet]
 solana_avatars = "56kfTdE1xmCkZ2eDuikD7S5Mr15nmdzQENDWfmdMVtt"
+minter = "EXmcLULN3Nx9kwkYZmv1cPxKr74mPjuMwfoKGsJ6Npb"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet" # localnet / devnet
+cluster = "devnet" # localnet / devnet
 wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+setup = "avm use 0.31.1 && agave-install init 2.2.6"
+
+[test.validator]
+args = [
+  "--bpf-program",
+  "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
+  "/Users/wotori/git/source/solana/mpl-token-metadata/programs/.bin/token_metadata.so"
+]

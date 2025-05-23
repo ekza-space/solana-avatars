@@ -1,5 +1,5 @@
 {
-    "name": "solana-avatars-sdk",
+    "name": "avatars-sdk",
     "version": "0.1.0",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
@@ -10,7 +10,11 @@
         "dist"
     ],
     "dependencies": {
-        "@coral-xyz/anchor": "^0.31.1"
+        "@coral-xyz/anchor": "^0.31.1",
+        "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
+        "@metaplex-foundation/umi": "^1.2.0",
+        "@solana/spl-token": "^0.4.13",
+        "js-sha256": "^0.11.0"
     },
     "devDependencies": {
         "typescript": "^5.7.3"

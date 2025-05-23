@@ -1,10 +1,11 @@
-import { Link } from "@remix-run/react";
+import { Link, useLocation } from "@remix-run/react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useState, useEffect } from "react";
 
 export default function Header() {
   const [isClient, setIsClient] = useState(false);
   useEffect(() => setIsClient(true), []);
+  const location = useLocation();
 
   return (
     <header className="flex justify-between items-center py-4 px-8 bg-gray-100 dark:bg-gray-900 mb-8">
@@ -18,30 +19,34 @@ export default function Header() {
 
         <Link
           to="/"
-          className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
+          className={`${location.pathname === "/" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
+            } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
         >
           Home
         </Link>
 
         <Link
           to="/profile"
-          className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
+          className={`${location.pathname === "/profile" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
+            } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
         >
           Profile
         </Link>
 
-        {/* <Link
-          to="/market"
-          className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
+        <Link
+          to="/deployer"
+          className={`${location.pathname === "/deployer" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
+            } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
         >
-          Market
-        </Link> */}
+          Deployer
+        </Link>
 
         <Link
-          to="/mint"
-          className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
+          to="/minter"
+          className={`${location.pathname === "/minter" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
+            } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
         >
-          Mint
+          Minter
         </Link>
 
         <a

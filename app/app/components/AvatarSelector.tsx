@@ -5,6 +5,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { fetchUserNFTs } from "~/utils/fetchUserNfts";
 import { handleBurnInvalidNFTs } from "~/utils/burnNft";
 import SceneWithModel from "./3d/SceneWithModel";
+import { getIpfsUrl } from "~/utils/ipfsUrls";
 
 
 const IPFS_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || "/ipfs/";
@@ -58,7 +59,7 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
             setModelUrl("");
             return;
         }
-        const ipfsUrl = `/ipfs/${modelHash}`;
+        const ipfsUrl = getIpfsUrl(modelHash);
         console.log("ipfsUrl:", ipfsUrl);
         // Determine if this should be treated as a 3D model:
         // 1. It has a recognized 3D extension, or
@@ -139,6 +140,7 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
                 Browse &amp; Select 3D Avatars
             </h3>
+
             <div ref={containerRef} className="h-40 overflow-x-auto whitespace-nowrap flex gap-4 p-1">
                 {displayedAvatarList.map((avatar) => (
                     <div
