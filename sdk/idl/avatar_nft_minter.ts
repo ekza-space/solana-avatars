@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/avatar_nft_minter.json`.
  */
 export type AvatarNftMinter = {
-  "address": "EXmcLULN3Nx9kwkYZmv1cPxKr74mPjuMwfoKGsJ6Npb",
+  "address": "29KLLArkfCfRGPgTh4k4qzXvR2JkkXfRnnNZTKn54TKz",
   "metadata": {
     "name": "avatarNftMinter",
     "version": "0.1.0",

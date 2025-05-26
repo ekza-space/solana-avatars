@@ -15,10 +15,10 @@ import { Buffer } from "buffer";
 globalThis.Buffer = Buffer;
 
 // Solana Wallet
-import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
+import { ConnectionProvider, useAnchorWallet, useWallet, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
-import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { clusterApiUrl } from "@solana/web3.js";
 import "@solana/wallet-adapter-react-ui/styles.css";
 import Footer from "./components/footer";
@@ -48,7 +48,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body style={{ paddingTop: "120px" }}>
         {children}
-        <Footer />
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -56,10 +55,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+function MainContent() {
+  const { publicKey } = useWallet();
+
+  if (!publicKey) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 px-4 text-center">
+        <p className="text-xl text-slate-600">
+          Please connect your Solana wallet to continue
+        </p>
+        <WalletMultiButton className="px-6 py-3 rounded-lg font-semibold transition-colors duration-200 focus:outline-none" />
+      </div>
+    );
+  }
+
+  return <Outlet />;
+}
+
 export default function App() {
   const network = WalletAdapterNetwork.Devnet;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
   const wallets = useMemo(() => [new PhantomWalletAdapter()], [network]);
+  const anchorWallet = useAnchorWallet();
+  const { publicKey, connected, sendTransaction } = useWallet();
+  console.log("App: ", anchorWallet, publicKey);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
@@ -67,7 +86,8 @@ export default function App() {
         <WalletModalProvider>
           <Header />
           <SayHi />
-          <Outlet />
+          <MainContent />
+          <Footer />
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
