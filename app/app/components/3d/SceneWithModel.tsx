@@ -12,7 +12,7 @@ export default function SceneWithModel(props: {
 }) {
   const { file, screenshot = false } = props;
   const [trigger, setTrigger] = useState(0);
-  const [animations, setAnimations] = useState([]);
+  const [animations, setAnimations] = useState<string[]>([]);
   const [playAnimation, setPlayAnimation] = useState("");
 
   return (
@@ -23,9 +23,11 @@ export default function SceneWithModel(props: {
             <p
               className="cursor-pointer text-blue-600 hover:underline select-none"
               onClick={(e) => {
-                let selectedAnimation = e.currentTarget.textContent;
+                const selectedAnimation = e.currentTarget.textContent;
                 console.log(selectedAnimation);
-                setPlayAnimation(selectedAnimation);
+                if (selectedAnimation !== null) {
+                  setPlayAnimation(selectedAnimation);
+                }
               }}
             >
               {animationName}
@@ -63,7 +65,7 @@ export default function SceneWithModel(props: {
           </Suspense>
 
           <ambientLight intensity={2.5} />
-          <hemisphereLight skyColor={0xeeeeff} groundColor={0x444444} intensity={0.6} />
+          <hemisphereLight args={[0xeeeeff, 0x444444, 0.6]} />
           <directionalLight position={[5, 10, 7]} intensity={1} />
           <pointLight position={[-10, 15, 10]} intensity={0.8} />
         </Canvas>
