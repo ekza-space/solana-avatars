@@ -167,10 +167,10 @@ export default function MarketPage() {
     })();
   }, [connection, anchorWallet]);
 
-  return (
-    <div className="min-h-screen text-slate-800"> {/* Softer background */}
+return (
+    <div className="min-h-screen text-slate-800 dark:text-slate-200 dark:bg-slate-900"> {/* Softer background */}
       <main className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-bold text-slate-900 mb-10 text-center"> {/* Page Title */}
+        <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 mb-10 text-center"> {/* Page Title */}
           Explore the Avatar NFT Marketplace
         </h1>
 
@@ -191,7 +191,7 @@ export default function MarketPage() {
                     setModalDescription(metadata.description || null);
                   }
                 }}
-                className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1 p-6"
+                className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1 p-6"
               >
                 {metadata?.image && (
                   <img
@@ -218,14 +218,14 @@ export default function MarketPage() {
                     </button>
                   )}
 
-                <h3 className="text-xl font-semibold text-slate-900 mb-4">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
                   Avatar #{index}
                 </h3>
                 {metadata?.name && (
-                  <p className="text-slate-700 font-medium mb-2">{metadata.name}</p>
+                  <p className="text-slate-700 dark:text-slate-300 font-medium mb-2">{metadata.name}</p>
                 )}
                 {metadata?.description && (
-                  <p className="text-sm text-slate-500 mb-4">
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
                     {metadata.description.slice(0, 250)}
                     {metadata.description.length > 250 && (
                       <>
@@ -247,19 +247,19 @@ export default function MarketPage() {
                     )}
                   </p>
                 )}
-                <p className="text-sm text-slate-500 mb-2">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
                   Creator:{" "}
-                  <span className="font-medium text-slate-700 break-all">
+                  <span className="font-medium text-slate-700 dark:text-slate-300 break-all">
                     {data.creator.toString()}
                   </span>
                 </p>
-                <p className="text-sm text-slate-600 mb-2">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
                   Max supply: {Number(data.maxSupply) > 1000000000000 ? "∞" : Number(data.maxSupply)}
                 </p>
-                <p className="text-sm text-slate-600 mb-2">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
                   Current supply: {Number(data.currentSupply)}
                 </p>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
                   Minting fee:{" "}
                   {(Number(data.mintingFeePerMint) / 1_000_000_000).toLocaleString(
                     undefined,
