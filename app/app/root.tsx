@@ -4,11 +4,12 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
 import SayHi from "~/components/SayHi"
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 // TODO: move to vite config
 import { Buffer } from "buffer";
@@ -57,8 +58,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 function MainContent() {
   const { publicKey } = useWallet();
+  const location = useLocation();
 
-  if (!publicKey) {
+  let curLoc = location.pathname;
+
+  if (!publicKey && curLoc !== "/about") {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 px-4 text-center">
         <p className="text-xl text-slate-600">
@@ -77,7 +81,9 @@ export default function App() {
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
   const wallets = useMemo(() => [new PhantomWalletAdapter()], [network]);
   const anchorWallet = useAnchorWallet();
-  const { publicKey, connected, sendTransaction } = useWallet();
+  const { publicKey } = useWallet();
+
+  const [activePage, setActivePage] = useState("")
   console.log("App: ", anchorWallet, publicKey);
 
   return (

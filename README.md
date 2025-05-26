@@ -3,7 +3,7 @@
 **Solana Avatars** is a decentralized identity system for the metaverse.  
 [🚀 Try it live on Devnet](https://avatar.ekza.io) — mint your own 3D Web3 avatar NFT and explore!
 
-<img src="logo.jpg" alt="ekza" width="400"/>
+<img src="./app/public/logo.jpg" alt="ekza" width="400"/>
 
 ---
 
