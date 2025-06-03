@@ -53,9 +53,8 @@ This intuitive interface lowers the barrier for both users and creators to parti
 ---
 
 ## 🧱 Smart Contracts
-
-- `user_profile`: Stores user data and links to avatar NFTs
-- `avatar_nft_minter`: Enables publishing and minting of NFT-based avatars
+- [`avatar`](https://github.com/ekza-space/solana-avatars/tree/main/programs/avatars): Stores user data and links to avatar NFTs  
+- [`minter`](https://github.com/ekza-space/solana-avatars/tree/main/programs/minter): Enables publishing and minting of NFT-based avatars
 
 ---
 
