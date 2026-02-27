@@ -1,3 +1,36 @@
+export interface AssetOrigin {
+    title?: string;
+    asset_type: string;
+    author: {
+        name: string;
+        copyright?: string;
+    };
+    source?: {
+        name?: string;
+        url?: string;
+        original_release_date?: string;
+    };
+    license: {
+        type: string;
+        name: string;
+        url: string;
+    };
+    modifications?: {
+        is_modified: boolean;
+        modified_by?: string;
+        notes?: string;
+    };
+    commercial_terms: {
+        mint_fee_type?: string;
+        mint_fee_note?: string;
+        exclusive_rights_transferred: boolean;
+    };
+    provenance?: {
+        minted_by?: string;
+        mint_context?: string;
+    };
+}
+
 export interface NftMetadata {
     name: string;
     symbol: string;
@@ -16,4 +49,5 @@ export interface NftMetadata {
             share: number;
         }>;
     };
+    asset_origin?: AssetOrigin;
 }

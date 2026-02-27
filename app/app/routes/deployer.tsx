@@ -7,9 +7,11 @@ import { useFetcher } from "@remix-run/react";
 import Header from "~/components/header";
 import type { ActionFunctionArgs } from "@remix-run/node";
 import * as Tabs from '@radix-ui/react-tabs';
-import { NftMetadata } from "~/types/nft";
+import { NftMetadata, type AssetOrigin } from "~/types/nft";
 import * as anchor from "@coral-xyz/anchor";
 import minterClient from "~/../../sdk/src/minter";
+import AssetOriginForm, { AssetOriginSummary } from "~/components/asset-origin-form";
+import { createAssetOriginTemplate, type AssetOriginTemplateId } from "~/constants/assetOrigin";
 
 interface ActionData {
     imageUrl?: string;
@@ -38,6 +40,26 @@ function getTreasury(): PublicKey {
 /** Price per mint in lamports (exact integer for 0.03 SOL) */
 const PRICE_LAMPORTS = Math.round(0.001 * LAMPORTS_PER_SOL);
 
+function getPlatformName() {
+    const value =
+        (typeof window !== "undefined"
+            ? (import.meta as any).env?.VITE_PLATFORM_NAME
+            : process.env.VITE_PLATFORM_NAME) ?? "Ekza Space";
+    return value;
+}
+
+function validateAssetOrigin(origin: AssetOrigin) {
+    const errors: string[] = [];
+    if (!origin.asset_type.trim()) errors.push("Asset type is required");
+    if (!origin.author.name.trim()) errors.push("Author name is required");
+    if (!origin.license.type.trim()) errors.push("License type is required");
+    if (!origin.license.name.trim()) errors.push("License name is required");
+    if (!origin.license.url.trim()) errors.push("License URL is required");
+    if (typeof origin.commercial_terms.exclusive_rights_transferred !== "boolean") {
+        errors.push("Exclusive rights transfer flag must be set");
+    }
+    return errors;
+}
 
 export default function GenerateAvatar() {
 
@@ -55,6 +77,14 @@ export default function GenerateAvatar() {
     const [nftDescription, setNftDescription] = useState("");
     const [nftMaxSupply, setNftMaxSupply] = useState("");
     const [nftMintFee, setNftMintFee] = useState("");
+
+    const platformName = getPlatformName();
+    const defaultAssetOriginTemplate: AssetOriginTemplateId = "everything-buildings";
+    const [assetOriginTemplateId, setAssetOriginTemplateId] = useState<AssetOriginTemplateId>(defaultAssetOriginTemplate);
+    const [assetOrigin, setAssetOrigin] = useState<AssetOrigin>(() =>
+        createAssetOriginTemplate(defaultAssetOriginTemplate, platformName)
+    );
+    const [assetOriginErrors, setAssetOriginErrors] = useState<string[]>([]);
 
     // Solana wallet and Metaplex setup
     const { publicKey, wallet, sendTransaction } = useWallet();
@@ -76,6 +106,11 @@ export default function GenerateAvatar() {
             setUploadedPreviewUrl(URL.createObjectURL(file));
             setPreviewUrl("");
         }
+    };
+
+    const handleAssetOriginTemplateChange = (templateId: AssetOriginTemplateId) => {
+        setAssetOriginTemplateId(templateId);
+        setAssetOrigin(createAssetOriginTemplate(templateId, platformName));
     };
 
 
@@ -110,6 +145,13 @@ export default function GenerateAvatar() {
         if (!publicKey || !anchorWallet) return;
 
         setMinting(true);
+        const validationErrors = validateAssetOrigin(assetOrigin);
+        if (validationErrors.length) {
+            setAssetOriginErrors(validationErrors);
+            setMinting(false);
+            return;
+        }
+        setAssetOriginErrors([]);
         // Upload preview screenshot to IPFS from localStorage
         let previewIpfsUri: string;
         const blobPreview = loadBlobFromLocalStorage();
@@ -149,6 +191,7 @@ export default function GenerateAvatar() {
                         { address: publicKey.toBase58(), share: 100 },
                     ],
                 },
+                asset_origin: assetOrigin,
             };
 
             // Upload metadata to IPFS using internal API
@@ -292,63 +335,6 @@ export default function GenerateAvatar() {
                                 </p>
                             )}
                         </fetcher.Form>
-                        {/* --- NFT metadata inputs --- */}
-                        <input
-                            type="text"
-                            placeholder="NFT Name"
-                            value={nftName}
-                            onChange={(e) => setNftName(e.target.value)}
-                            className="w-2/3 max-w-sm bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
-                        />
-                        <input
-                            type="text"
-                            placeholder="Symbol (optional)"
-                            value={nftSymbol}
-                            onChange={(e) => setNftSymbol(e.target.value)}
-                            className="w-2/3 max-w-sm bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
-                        />
-                        <textarea
-                            placeholder="Description"
-                            rows={3}
-                            value={nftDescription}
-                            onChange={(e) => setNftDescription(e.target.value)}
-                            className="w-2/3 max-w-sm bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
-                        />
-                        <div className="w-2/3 max-w-sm flex items-center space-x-2">
-                            <input
-                                type="checkbox"
-                                className="h-5 w-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                                checked={nftMaxSupply === "18446744073709551615"}
-                                onChange={(e) =>
-                                    setNftMaxSupply(e.target.checked ? "18446744073709551615" : "")
-                                }
-                            />
-                            <span className="text-gray-700 dark:text-gray-300">Infinity</span>
-                            <input
-                                type="text"
-                                placeholder="Max supply"
-                                value={nftMaxSupply === "18446744073709551615" ? "∞" : nftMaxSupply}
-                                onChange={(e) => setNftMaxSupply(e.target.value)}
-                                disabled={nftMaxSupply === "18446744073709551615"}
-                                className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
-                            />
-                        </div>
-                        <input
-                            type="number"
-                            placeholder="Mint fee per mint (SOL)"
-                            value={nftMintFee}
-                            onChange={(e) => setNftMintFee(e.target.value)}
-                            className="w-2/3 max-w-sm bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
-                        />
-                        {(previewUrl || uploadedPreviewUrl) && publicKey && (
-                            <button
-                                onClick={handleDeploy}
-                                disabled={minting}
-                                className={`w-1/4 px-4 py-2 ${minting ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"} text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300 transition-colors duration-200`}
-                            >
-                                {minting ? "Minting..." : "Deploy"}
-                            </button>
-                        )}
                     </Tabs.Content>
 
                     <Tabs.Content value="upload" className="w-full flex flex-col space-y-4 items-center">
@@ -420,6 +406,95 @@ export default function GenerateAvatar() {
                         )}
                     </Tabs.Content>
                 </Tabs.Root>
+
+                <div className="w-full flex flex-col items-center space-y-6 mt-8">
+                    <div className="w-full max-w-3xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 space-y-4">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">NFT metadata</h2>
+                        <input
+                            type="text"
+                            placeholder="NFT Name"
+                            value={nftName}
+                            onChange={(e) => setNftName(e.target.value)}
+                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Symbol (optional)"
+                            value={nftSymbol}
+                            onChange={(e) => setNftSymbol(e.target.value)}
+                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
+                        />
+                        <textarea
+                            placeholder="Description"
+                            rows={3}
+                            value={nftDescription}
+                            onChange={(e) => setNftDescription(e.target.value)}
+                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
+                        />
+                        <div className="w-full flex flex-col md:flex-row md:items-center md:space-x-4 space-y-3 md:space-y-0">
+                            <label className="inline-flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+                                <input
+                                    type="checkbox"
+                                    className="h-5 w-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                                    checked={nftMaxSupply === "18446744073709551615"}
+                                    onChange={(e) =>
+                                        setNftMaxSupply(e.target.checked ? "18446744073709551615" : "")
+                                    }
+                                />
+                                <span>Infinity</span>
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Max supply"
+                                value={nftMaxSupply === "18446744073709551615" ? "∞" : nftMaxSupply}
+                                onChange={(e) => setNftMaxSupply(e.target.value)}
+                                disabled={nftMaxSupply === "18446744073709551615"}
+                                className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
+                            />
+                            <input
+                                type="number"
+                                placeholder="Mint fee per mint (SOL)"
+                                value={nftMintFee}
+                                onChange={(e) => setNftMintFee(e.target.value)}
+                                className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100"
+                            />
+                        </div>
+                    </div>
+
+                    <AssetOriginForm
+                        value={assetOrigin}
+                        onChange={setAssetOrigin}
+                        templateId={assetOriginTemplateId}
+                        onTemplateChange={handleAssetOriginTemplateChange}
+                    />
+
+                    {assetOriginErrors.length > 0 && (
+                        <div className="w-full max-w-3xl bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 text-sm">
+                            <p className="font-semibold mb-2">Please fix these fields before minting:</p>
+                            <ul className="list-disc list-inside space-y-1">
+                                {assetOriginErrors.map((error) => (
+                                    <li key={error}>{error}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    <AssetOriginSummary assetOrigin={assetOrigin} />
+
+                    {(uploadedPreviewUrl || previewUrl) && publicKey && (
+                        <button
+                            onClick={handleDeploy}
+                            disabled={minting}
+                            className={`w-full max-w-3xl px-6 py-3 text-center ${minting ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"} text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300 transition-colors duration-200`}
+                        >
+                            {minting ? "Deploying..." : "Deploy"}
+                        </button>
+                    )}
+
+                    {!publicKey && (
+                        <p className="text-sm text-red-500">Connect your wallet to mint.</p>
+                    )}
+                </div>
             </div>
         </div>
     );
