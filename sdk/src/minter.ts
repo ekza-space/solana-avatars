@@ -15,7 +15,7 @@ import { MPL_TOKEN_METADATA_PROGRAM_ID } from "@metaplex-foundation/mpl-token-me
 import { Metadata } from "@metaplex-foundation/mpl-token-metadata";
 
 // ---- IDL ----
-import idl from "../../target/idl/avatar_nft_minter.json";
+import idl from "../idl/avatar_nft_minter.json";
 import type { AvatarNftMinter as AvatarNftMinterIDL } from "../idl/avatar_nft_minter";
 
 /**
