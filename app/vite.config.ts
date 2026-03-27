@@ -2,8 +2,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { vitePlugin as remix } from "@remix-run/dev";
+import { installGlobals } from "@remix-run/node";
+import { vercelPreset } from "@vercel/remix/vite";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
+
+installGlobals();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** Monorepo sibling; avoids broken `file:` installs on Vercel Turbo (subpath exports). */
@@ -48,6 +52,7 @@ export default defineConfig({
   // },
   plugins: [
     remix({
+      presets: [vercelPreset()],
       future: {
         v3_fetcherPersist: true,
         v3_relativeSplatPath: true,
