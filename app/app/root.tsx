@@ -9,7 +9,7 @@ import {
 import type { LinksFunction } from "@remix-run/node";
 import SayHi from "~/components/SayHi"
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // TODO: move to vite config
 import { Buffer } from "buffer";
@@ -76,10 +76,44 @@ function MainContent() {
   return <Outlet />;
 }
 
+function ServerFallbackContent() {
+  const location = useLocation();
+
+  if (location.pathname === "/about") {
+    return <Outlet />;
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 px-4 text-center">
+      <p className="text-xl text-slate-600">
+        Please connect your Solana wallet to continue
+      </p>
+    </div>
+  );
+}
+
 export default function App() {
+  const [isHydrated, setIsHydrated] = useState(false);
   const network = WalletAdapterNetwork.Devnet;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
-  const wallets = useMemo(() => [new PhantomWalletAdapter()], [network]);
+  const wallets = useMemo(
+    () => (isHydrated ? [new PhantomWalletAdapter()] : []),
+    [isHydrated]
+  );
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
+  if (!isHydrated) {
+    return (
+      <>
+        <Header />
+        <ServerFallbackContent />
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <ConnectionProvider endpoint={endpoint}>
