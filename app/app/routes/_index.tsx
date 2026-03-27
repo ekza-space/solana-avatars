@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useWallet, useAnchorWallet } from "@solana/wallet-adapter-react";
-import Header from "~/components/header";
 import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
+
 import { decodeByteArray, encodeString } from "~/utils/bytes";
 import AvatarSelector, { avatarList } from "~/components/AvatarSelector";
+import { Badge, Button, Field, Input, PageSection, Panel, StatCard, Textarea } from "~/components/ui";
 
 
 // Define the expected structure for avatar creation arguments
@@ -15,9 +16,7 @@ export interface CreateUserAvatarArgs {
 };
 
 export default function AvatarEditor() {
-
-  // Burn invalid NFTs handler
-  const { publicKey, connected, sendTransaction } = useWallet();
+  const { connected } = useWallet();
   const anchorWallet = useAnchorWallet();
   // Prevent SSR/client markup mismatch
   const [isClient, setIsClient] = useState(false);
@@ -40,8 +39,8 @@ export default function AvatarEditor() {
         ]);
         const connection = new Connection(clusterApiUrl("devnet"));
         const provider = new anchor.AnchorProvider(connection, anchorWallet, anchor.AnchorProvider.defaultOptions());
-        const program = new anchor.Program(sdk.idlJson as any, provider);
-        const avatars = sdk.create(provider, program);
+        const program = new anchor.Program(sdk.idlJson as any, provider) as any;
+        const avatars = sdk.create(provider, program as any);
         const [pda] = avatars.getProfilePda();
         setProfilePda(pda);
 
@@ -65,7 +64,7 @@ export default function AvatarEditor() {
         setProfileExists(false);
       }
     })();
-  }, [connected]);
+  }, [connected, anchorWallet]);
 
   const nicknamePlaceholders = [
     "NeonNinja", "CyberFrog", "PixelMage", "QuantumLlama", "CodeSamurai", "Zero404"
@@ -136,8 +135,8 @@ export default function AvatarEditor() {
     ]);
     const connection = new Connection(clusterApiUrl("devnet"));
     const provider = new anchor.AnchorProvider(connection, anchorWallet, anchor.AnchorProvider.defaultOptions());
-    const program = new anchor.Program(sdk.idlJson as any, provider);
-    const avatars = sdk.create(provider, program);
+    const program = new anchor.Program(sdk.idlJson as any, provider) as any;
+    const avatars = sdk.create(provider, program as any);
 
     try {
       if (profileExists && profilePda) {
@@ -176,8 +175,8 @@ export default function AvatarEditor() {
     ]);
     const connection = new Connection(clusterApiUrl("devnet"));
     const provider = new anchor.AnchorProvider(connection, anchorWallet, anchor.AnchorProvider.defaultOptions());
-    const program = new anchor.Program(sdk.idlJson as any, provider);
-    const avatars = sdk.create(provider, program);
+    const program = new anchor.Program(sdk.idlJson as any, provider) as any;
+    const avatars = sdk.create(provider, program as any);
     try {
       await avatars.deleteProfile();
       console.log("Profile deleted successfully");
@@ -193,87 +192,106 @@ export default function AvatarEditor() {
   };
 
   return (
-    <div className="w-full h-screen flex flex-col">
-      <div className="flex-1 overflow-auto px-8 py-4 bg-white dark:bg-gray-900 rounded-3xl shadow-xl">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Left: Form Inputs */}
-          <div className="space-y-6">
-            {/* Username */}
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Username
-              </label>
-              <input
+    <PageSection
+      eyebrow="Profile Console"
+      title="Build your on-chain identity"
+      description="Manage the same Solana avatar profile flow, now organized as a calmer workstation with clear form states and a dedicated asset browser."
+      actions={
+        <>
+          <Badge tone={profileExists ? "success" : "default"}>
+            {profileExists ? "Profile found" : "New profile"}
+          </Badge>
+          <Badge>{connected ? "Wallet connected" : "Wallet disconnected"}</Badge>
+        </>
+      }
+    >
+      <div className="mb-6 grid gap-5 lg:grid-cols-3">
+        <StatCard label="Network" value="Devnet" hint="Current Solana environment for profile operations." />
+        <StatCard label="Mode" value={profileExists ? "Update" : "Create"} hint="Detected automatically from your on-chain PDA." />
+        <StatCard label="Selected asset" value={selectedAvatar.avatarMint.toString().slice(0, 8) + "..."} hint="Current NFT bound to the profile form." />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
+        <Panel className="space-y-5">
+          <div className="space-y-2">
+            <div className="ui-label">Identity Form</div>
+            <h2 className="font-display text-2xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
+              Configure your public persona
+            </h2>
+            <p className="ui-copy">
+              The underlying create, update, and delete logic is unchanged. Only the presentation and layout have been upgraded.
+            </p>
+          </div>
+
+          <div className="grid gap-4">
+            <Field label="Username" hint="Short public handle stored in the profile account.">
+              <Input
                 type="text"
                 value={usernameInput}
                 onChange={(e) => setUsernameInput(e.target.value)}
                 placeholder={suggestedUsername}
-                className="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
-            </div>
+            </Field>
 
-            {/* Description */}
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Description
-              </label>
-              <input
-                type="text"
+            <Field label="Description" hint="Bio or identity blurb shown alongside your avatar.">
+              <Textarea
                 value={descriptionInput}
                 onChange={(e) => setDescriptionInput(e.target.value)}
                 placeholder={suggestedDescription}
-                className="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                rows={4}
               />
-            </div>
+            </Field>
 
-            {/* Avatar Mint */}
-            <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Avatar Mint
-              </label>
-              <input
+            <Field label="Avatar Mint" hint="Chosen automatically from the wallet inventory panel.">
+              <Input
                 type="text"
                 value={selectedAvatar.avatarMint.toString()}
                 readOnly
-                className="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
-            </div>
+            </Field>
 
-            {/* Save Button */}
-            <button
-              onClick={handleSave}
-              disabled={!connected}
-              className="w-full mt-4 px-6 py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-300 transition-colors duration-200 disabled:opacity-50"
+            <Field
+              label="Legacy 2D data"
+              hint="Kept for compatibility with the current data model."
             >
-              {profileExists ? "Update Profile" : "Save Profile"}
-            </button>
-            {profileExists && (
-              <>
-                <button
-                  onClick={handleDelete}
-                  disabled={!connected}
-                  className="w-full mt-2 px-6 py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-300 transition-colors duration-200 disabled:opacity-50"
-                >
-                  Delete Profile
-                </button>
-              </>
-            )}
-
-            {!connected && (
-              <p className="text-center text-sm text-red-500 mt-2">
-                Please connect your wallet to save your avatar.
-              </p>
-            )}
+              <Input
+                type="text"
+                value={avatar2dInput}
+                onChange={(e) => setAvatar2dInput(e.target.value)}
+                placeholder="Optional CSV byte array"
+              />
+            </Field>
           </div>
 
-          {/* Right: AvatarSelector Component */}
-          <AvatarSelector
-            avatarList={avatarList}
-            selectedAvatar={selectedAvatar}
-            setSelectedAvatar={setSelectedAvatar}
-          />
-        </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button onClick={handleSave} disabled={!connected} className="w-full">
+              {profileExists ? "Update profile" : "Save profile"}
+            </Button>
+            {profileExists ? (
+              <Button
+                onClick={handleDelete}
+                disabled={!connected}
+                variant="danger"
+                className="w-full"
+              >
+                Delete profile
+              </Button>
+            ) : null}
+          </div>
+
+          {!connected ? (
+            <p className="text-sm font-medium text-[rgb(var(--danger))]">
+              Please connect your wallet to save your avatar profile.
+            </p>
+          ) : null}
+        </Panel>
+
+        <AvatarSelector
+          avatarList={avatarList}
+          selectedAvatar={selectedAvatar}
+          setSelectedAvatar={setSelectedAvatar}
+        />
       </div>
-    </div>
+    </PageSection>
   );
 }

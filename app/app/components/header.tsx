@@ -2,6 +2,9 @@ import { Link, useLocation } from "@remix-run/react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useState, useEffect } from "react";
 
+import ThemeToggle from "./theme-toggle";
+import { cn } from "~/utils/cn";
+
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState(
     () => typeof window !== "undefined" && window.matchMedia(query).matches
@@ -18,6 +21,14 @@ function useMediaQuery(query: string) {
   return matches;
 }
 
+const navItems = [
+  { to: "/", label: "Profile" },
+  { to: "/users", label: "Users" },
+  { to: "/deployer", label: "Deploy" },
+  { to: "/minter", label: "Market" },
+  { to: "/about", label: "About" },
+] as const;
+
 export default function Header() {
   const [isClient, setIsClient] = useState(false);
   useEffect(() => setIsClient(true), []);
@@ -27,128 +38,125 @@ export default function Header() {
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   return (
-    <header className="fixed top-0 left-0 w-full bg-gray-100 dark:bg-gray-900 shadow-sm px-6 py-4 z-50">
-      <div className="relative flex items-center w-full">
-        {/* Hamburger (mobile) */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="md:hidden text-gray-700 dark:text-gray-300 focus:outline-none"
-          aria-label="Toggle menu"
-          aria-expanded={isOpen}
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d={isOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
-            />
-          </svg>
-        </button>
-
-        {/* Logo */}
-        <Link
-          to="/"
-          className="absolute left-1/2 -translate-x-1/2 transform text-2xl font-bold text-gray-900 dark:text-gray-100 hover:text-purple-600 dark:hover:text-purple-400 md:static md:transform-none"
-        >
-          W3 Avatars
-        </Link>
-
-        {/* Desktop nav */}
-        <nav className="hidden md:flex ml-12 space-x-4 items-center">
-          <Link
-            to="/"
-            className={`${location.pathname === "/" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
-              } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
-          >
-            Home
-          </Link>
-          <Link
-            to="/users"
-            className={`${location.pathname === "/users" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
-              } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
-          >
-            Users
-          </Link>
-          <Link
-            to="/deployer"
-            className={`${location.pathname === "/deployer" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
-              } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
-          >
-            Deployer
-          </Link>
-          <Link
-            to="/minter"
-            className={`${location.pathname === "/minter" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
-              } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
-          >
-            Minter
-          </Link>
-          <Link
-            to="/about"
-            className={`${location.pathname === "/about" ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-700 dark:text-gray-300"
-              } hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200`}
-          >
-            About
-          </Link>
-          <a
-            href="https://space.ekza.io"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
-          >
-            Ekza
-          </a>
-        </nav>
-
-        {/* Desktop Wallet Button */}
-        {isDesktop && isClient && (
-          <div className="ml-auto">
-            <WalletMultiButton className="px-4 py-2 rounded-lg font-semibold transition-colors duration-200 focus:outline-none" />
+    <header className="sticky top-0 z-50 px-4 pb-4 pt-4 sm:px-6">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 rounded-[28px] border border-[rgba(var(--line),0.72)] bg-[rgba(var(--surface),0.82)] px-4 py-4 shadow-[0_12px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/"
+              className="flex items-center gap-3 text-[rgb(var(--text-strong))]"
+            >
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[rgba(var(--line-strong),0.36)] bg-[rgba(var(--accent),0.08)] font-mono text-xs font-semibold uppercase tracking-[0.24em] text-[rgb(var(--accent))]">
+                AV
+              </span>
+              <span className="hidden sm:block">
+                <span className="font-display text-lg font-semibold tracking-tight">
+                  Solana Avatars
+                </span>
+                <span className="block font-mono text-[11px] uppercase tracking-[0.28em] text-[rgb(var(--text))]">
+                  Friendly wireframe console
+                </span>
+              </span>
+            </Link>
           </div>
+
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
+            {isDesktop && isClient ? <WalletMultiButton /> : null}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {!isDesktop && (
+            <div className="flex items-center gap-2">
+              <div className="ui-badge">Menu</div>
+            </div>
+          )}
+
+          <nav className="hidden flex-1 flex-wrap gap-2 md:flex" aria-label="Primary">
+            {navItems.map((item) => {
+              const active = location.pathname === item.to;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={cn(
+                    "inline-flex min-h-11 items-center rounded-2xl border px-4 py-2 text-sm font-medium transition duration-200",
+                    active
+                      ? "border-[rgba(var(--line-strong),0.55)] bg-[rgba(var(--accent),0.1)] text-[rgb(var(--text-strong))]"
+                      : "border-[rgba(var(--line),0.5)] bg-transparent text-[rgb(var(--text))] hover:border-[rgba(var(--line-strong),0.35)] hover:text-[rgb(var(--text-strong))]"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+            <a
+              href="https://space.ekza.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 items-center rounded-2xl border border-[rgba(var(--line),0.5)] px-4 py-2 text-sm font-medium text-[rgb(var(--text))] hover:border-[rgba(var(--line-strong),0.35)] hover:text-[rgb(var(--text-strong))]"
+            >
+              Ekza Space
+            </a>
+          </nav>
+
+          {!isDesktop && (
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="ui-icon-button ml-auto"
+              aria-label="Toggle menu"
+              aria-expanded={isOpen}
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d={isOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+                />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {!isDesktop && isOpen && (
+          <nav className="grid gap-2 border-t border-[rgba(var(--line),0.52)] pt-4 md:hidden" aria-label="Mobile menu">
+            {navItems.map((item) => {
+              const active = location.pathname === item.to;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setIsOpen(false)}
+                  className={cn(
+                    "inline-flex min-h-11 items-center rounded-2xl border px-4 py-2 text-sm font-medium transition duration-200",
+                    active
+                      ? "border-[rgba(var(--line-strong),0.55)] bg-[rgba(var(--accent),0.1)] text-[rgb(var(--text-strong))]"
+                      : "border-[rgba(var(--line),0.5)] text-[rgb(var(--text))]"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+            <a
+              href="https://space.ekza.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 items-center rounded-2xl border border-[rgba(var(--line),0.5)] px-4 py-2 text-sm font-medium text-[rgb(var(--text))]"
+            >
+              Ekza Space
+            </a>
+            {isClient ? <WalletMultiButton /> : null}
+          </nav>
         )}
       </div>
-
-      {/* Mobile Menu */}
-      {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setIsOpen(false)}
-            aria-label="Close menu"
-          />
-          <nav
-            className="fixed top-0 left-0 h-full w-64 bg-gray-100 dark:bg-gray-900 p-6 flex flex-col justify-between z-50 md:hidden"
-            aria-label="Mobile menu"
-          >
-            <div className="flex flex-col space-y-4">
-              <Link to="/" onClick={() => setIsOpen(false)} className="text-gray-700 dark:text-gray-300 hover:underline">
-                Home
-              </Link>
-              <Link to="/users" onClick={() => setIsOpen(false)} className="text-gray-700 dark:text-gray-300 hover:underline">
-                Users
-              </Link>
-              <Link to="/deployer" onClick={() => setIsOpen(false)} className="text-gray-700 dark:text-gray-300 hover:underline">
-                Deployer
-              </Link>
-              <Link to="/minter" onClick={() => setIsOpen(false)} className="text-gray-700 dark:text-gray-300 hover:underline">
-                Minter
-              </Link>
-              <Link to="/about" onClick={() => setIsOpen(false)} className="text-gray-700 dark:text-gray-300 hover:underline">
-                About
-              </Link>
-              <a href="https://space.ekza.io" target="_blank" rel="noopener noreferrer" className="text-gray-700 dark:text-gray-300 hover:underline">
-                Ekza
-              </a>
-            </div>
-            {!isDesktop && isClient && (
-              <div className="mt-auto">
-                <WalletMultiButton className="w-full px-4 py-2 rounded-lg font-semibold transition-colors duration-200 focus:outline-none" />
-              </div>
-            )}
-          </nav>
-        </>
-      )}
     </header>
   );
 }

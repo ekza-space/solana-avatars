@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { PublicKey, Keypair } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
+import { Button, Panel } from "~/components/ui";
 import { fetchUserNFTs } from "~/utils/fetchUserNfts";
 import { handleBurnInvalidNFTs } from "~/utils/burnNft";
 import SceneWithModel from "./3d/SceneWithModel";
@@ -43,7 +44,7 @@ export const avatarList: Avatar[] = [
     { imgHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", modelHash: "QmekQoqgmxsCY3asmFVbSH8yKRS9C8vmMMhNFWPC1JEF2z", avatarMint: new Keypair().publicKey },
 ];
 
-const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAvatar, setSelectedAvatar }) => {
+const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList: _avatarList, selectedAvatar, setSelectedAvatar }) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Use Solana Wallet Adapter for connection status
@@ -117,89 +118,135 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList, selectedAva
 
     if (realAvatarList.length === 0) {
         return (
-            <div className="p-4 bg-yellow-100 text-yellow-900 rounded-lg text-center flex justify-center items-center h-40">
-                No avatar found. Go and&nbsp;<a href="/minter" className="underline">mint one first</a>.
-            </div>
+            <Panel className="flex min-h-[280px] flex-col items-start justify-between gap-6">
+                <div className="space-y-3">
+                    <div className="ui-badge">Inventory empty</div>
+                    <h3 className="font-display text-2xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
+                        No avatar found in this wallet yet
+                    </h3>
+                    <p className="ui-copy">
+                        Mint one first in the marketplace, then come back here to bind it to your profile.
+                    </p>
+                </div>
+                <a href="/minter" className="ui-button">
+                    Open marketplace
+                </a>
+            </Panel>
         );
     }
 
     return (
-        <div>
-            {/* 3D Visualization Placeholder */}
-            {modelUrl ? <div className="mb-6">
-                {modelUrl && (
-                    <div className="w-full h-[500px]">
+        <div className="space-y-5">
+            <Panel className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <div className="ui-label">Preview</div>
+                        <h3 className="font-display text-2xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
+                            Browse and select your avatar
+                        </h3>
+                    </div>
+                    <div className="ui-badge">{displayedAvatarList.length} owned</div>
+                </div>
+
+                {modelUrl ? (
+                    <div className="h-[460px] overflow-hidden rounded-[24px] border border-[rgba(var(--line),0.6)]">
                         <SceneWithModel file={modelUrl} />
                     </div>
-                )}
-            </div> : <div className="mb-6">
-                <img
-                    src={`${IPFS_GATEWAY}${selectedAvatar.imgHash}`}
-                    alt={`Avatar preview ${selectedAvatar.imgHash}`}
-                    className="w-full h-80 object-contain rounded-lg shadow-lg"
-                />
-            </div>}
-
-            <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
-                Browse &amp; Select 3D Avatars
-            </h3>
-
-            <div ref={containerRef} className="h-40 overflow-x-auto whitespace-nowrap flex gap-4 p-1">
-                {displayedAvatarList.map((avatar) => (
-                    <div
-                        key={avatar.avatarMint.toString()}
-                        className="p-1 inline-block"
-                        data-selected={avatar.avatarMint.toString() === selectedAvatar.avatarMint.toString()}
-                    >
-                        <div
-                            className={`relative group w-32 h-32 overflow-hidden rounded-lg shadow-sm hover:shadow-md transition-shadow duration-150 cursor-pointer ${avatar.avatarMint.toString() === selectedAvatar.avatarMint.toString() ? 'ring-4 ring-purple-500' : 'ring-0'}`}
-                            onClick={() => {
-                                setSelectedAvatar(avatar)
-                                console.log("set selected avatar: ", avatar)
-                            }}
-                        >
-                            <img
-                                src={`${IPFS_GATEWAY}${avatar.imgHash}`}
-                                alt={avatar.imgHash}
-                                className="w-full h-full object-cover"
-                            />
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleBurnInvalidNFTs(
-                                        publicKey,
-                                        connected,
-                                        [avatar.avatarMint.toString()],
-                                        sendTransaction
-                                    );
-                                }}
-                                disabled={!connected}
-                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                aria-label="Delete Avatar"
-                            >
-                                &times;
-                            </button>
-                        </div>
+                ) : (
+                    <div className="overflow-hidden rounded-[24px] border border-[rgba(var(--line),0.6)] bg-[rgba(var(--surface-2),0.78)] p-4">
+                        <img
+                            src={`${IPFS_GATEWAY}${selectedAvatar.imgHash}`}
+                            alt={`Avatar preview ${selectedAvatar.imgHash}`}
+                            className="h-80 w-full rounded-[20px] object-contain"
+                        />
                     </div>
-                ))}
-            </div>
+                )}
+            </Panel>
 
-            {/* Selected Avatar IPFS Details */}
-            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <Panel className="space-y-4">
+                <div className="ui-label">Wallet inventory</div>
+                <div
+                    ref={containerRef}
+                    className="grid max-h-[340px] gap-3 overflow-auto pr-1 sm:grid-cols-2 xl:grid-cols-3"
+                >
+                    {displayedAvatarList.map((avatar) => {
+                        const isSelected =
+                            avatar.avatarMint.toString() === selectedAvatar.avatarMint.toString();
 
-                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                    <strong>Image IPFS Mint:</strong> <br /> {selectedAvatar.avatarMint.toString()}
-                </p>
+                        return (
+                            <button
+                                key={avatar.avatarMint.toString()}
+                                type="button"
+                                className={`group rounded-[22px] border p-3 text-left transition duration-200 ${
+                                    isSelected
+                                        ? "border-[rgba(var(--line-strong),0.72)] bg-[rgba(var(--accent),0.09)]"
+                                        : "border-[rgba(var(--line),0.55)] bg-[rgba(var(--surface),0.68)] hover:border-[rgba(var(--line-strong),0.35)]"
+                                }`}
+                                data-selected={isSelected}
+                                onClick={() => {
+                                    setSelectedAvatar(avatar);
+                                    console.log("set selected avatar: ", avatar);
+                                }}
+                            >
+                                <div className="relative overflow-hidden rounded-[18px] border border-[rgba(var(--line),0.45)]">
+                                    <img
+                                        src={`${IPFS_GATEWAY}${avatar.imgHash}`}
+                                        alt={avatar.imgHash}
+                                        className="h-40 w-full object-cover"
+                                    />
+                                    <div className="absolute right-2 top-2">
+                                        <Button
+                                            type="button"
+                                            variant="danger"
+                                            className="h-9 min-h-0 rounded-xl px-3 py-0 text-xs opacity-0 transition-opacity group-hover:opacity-100"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleBurnInvalidNFTs(
+                                                    publicKey,
+                                                    connected,
+                                                    [avatar.avatarMint.toString()],
+                                                    sendTransaction
+                                                );
+                                            }}
+                                            disabled={!connected}
+                                            aria-label="Delete Avatar"
+                                        >
+                                            Burn
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div className="mt-3 space-y-2">
+                                    <div className="ui-label">Mint</div>
+                                    <p className="line-clamp-2 break-all font-mono text-xs text-[rgb(var(--text-strong))]">
+                                        {avatar.avatarMint.toString()}
+                                    </p>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            </Panel>
 
-                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                    <strong>Image IPFS Hash:</strong> <br /> {selectedAvatar.imgHash}
-                </p>
-
-                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2 mt-1">
-                    <strong>Model IPFS Hash:</strong> <br /> {selectedAvatar.modelHash}
-                </p>
-
-            </div>
+            <Panel muted className="grid gap-4 md:grid-cols-3">
+                <div>
+                    <div className="ui-label">Selected Mint</div>
+                    <p className="mt-2 break-all font-mono text-xs text-[rgb(var(--text-strong))]">
+                        {selectedAvatar.avatarMint.toString()}
+                    </p>
+                </div>
+                <div>
+                    <div className="ui-label">Image Hash</div>
+                    <p className="mt-2 break-all font-mono text-xs text-[rgb(var(--text))]">
+                        {selectedAvatar.imgHash}
+                    </p>
+                </div>
+                <div>
+                    <div className="ui-label">Model Hash</div>
+                    <p className="mt-2 break-all font-mono text-xs text-[rgb(var(--text))]">
+                        {selectedAvatar.modelHash}
+                    </p>
+                </div>
+            </Panel>
         </div>
     );
 };

@@ -1,7 +1,7 @@
-import Header from "~/components/header"; // Assuming this is your existing header
 import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
+import { Badge, Button, PageSection, Panel, StatCard } from "~/components/ui";
 import { getIpfsUrl } from "~/utils/ipfsUrls";
 import { NftMetadata } from "~/types/nft";
 import SceneWithModel from "~/components/3d/SceneWithModel";
@@ -99,8 +99,9 @@ export default function MarketPage() {
   const { connection } = useConnection();
   const anchorWallet = useAnchorWallet();
   const [avatars, setAvatars] = useState<AvatarItem[] | null>(null);
-  const [iframeSrc, setIframeSrc] = useState<string | null>(null);
-  const [modalDescription, setModalDescription] = useState<string | null>(null);
+  const [activeModelSrc, setActiveModelSrc] = useState<string | null>(null);
+  const [activeModelDescription, setActiveModelDescription] = useState<string | null>(null);
+  const [fullDescription, setFullDescription] = useState<string | null>(null);
   const [minter, setMinter] = useState<any | null>(null);
 
   // Initialise with the local mock while no wallet/cluster is yet queried
@@ -176,108 +177,115 @@ export default function MarketPage() {
     };
   }, [connection, anchorWallet]);
 
-return (
-    <div className="min-h-screen text-slate-800 dark:text-slate-200 dark:bg-slate-900"> {/* Softer background */}
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 mb-10 text-center"> {/* Page Title */}
-          Explore the Avatar NFT Marketplace
-        </h1>
+  const items = avatars ?? [];
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {avatars === null ? (
-            <p className="text-center col-span-full text-slate-500">Loading avatars...</p>
-          ) : (
-            avatars.map(({ index, data, metadata }) => (
-              <div
-                key={index}
-                onClick={(e) => {
-                  const tag = (e.target as HTMLElement).tagName.toLowerCase();
-                  if (tag === "button" || tag === "a") return;
-                  const modal = document.getElementById("model-modal");
-                  if (modal && metadata?.animation_url) {
-                    modal.style.display = "flex";
-                    setIframeSrc(getIpfsUrl(metadata.animation_url));
-                    setModalDescription(metadata.description || null);
-                  }
-                }}
-                className="bg-white dark:bg-slate-800 rounded-xl shadow-lg overflow-hidden transition-all duration-300 ease-in-out hover:shadow-2xl hover:-translate-y-1 p-6"
-              >
-                {metadata?.image && (
+  return (
+    <PageSection
+      eyebrow="Marketplace"
+      title="Explore avatar collections"
+      description="Browse creator drops, inspect supply and pricing, open 3D previews, and mint directly from the collection feed."
+      actions={
+        <>
+          <Badge>{items.length} items</Badge>
+          <Badge tone={minter ? "success" : "default"}>
+            {minter ? "Minter ready" : "Initializing"}
+          </Badge>
+        </>
+      }
+    >
+      <div className="mb-6 grid gap-5 lg:grid-cols-3">
+        <StatCard label="Source" value="On-chain + IPFS" hint="Registry data and metadata are resolved separately and merged client-side." />
+        <StatCard label="Cache" value={DISABLE_CACHE ? "Disabled" : "Enabled"} hint="Local avatar cache remains available, but is disabled by default right now." />
+        <StatCard label="Preview" value="3D + text modals" hint="React state now drives previews instead of direct DOM mutation." />
+      </div>
+
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        {avatars === null ? (
+          <Panel className="col-span-full">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="ui-panel-muted h-56 animate-pulse" />
+              <div className="ui-panel-muted h-56 animate-pulse" />
+              <div className="ui-panel-muted h-56 animate-pulse" />
+            </div>
+          </Panel>
+        ) : (
+          items.map(({ index, data, metadata }) => (
+            <Panel key={index} className="flex h-full flex-col gap-4">
+              {metadata?.image ? (
+                <div className="overflow-hidden rounded-[22px] border border-[rgba(var(--line),0.55)]">
                   <img
                     src={getIpfsUrl(metadata.image)}
                     alt={metadata.name}
-                    className="w-full h-48 object-cover rounded mb-4"
+                    className="h-52 w-full object-cover"
                   />
-                )}
+                </div>
+              ) : null}
 
-                {metadata?.animation_url &&
-                  metadata?.properties?.category === "vrmodel" && (
-                    <button
-                      onClick={() => {
-                        const modal = document.getElementById("model-modal");
-                        if (modal && metadata.animation_url) {
-                          modal.style.display = "flex";
-                          setIframeSrc(getIpfsUrl(metadata.animation_url));
-                          setModalDescription(metadata.description || null);
-                        }
-                      }}
-                      className="block text-indigo-600 underline text-sm mb-4"
-                    >
-                      View 3D model
-                    </button>
-                  )}
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="ui-label">Avatar #{index}</div>
+                  <h2 className="font-display text-2xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
+                    {metadata?.name || `Avatar #${index}`}
+                  </h2>
+                </div>
+                <Badge>
+                  {Number(data.maxSupply) > 1000000000000 ? "∞ supply" : `${Number(data.maxSupply)} max`}
+                </Badge>
+              </div>
 
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
-                  Avatar #{index}
-                </h3>
-                {metadata?.name && (
-                  <p className="text-slate-700 dark:text-slate-300 font-medium mb-2">{metadata.name}</p>
-                )}
-                {metadata?.description && (
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                    {metadata.description.slice(0, 250)}
-                    {metadata.description.length > 250 && (
-                      <>
-                        ...{" "}
-                        <button
-                          onClick={() => {
-                            const modal = document.getElementById("text-modal");
-                            const content = document.getElementById("text-modal-content");
-                            if (modal && content) {
-                              content.textContent = metadata.description;
-                              modal.style.display = "flex";
-                            }
-                          }}
-                          className="text-indigo-600 underline text-sm"
-                        >
-                          Read more
-                        </button>
-                      </>
-                    )}
-                  </p>
-                )}
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-                  Creator:{" "}
-                  <span className="font-medium text-slate-700 dark:text-slate-300 break-all">
+              {metadata?.description ? (
+                <p className="ui-copy text-sm">
+                  {metadata.description.slice(0, 160)}
+                  {metadata.description.length > 160 ? "..." : ""}
+                </p>
+              ) : (
+                <p className="ui-copy text-sm">No description attached to this collection.</p>
+              )}
+
+              <div className="grid gap-3 border-t border-[rgba(var(--line),0.5)] pt-4 text-sm">
+                <div>
+                  <div className="ui-label">Creator</div>
+                  <p className="break-all font-mono text-xs text-[rgb(var(--text-strong))]">
                     {data.creator.toString()}
-                  </span>
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                  Max supply: {Number(data.maxSupply) > 1000000000000 ? "∞" : Number(data.maxSupply)}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                  Current supply: {Number(data.currentSupply)}
-                </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Minting fee:{" "}
-                  {(Number(data.mintingFeePerMint) / 1_000_000_000).toLocaleString(
-                    undefined,
-                    { maximumFractionDigits: 9 }
-                  )}{" "}
-                  SOL
-                </p>
-                {/* Mint button */}
-                <button
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <div className="ui-label">Current</div>
+                    <p className="text-[rgb(var(--text-strong))]">{Number(data.currentSupply)}</p>
+                  </div>
+                  <div>
+                    <div className="ui-label">Mint fee</div>
+                    <p className="text-[rgb(var(--text-strong))]">
+                      {(Number(data.mintingFeePerMint) / 1_000_000_000).toLocaleString(
+                        undefined,
+                        { maximumFractionDigits: 9 }
+                      )}{" "}
+                      SOL
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-auto grid gap-3 sm:grid-cols-2">
+                {metadata?.animation_url &&
+                metadata?.properties?.category === "vrmodel" ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setActiveModelSrc(getIpfsUrl(metadata.animation_url!));
+                      setActiveModelDescription(metadata.description || null);
+                    }}
+                  >
+                    View 3D
+                  </Button>
+                ) : (
+                  <div />
+                )}
+
+                <Button
+                  type="button"
                   onClick={async () => {
                     if (!minter || !metadata) return;
                     const result = await minter.mintNft({
@@ -289,157 +297,86 @@ return (
                     console.log("Minted NFT:", result);
                     alert(`Minted NFT!\nSignature: ${result.signature}`);
                   }}
-                  className="mt-4 w-full bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 transition"
                 >
                   Mint
-                </button>
+                </Button>
               </div>
-            ))
-          )}
-        </div>
-      </main>
-      {/* 3D Model Modal */}
-      <div
-        id="model-modal"
-        style={{
-          display: "none",
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1000,
-        }}
-        onClick={(e) => {
-          const modal = document.getElementById("model-modal");
-          if (modal && e.target === modal) {
-            modal.style.display = "none";
-            setIframeSrc(null);
-            setModalDescription(null);
-          }
-        }}
-      >
-        <div
-          style={{
-            padding: "25px",
-            position: "relative",
-            width: "60%",
-            height: "80%",
-            backgroundColor: "white",
-            borderRadius: "8px",
-            overflow: "hidden",
+
+              {metadata?.description && metadata.description.length > 160 ? (
+                <button
+                  type="button"
+                  className="self-start text-sm font-medium text-[rgb(var(--accent))]"
+                  onClick={() => setFullDescription(metadata.description)}
+                >
+                  Read full description
+                </button>
+              ) : null}
+            </Panel>
+          ))
+        )}
+      </div>
+
+      {activeModelSrc ? (
+        <OverlayPanel
+          title="3D model preview"
+          onClose={() => {
+            setActiveModelSrc(null);
+            setActiveModelDescription(null);
           }}
         >
-          <button
-            onClick={() => {
-              const modal = document.getElementById("model-modal");
-              if (modal) modal.style.display = "none";
-              setIframeSrc(null);
-              setModalDescription(null);
-            }}
-            style={{
-              position: "absolute",
-              top: "16px",
-              right: "16px",
-              fontSize: "24px",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              zIndex: 1001,
-            }}
-          >
-            ×
-          </button>
-          {iframeSrc && (
-            <div className="w-full h-[500px]">
-              <SceneWithModel file={iframeSrc} />
-            </div>
-          )}
-          {modalDescription && (
-            <div
-              style={{
-                padding: "16px",
-                maxHeight: "20vh",
-                overflowY: "auto",
-                backgroundColor: "#f9f9f9",
-                fontSize: "14px",
-                color: "#333",
-              }}
-              className="mt-4 rounded"
-            >
-              {modalDescription}
-            </div>
-          )}
-        </div>
-        {/* Full Description Modal */}
-        <div
-          id="text-modal"
-          style={{
-            display: "none",
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100vw",
-            height: "100vh",
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-          onClick={(e) => {
-            const modal = document.getElementById("text-modal");
-            const content = document.getElementById("text-modal-content");
-            if (modal && content && e.target === modal) {
-              modal.style.display = "none";
-              content.textContent = "";
-            }
-          }}
-        >
-          <div
-            style={{
-              position: "relative",
-              width: "60%",
-              maxHeight: "80vh",
-              backgroundColor: "white",
-              borderRadius: "8px",
-              overflow: "hidden",
-            }}
-          >
-            <button
-              onClick={() => {
-                const modal = document.getElementById("text-modal");
-                const content = document.getElementById("text-modal-content");
-                if (modal && content) {
-                  modal.style.display = "none";
-                  content.textContent = "";
-                }
-              }}
-              style={{
-                position: "absolute",
-                top: "8px",
-                right: "8px",
-                fontSize: "24px",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                zIndex: 1001,
-              }}
-            >
-              ×
-            </button>
-            <div
-              id="text-modal-content"
-              style={{
-                padding: "16px",
-                overflowY: "auto",
-                maxHeight: "calc(80vh - 32px)",
-              }}
-            ></div>
+          <div className="h-[55vh] overflow-hidden rounded-[22px] border border-[rgba(var(--line),0.55)]">
+            <SceneWithModel file={activeModelSrc} />
           </div>
+          {activeModelDescription ? (
+            <Panel muted className="mt-4">
+              <p className="ui-copy text-sm">{activeModelDescription}</p>
+            </Panel>
+          ) : null}
+        </OverlayPanel>
+      ) : null}
+
+      {fullDescription ? (
+        <OverlayPanel
+          title="Collection description"
+          onClose={() => setFullDescription(null)}
+        >
+          <Panel muted>
+            <p className="ui-copy whitespace-pre-wrap">{fullDescription}</p>
+          </Panel>
+        </OverlayPanel>
+      ) : null}
+    </PageSection>
+  );
+}
+
+function OverlayPanel({
+  title,
+  children,
+  onClose,
+}: {
+  title: string;
+  children: ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(2,6,23,0.72)] p-4 backdrop-blur-sm"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="w-full max-w-5xl rounded-[28px] border border-[rgba(var(--line-strong),0.45)] bg-[rgba(var(--surface),0.96)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="font-display text-2xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
+            {title}
+          </h2>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Close
+          </Button>
         </div>
+        {children}
       </div>
     </div>
   );

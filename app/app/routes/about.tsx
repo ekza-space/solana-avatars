@@ -1,37 +1,62 @@
+import { PageSection, Panel, StatCard } from "~/components/ui";
+
 export default function About() {
   return (
-    <main className="min-h-screen flex items-start justify-center bg-white dark:bg-slate-900 px-6">
-      <div className="max-w-3xl text-justify space-y-6 p-4">
-        <img src="/logo.jpg" alt="Ekza Space Logo" className="mx-auto mb-6 w-64 h-64" />
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white">About Ekza Space and Avatar Minter</h1>
-        <p className="text-lg text-gray-700 dark:text-gray-300">
-          Ekza Space is a pioneering platform at the intersection of digital identity and creative expression in the Web3 era. At its core is the Avatar Minter, a tool that empowers users to create and own fully customizable 3D avatars, minted as NFTs and ready to use across metaverses and decentralized applications.
-        </p>
-        <p className="text-lg text-gray-700 dark:text-gray-300">
-          Inspired by the vision of <em>Ready Player One</em>, Ekza Space envisions a future where digital presence is personal, interoperable, and economically empowering. By leveraging blockchain technology, it enables true ownership, portability, and monetization of digital assets—reshaping how users interact, play, and create in the evolving digital landscape.
-        </p>
-        <h2 className="text-2xl font-semibold text-gray-800 dark:text-slate-200 mt-10">Quick Guide</h2>
+    <PageSection
+      eyebrow="Project Brief"
+      title="Identity, minting, and metaverse presence in one Solana app"
+      description="Ekza Space turns avatars into portable, ownable web3 identity objects. The interface now explains that story more clearly while keeping the same flows for profiles, deployment, and marketplace minting."
+    >
+      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <Panel className="space-y-6">
+          <img
+            src="/logo.jpg"
+            alt="Ekza Space Logo"
+            className="h-40 w-40 rounded-[28px] border border-[rgba(var(--line),0.6)] object-cover"
+          />
 
-        <p className="text-lg text-gray-700 dark:text-gray-300">
-          On the <strong>Home</strong> page, you can configure your appearance and style in a 3D Web3 metaverse space.
-        </p>
+          <div className="space-y-4">
+            <h2 className="font-display text-2xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
+              What this product does
+            </h2>
+            <p className="ui-copy">
+              Ekza Space sits at the intersection of digital identity and
+              creative ownership. Users can create a profile, attach an NFT
+              avatar, deploy their own collection, and mint from other creators
+              inside the same product surface.
+            </p>
+            <p className="ui-copy">
+              The long-term vision is portable identity for decentralized apps
+              and metaverse environments: personal, interoperable, and
+              economically meaningful.
+            </p>
+          </div>
+        </Panel>
 
-        <p className="text-lg text-gray-700 dark:text-gray-300">
-          Visit the <strong>Users</strong> page to see all registered users who have created profiles.
-        </p>
-
-        <p className="text-lg text-gray-700 dark:text-gray-300">
-          On the <strong>Deployer</strong> page, you can create your own NFT minter where others can mint NFTs based on your 3D model. You can also specify a commission, which you can later claim as rewards when users purchase your avatars (in progress).
-        </p>
-
-        <p className="text-lg text-gray-700 dark:text-gray-300">
-          The <strong>Minter</strong> page is an open market where you can discover avatars shared by other creators. Choose the ones that suit your style and budget.
-        </p>
-
-        <p className="text-lg text-gray-700 dark:text-gray-300">
-          Finally, the <strong>Ekza</strong> page links to the Ekza metaverse playground, where you can test your avatar, meet other users, and see them moving in real time.
-        </p>
+        <div className="grid gap-6">
+          <StatCard label="Profile" value="Create / Update" hint="Bind username, bio, and selected avatar NFT." />
+          <StatCard label="Deploy" value="Mint Collection" hint="Publish your own 3D avatar collection on devnet." />
+          <StatCard label="Market" value="Explore / Mint" hint="Browse creator drops and mint directly from the UI." />
+        </div>
       </div>
-    </main>
-  )
+
+      <Panel className="mt-6">
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-3">
+            <div className="ui-label">Quick Guide</div>
+            <h3 className="font-display text-2xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
+              Main routes
+            </h3>
+          </div>
+          <div className="grid gap-4">
+            <p className="ui-copy"><strong className="text-[rgb(var(--text-strong))]">Profile:</strong> configure your on-chain persona and pick an avatar you already own.</p>
+            <p className="ui-copy"><strong className="text-[rgb(var(--text-strong))]">Users:</strong> inspect the profiles currently registered on devnet.</p>
+            <p className="ui-copy"><strong className="text-[rgb(var(--text-strong))]">Deploy:</strong> upload a model, configure metadata, and initialize a collection.</p>
+            <p className="ui-copy"><strong className="text-[rgb(var(--text-strong))]">Market:</strong> browse shared avatar drops, preview 3D models, and mint what fits your style.</p>
+            <p className="ui-copy"><strong className="text-[rgb(var(--text-strong))]">Ekza Space:</strong> jump to the metaverse playground and try your identity in motion.</p>
+          </div>
+        </div>
+      </Panel>
+    </PageSection>
+  );
 }
