@@ -8,6 +8,8 @@ import tsconfigPaths from "vite-tsconfig-paths";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** Monorepo sibling; avoids broken `file:` installs on Vercel Turbo (subpath exports). */
 const sdkSrc = path.resolve(__dirname, "../sdk/src");
+/** App hoisted deps — files under ../sdk resolve node_modules from sdk/ first (empty on CI). */
+const nm = path.resolve(__dirname, "node_modules");
 
 declare module "@remix-run/node" {
   interface Future {
@@ -27,6 +29,13 @@ export default defineConfig({
     alias: {
       "avatars-sdk/profile": path.join(sdkSrc, "profile.ts"),
       "avatars-sdk/minter": path.join(sdkSrc, "minter.ts"),
+      "@coral-xyz/anchor": path.join(nm, "@coral-xyz/anchor"),
+      "@solana/web3.js": path.join(nm, "@solana/web3.js"),
+      "@solana/spl-token": path.join(nm, "@solana/spl-token"),
+      "@metaplex-foundation/mpl-token-metadata": path.join(
+        nm,
+        "@metaplex-foundation/mpl-token-metadata"
+      ),
     },
   },
   // server: {
