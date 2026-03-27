@@ -1,13 +1,12 @@
 import type { NftMetadata } from "~/types/nft";
 import { Connection, PublicKey, ParsedAccountData } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { getIpfsGatewayBase } from "~/utils/ipfsGateway";
 
 // Metaplex Token Metadata program id for on-chain metadata
 const METADATA_PROGRAM_ID = new PublicKey(
     "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
 );
-
-const DEFAULT_GATEWAY = import.meta.env.VITE_IPFS_GATEWAY || "http://localhost:8080/ipfs/";
 
 // todo: move to SDK
 export async function fetchUserNFTs(
@@ -60,22 +59,23 @@ export async function fetchUserNFTs(
                 readBorshString(); // name
                 readBorshString(); // symbol
                 const uri = readBorshString();
+                const gateway = getIpfsGatewayBase();
 
                 // Resolve metadata URL.
                 // Possible cases:
-                //  - raw CID          => DEFAULT_GATEWAY + cid
-                //  - ipfs://<cid>     => DEFAULT_GATEWAY + cid
+                //  - raw CID          => gateway + cid
+                //  - ipfs://<cid>     => gateway + cid
                 //  - http(s)://...    => use as‑is
                 let metadataUrl: string;
                 if (uri.startsWith("http://") || uri.startsWith("https://")) {
                     metadataUrl = uri;
                 } else if (uri.startsWith("ipfs://")) {
-                    metadataUrl = uri.replace("ipfs://", DEFAULT_GATEWAY);
+                    metadataUrl = uri.replace("ipfs://", gateway);
                 } else {
-                    metadataUrl = `${DEFAULT_GATEWAY}${uri}`;
+                    metadataUrl = `${gateway}${uri}`;
                 }
 
-                // Fetch metadata JSON from local IPFS gateway
+                // Fetch metadata JSON via gateway (browser fetch → needs gateway CORS)
                 let metadata: NftMetadata | undefined = undefined;
                 try {
                     const res = await fetch(metadataUrl);
