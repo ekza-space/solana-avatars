@@ -1,7 +1,7 @@
 import Header from "~/components/header"; // Assuming this is your existing header
 import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
 import * as anchor from "@coral-xyz/anchor";
-import minterClient from "~/../../sdk/src/minter";
+import minterClient from "avatars-sdk/minter";
 import { useEffect, useMemo, useState } from "react";
 
 import { getIpfsUrl } from "~/utils/ipfsUrls";

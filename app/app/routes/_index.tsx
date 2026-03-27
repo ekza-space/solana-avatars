@@ -6,8 +6,8 @@ import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import { decodeByteArray, encodeString } from "~/utils/bytes";
 
 
-import sdk from "../../../sdk/src/profile";
-import type { UserProfile } from "../../../sdk/src/profile";
+import sdk from "avatars-sdk/profile";
+import type { UserProfile } from "avatars-sdk/profile";
 import AvatarSelector, { avatarList } from "~/components/AvatarSelector";
 
 

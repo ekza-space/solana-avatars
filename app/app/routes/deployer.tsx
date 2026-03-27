@@ -9,7 +9,7 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 import * as Tabs from '@radix-ui/react-tabs';
 import { NftMetadata } from "~/types/nft";
 import * as anchor from "@coral-xyz/anchor";
-import minterClient from "~/../../sdk/src/minter";
+import minterClient from "avatars-sdk/minter";
 
 interface ActionData {
     imageUrl?: string;

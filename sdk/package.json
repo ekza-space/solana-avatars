@@ -3,6 +3,10 @@
     "version": "0.1.0",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "exports": {
+        "./profile": "./src/profile.ts",
+        "./minter": "./src/minter.ts"
+    },
     "scripts": {
         "build": "tsc -b"
     },
