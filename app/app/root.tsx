@@ -8,6 +8,7 @@ import {
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
 import SayHi from "~/components/SayHi";
+import { Analytics } from "@vercel/analytics/remix";
 
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
@@ -65,6 +66,7 @@ export function Layout({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
+        <Analytics />
         <ScrollRestoration />
         <Scripts />
       </body>
