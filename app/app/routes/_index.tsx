@@ -2,12 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useWallet, useAnchorWallet } from "@solana/wallet-adapter-react";
 import Header from "~/components/header";
 import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
-import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import { decodeByteArray, encodeString } from "~/utils/bytes";
-
-
-import sdk from "avatars-sdk/profile";
-import type { UserProfile } from "avatars-sdk/profile";
 import AvatarSelector, { avatarList } from "~/components/AvatarSelector";
 
 
@@ -37,32 +32,27 @@ export default function AvatarEditor() {
   // On wallet connect, try loading the profile PDA to decide create vs update
   useEffect(() => {
     if (!connected || !anchorWallet) return;
-    const connection = new Connection(clusterApiUrl("devnet"));
-    const provider = new AnchorProvider(connection, anchorWallet, AnchorProvider.defaultOptions());
-    const program = new Program<UserProfile>(sdk.idlJson as UserProfile, provider);
+    (async () => {
+      try {
+        const [anchor, { default: sdk }] = await Promise.all([
+          import("@coral-xyz/anchor"),
+          import("avatars-sdk/profile"),
+        ]);
+        const connection = new Connection(clusterApiUrl("devnet"));
+        const provider = new anchor.AnchorProvider(connection, anchorWallet, anchor.AnchorProvider.defaultOptions());
+        const program = new anchor.Program(sdk.idlJson as any, provider);
+        const avatars = sdk.create(provider, program);
+        const [pda] = avatars.getProfilePda();
+        setProfilePda(pda);
 
-    const avatars = sdk.create(provider, program);
-    let pda: PublicKey;
-    try {
-      [pda] = avatars.getProfilePda();
-      setProfilePda(pda);
-    } catch (error) {
-      console.warn("Failed to derive profile PDA:", error);
-      setProfileExists(false);
-      return;
-    }
-
-    program.account.userProfile.fetch(pda)
-      .then((account: any) => {
+        const account: any = await program.account.userProfile.fetch(pda);
         setProfileExists(true);
         setUsernameInput(decodeByteArray(account.username));
         setDescriptionInput(decodeByteArray(account.description));
 
-        // Try to find avatar by mint, or create fallback
         const mintKey = account.avatarMint.toString();
         let match = avatarList.find(a => a.avatarMint.toString() === mintKey);
         if (!match) {
-          // fallback for unknown avatar mints
           match = {
             avatarMint: new PublicKey(mintKey),
             imgHash: "",
@@ -70,10 +60,11 @@ export default function AvatarEditor() {
           };
         }
         setSelectedAvatar(match);
-      })
-      .catch(() => {
+      } catch (error) {
+        console.warn("Failed to load profile PDA:", error);
         setProfileExists(false);
-      });
+      }
+    })();
   }, [connected]);
 
   const nicknamePlaceholders = [
@@ -139,9 +130,13 @@ export default function AvatarEditor() {
       avatar3d: [selectedAvatar.modelHash],
     };
     // Initialize Anchor provider and SDK
+    const [anchor, { default: sdk }] = await Promise.all([
+      import("@coral-xyz/anchor"),
+      import("avatars-sdk/profile"),
+    ]);
     const connection = new Connection(clusterApiUrl("devnet"));
-    const provider = new AnchorProvider(connection, anchorWallet, AnchorProvider.defaultOptions());
-    const program = new Program<UserProfile>(sdk.idlJson as UserProfile, provider);
+    const provider = new anchor.AnchorProvider(connection, anchorWallet, anchor.AnchorProvider.defaultOptions());
+    const program = new anchor.Program(sdk.idlJson as any, provider);
     const avatars = sdk.create(provider, program);
 
     try {
@@ -175,9 +170,13 @@ export default function AvatarEditor() {
     }
     if (!profilePda) return;
     // Initialize provider and SDK
+    const [anchor, { default: sdk }] = await Promise.all([
+      import("@coral-xyz/anchor"),
+      import("avatars-sdk/profile"),
+    ]);
     const connection = new Connection(clusterApiUrl("devnet"));
-    const provider = new AnchorProvider(connection, anchorWallet, AnchorProvider.defaultOptions());
-    const program = new Program<UserProfile>(sdk.idlJson as UserProfile, provider);
+    const provider = new anchor.AnchorProvider(connection, anchorWallet, anchor.AnchorProvider.defaultOptions());
+    const program = new anchor.Program(sdk.idlJson as any, provider);
     const avatars = sdk.create(provider, program);
     try {
       await avatars.deleteProfile();

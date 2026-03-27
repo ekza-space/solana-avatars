@@ -8,8 +8,6 @@ import Header from "~/components/header";
 import type { ActionFunctionArgs } from "@remix-run/node";
 import * as Tabs from '@radix-ui/react-tabs';
 import { NftMetadata } from "~/types/nft";
-import * as anchor from "@coral-xyz/anchor";
-import minterClient from "avatars-sdk/minter";
 
 interface ActionData {
     imageUrl?: string;
@@ -191,6 +189,10 @@ export default function GenerateAvatar() {
 
             // ---- Mint on‑chain directly from the browser via our Anchor SDK ----
             try {
+                const [anchor, { default: minterClient }] = await Promise.all([
+                    import("@coral-xyz/anchor"),
+                    import("avatars-sdk/minter"),
+                ]);
                 const provider = new anchor.AnchorProvider(connection, anchorWallet as any, anchor.AnchorProvider.defaultOptions());
                 const program = new anchor.Program(minterClient.idlJson as any, provider);
                 // @ts-ignore

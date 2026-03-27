@@ -42,9 +42,6 @@ export default defineConfig({
       ),
     },
   },
-  ssr: {
-    noExternal: [/^@metaplex-foundation\//],
-  },
   // server: {
   //   proxy: {
   //     '/ipfs': {

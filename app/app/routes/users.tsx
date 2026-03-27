@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import Header from "~/components/header";
 import { Connection, clusterApiUrl } from "@solana/web3.js";
-import { AnchorProvider, Program } from "@coral-xyz/anchor";
-
-import sdk from "avatars-sdk/profile";
-import type { UserProfile } from "avatars-sdk/profile";
 import { decodeByteArray } from "~/utils/bytes";
 
 export default function IndexPage() {
@@ -14,15 +10,17 @@ export default function IndexPage() {
 
   useEffect(() => {
     (async () => {
+      const [anchor, { default: sdk }] = await Promise.all([
+        import("@coral-xyz/anchor"),
+        import("avatars-sdk/profile"),
+      ]);
       const connection = new Connection(clusterApiUrl("devnet"));
-      const provider = new AnchorProvider(connection, (window as any).solana, AnchorProvider.defaultOptions());
-      const program = new Program<UserProfile>(sdk.idlJson as UserProfile, provider);
-      const avatars = sdk.create(provider, program);
+      const provider = new anchor.AnchorProvider(connection, (window as any).solana, anchor.AnchorProvider.defaultOptions());
+      const program = new anchor.Program(sdk.idlJson as any, provider);
 
-      // const accounts = await avatars.getAllProfiles();
       const accounts = await program.account.userProfile.all();
 
-      const decoded = accounts.map(({ publicKey, account }) => ({
+      const decoded = accounts.map(({ publicKey, account }: any) => ({
         publicKey: publicKey.toBase58(),
         username: decodeByteArray(account.username),
         description: decodeByteArray(account.description),

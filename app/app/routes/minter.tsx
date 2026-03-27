@@ -1,8 +1,6 @@
 import Header from "~/components/header"; // Assuming this is your existing header
 import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
-import * as anchor from "@coral-xyz/anchor";
-import minterClient from "avatars-sdk/minter";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { getIpfsUrl } from "~/utils/ipfsUrls";
 import { NftMetadata } from "~/types/nft";
@@ -103,13 +101,7 @@ export default function MarketPage() {
   const [avatars, setAvatars] = useState<AvatarItem[] | null>(null);
   const [iframeSrc, setIframeSrc] = useState<string | null>(null);
   const [modalDescription, setModalDescription] = useState<string | null>(null);
-  const minter = useMemo(() => {
-    if (!connection || !anchorWallet) return null;
-    const provider = new anchor.AnchorProvider(connection, anchorWallet, {});
-    const program = new anchor.Program(minterClient.idlJson as any, provider);
-    // @ts-ignore
-    return minterClient.create(provider, program);
-  }, [connection, anchorWallet]);
+  const [minter, setMinter] = useState<any | null>(null);
 
   // Initialise with the local mock while no wallet/cluster is yet queried
   useEffect(() => {
@@ -120,51 +112,68 @@ export default function MarketPage() {
   }, []);
 
   useEffect(() => {
-    console.log("connection", connection);
-    console.log("anchorWallet", anchorWallet);
-    if (!connection || !anchorWallet) return;
+    if (!connection || !anchorWallet || typeof window === "undefined") {
+      setMinter(null);
+      return;
+    }
+
+    let cancelled = false;
 
     (async () => {
-      const provider = new anchor.AnchorProvider(
-        connection,
-        anchorWallet as any,
-        anchor.AnchorProvider.defaultOptions()
-      );
-      const program = new anchor.Program(minterClient.idlJson as any, provider);
-      // @ts-ignore – minterClient.create has a generic signature
-      const minter = minterClient.create(provider, program);
+      try {
+        const [anchor, { default: minterClient }] = await Promise.all([
+          import("@coral-xyz/anchor"),
+          import("avatars-sdk/minter"),
+        ]);
+        const provider = new anchor.AnchorProvider(
+          connection,
+          anchorWallet as any,
+          anchor.AnchorProvider.defaultOptions()
+        );
+        const program = new anchor.Program(minterClient.idlJson as any, provider);
+        // @ts-ignore – minterClient.create has a generic signature
+        const minterClientInstance = minterClient.create(provider, program);
 
-      // --- On‑chain count ---
-      const { registry } = await minter.getAvatarRegistry();
-      const onChainCount = registry ? registry.nextIndex.toNumber() : 0;
+        if (cancelled) return;
+        setMinter(minterClientInstance);
 
-      // --- Local cache ---
-      let cached = loadCachedAvatars();
+        // --- On‑chain count ---
+        const { registry } = await minterClientInstance.getAvatarRegistry();
+        const onChainCount = registry ? registry.nextIndex.toNumber() : 0;
 
-      // If cache is up‑to‑date just ensure it is in state and quit
-      if (cached.length === onChainCount) {
-        setAvatars(cached);
-        return;
+        // --- Local cache ---
+        const cached = loadCachedAvatars();
+
+        // If cache is up‑to‑date just ensure it is in state and quit
+        if (cached.length === onChainCount) {
+          setAvatars(cached);
+          return;
+        }
+
+        // Otherwise fetch only the missing slice (or reset if cache is longer)
+        const start = Math.min(cached.length, onChainCount);
+        const limit = onChainCount - start;
+        const range = await minterClientInstance.getAvatarDataRange({ start, limit });
+        const enriched = await enrichWithMetadata(range as AvatarItem[]);
+
+        // Merge or reset as needed
+        const merged =
+          cached.length > onChainCount ? enriched : [...cached, ...enriched];
+
+        if (cancelled) return;
+        saveCachedAvatars(merged);
+        setAvatars(merged);
+      } catch (error) {
+        console.error("Failed to initialize minter client:", error);
+        if (!cancelled) {
+          setMinter(null);
+        }
       }
-
-      // Otherwise fetch only the missing slice (or reset if cache is longer)
-      const start = Math.min(cached.length, onChainCount);
-      const limit = onChainCount - start;
-      const range = await minter.getAvatarDataRange({ start, limit });
-      const enriched = await enrichWithMetadata(range as AvatarItem[]);
-
-      // Merge or reset as needed
-      let merged: AvatarItem[];
-      if (cached.length > onChainCount) {
-        merged = enriched; // chain rolled back? unlikely, but handle
-      } else {
-        merged = [...cached, ...enriched];
-      }
-
-      saveCachedAvatars(merged);
-      setAvatars(merged);
-      console.log("setAvatars: ", merged)
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [connection, anchorWallet]);
 
 return (
