@@ -23,7 +23,9 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./app/*"]
+      "~/*": ["./app/*"],
+      "avatars-sdk/profile": ["../sdk/src/profile.ts"],
+      "avatars-sdk/minter": ["../sdk/src/minter.ts"]
     },
 
     // Vite takes care of building everything, not tsc.
