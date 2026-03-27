@@ -9,14 +9,14 @@ import {
 import type { LinksFunction } from "@remix-run/node";
 import SayHi from "~/components/SayHi"
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 // TODO: move to vite config
 import { Buffer } from "buffer";
 globalThis.Buffer = Buffer;
 
 // Solana Wallet
-import { ConnectionProvider, useAnchorWallet, useWallet, WalletProvider } from "@solana/wallet-adapter-react";
+import { ConnectionProvider, useWallet, WalletProvider } from "@solana/wallet-adapter-react";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -80,11 +80,6 @@ export default function App() {
   const network = WalletAdapterNetwork.Devnet;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
   const wallets = useMemo(() => [new PhantomWalletAdapter()], [network]);
-  const anchorWallet = useAnchorWallet();
-  const { publicKey } = useWallet();
-
-  const [activePage, setActivePage] = useState("")
-  console.log("App: ", anchorWallet, publicKey);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
