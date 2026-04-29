@@ -4,6 +4,8 @@ use anchor_lang::prelude::*;
 pub enum CustomError {
     #[msg("Invalid IPFS hash length.")]
     InvalidIpfsHashLength,
+    #[msg("Maximum supply must be greater than zero.")]
+    InvalidMaxSupply,
     #[msg("Maximum supply for this avatar has been reached.")]
     MaxSupplyReached,
     #[msg("Unauthorized action.")]

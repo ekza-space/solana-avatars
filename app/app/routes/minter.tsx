@@ -10,45 +10,45 @@ let DISABLE_CACHE = true;
 
 let mocked = [
   {
-    "index": 0,
-    "data": {
-      "uriIpfsHash": "QmasLmFRuRJQd8iJKQpzq2M1vFXLsKa3q6mMfQHy2rsN19",
-      "creator": "FCMPSxbmyMugTRyfdGPNx4mdeAaVDcSnVaN3p82zBcT8",
-      "maxSupply": "64",
-      "currentSupply": "04",
-      "mintingFeePerMint": "989680",
-      "totalUnclaimedFees": "989680",
-      "index": "00",
-      "bump": 252
-    }
+    index: 0,
+    data: {
+      uriIpfsHash: "QmasLmFRuRJQd8iJKQpzq2M1vFXLsKa3q6mMfQHy2rsN19",
+      creator: "FCMPSxbmyMugTRyfdGPNx4mdeAaVDcSnVaN3p82zBcT8",
+      maxSupply: "64",
+      currentSupply: "04",
+      mintingFeePerMint: "989680",
+      totalUnclaimedFees: "989680",
+      index: "00",
+      bump: 252,
+    },
   },
   {
-    "index": 1,
-    "data": {
-      "uriIpfsHash": "QmasLmFRuRJQd8iJKQpzq2M1vFXLsKa3q6mMfQHy2rsN19",
-      "creator": "FCMPSxbmyMugTRyfdGPNx4mdeAaVDcSnVaN3p82zBcT8",
-      "maxSupply": "64",
-      "currentSupply": "01",
-      "mintingFeePerMint": "00",
-      "totalUnclaimedFees": "00",
-      "index": "01",
-      "bump": 253
-    }
+    index: 1,
+    data: {
+      uriIpfsHash: "QmasLmFRuRJQd8iJKQpzq2M1vFXLsKa3q6mMfQHy2rsN19",
+      creator: "FCMPSxbmyMugTRyfdGPNx4mdeAaVDcSnVaN3p82zBcT8",
+      maxSupply: "64",
+      currentSupply: "01",
+      mintingFeePerMint: "00",
+      totalUnclaimedFees: "00",
+      index: "01",
+      bump: 253,
+    },
   },
   {
-    "index": 2,
-    "data": {
-      "uriIpfsHash": "QmasLmFRuRJQd8iJKQpzq2M1vFXLsKa3q6mMfQHy2rsN19",
-      "creator": "FCMPSxbmyMugTRyfdGPNx4mdeAaVDcSnVaN3p82zBcT8",
-      "maxSupply": "01",
-      "currentSupply": "01",
-      "mintingFeePerMint": "989680",
-      "totalUnclaimedFees": "989680",
-      "index": "02",
-      "bump": 255
-    }
-  }
-]
+    index: 2,
+    data: {
+      uriIpfsHash: "QmasLmFRuRJQd8iJKQpzq2M1vFXLsKa3q6mMfQHy2rsN19",
+      creator: "FCMPSxbmyMugTRyfdGPNx4mdeAaVDcSnVaN3p82zBcT8",
+      maxSupply: "01",
+      currentSupply: "01",
+      mintingFeePerMint: "989680",
+      totalUnclaimedFees: "989680",
+      index: "02",
+      bump: 255,
+    },
+  },
+];
 
 type AvatarItem = (typeof mocked)[number] & { metadata?: NftMetadata | null };
 
@@ -80,7 +80,7 @@ function saveCachedAvatars(avatars: AvatarItem[]) {
  */
 const enrichWithMetadata = async (raw: AvatarItem[]): Promise<AvatarItem[]> => {
   return Promise.all(
-    raw.map(async avatar => {
+    raw.map(async (avatar) => {
       try {
         const metadataUrl = getIpfsUrl(avatar.data.uriIpfsHash);
         const res = await fetch(metadataUrl);
@@ -100,7 +100,9 @@ export default function MarketPage() {
   const anchorWallet = useAnchorWallet();
   const [avatars, setAvatars] = useState<AvatarItem[] | null>(null);
   const [activeModelSrc, setActiveModelSrc] = useState<string | null>(null);
-  const [activeModelDescription, setActiveModelDescription] = useState<string | null>(null);
+  const [activeModelDescription, setActiveModelDescription] = useState<
+    string | null
+  >(null);
   const [fullDescription, setFullDescription] = useState<string | null>(null);
   const [minter, setMinter] = useState<any | null>(null);
 
@@ -131,7 +133,10 @@ export default function MarketPage() {
           anchorWallet as any,
           anchor.AnchorProvider.defaultOptions()
         );
-        const program = new anchor.Program(minterClient.idlJson as any, provider);
+        const program = new anchor.Program(
+          minterClient.idlJson as any,
+          provider
+        );
         // @ts-ignore – minterClient.create has a generic signature
         const minterClientInstance = minterClient.create(provider, program);
 
@@ -154,7 +159,10 @@ export default function MarketPage() {
         // Otherwise fetch only the missing slice (or reset if cache is longer)
         const start = Math.min(cached.length, onChainCount);
         const limit = onChainCount - start;
-        const range = await minterClientInstance.getAvatarDataRange({ start, limit });
+        const range = await minterClientInstance.getAvatarDataRange({
+          start,
+          limit,
+        });
         const enriched = await enrichWithMetadata(range as AvatarItem[]);
 
         // Merge or reset as needed
@@ -194,9 +202,21 @@ export default function MarketPage() {
       }
     >
       <div className="mb-6 grid gap-5 lg:grid-cols-3">
-        <StatCard label="Source" value="On-chain + IPFS" hint="Registry data and metadata are resolved separately and merged client-side." />
-        <StatCard label="Cache" value={DISABLE_CACHE ? "Disabled" : "Enabled"} hint="Local avatar cache remains available, but is disabled by default right now." />
-        <StatCard label="Preview" value="3D + text modals" hint="React state now drives previews instead of direct DOM mutation." />
+        <StatCard
+          label="Source"
+          value="On-chain + IPFS"
+          hint="Registry data and metadata are resolved separately and merged client-side."
+        />
+        <StatCard
+          label="Cache"
+          value={DISABLE_CACHE ? "Disabled" : "Enabled"}
+          hint="Local avatar cache remains available, but is disabled by default right now."
+        />
+        <StatCard
+          label="Preview"
+          value="3D + text modals"
+          hint="React state now drives previews instead of direct DOM mutation."
+        />
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -229,7 +249,9 @@ export default function MarketPage() {
                   </h2>
                 </div>
                 <Badge>
-                  {Number(data.maxSupply) > 1000000000000 ? "∞ supply" : `${Number(data.maxSupply)} max`}
+                  {Number(data.maxSupply) > 1000000000000
+                    ? "∞ supply"
+                    : `${Number(data.maxSupply)} max`}
                 </Badge>
               </div>
 
@@ -239,7 +261,9 @@ export default function MarketPage() {
                   {metadata.description.length > 160 ? "..." : ""}
                 </p>
               ) : (
-                <p className="ui-copy text-sm">No description attached to this collection.</p>
+                <p className="ui-copy text-sm">
+                  No description attached to this collection.
+                </p>
               )}
 
               <div className="grid gap-3 border-t border-[rgba(var(--line),0.5)] pt-4 text-sm">
@@ -252,15 +276,18 @@ export default function MarketPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <div className="ui-label">Current</div>
-                    <p className="text-[rgb(var(--text-strong))]">{Number(data.currentSupply)}</p>
+                    <p className="text-[rgb(var(--text-strong))]">
+                      {Number(data.currentSupply)}
+                    </p>
                   </div>
                   <div>
                     <div className="ui-label">Mint fee</div>
                     <p className="text-[rgb(var(--text-strong))]">
-                      {(Number(data.mintingFeePerMint) / 1_000_000_000).toLocaleString(
-                        undefined,
-                        { maximumFractionDigits: 9 }
-                      )}{" "}
+                      {(
+                        Number(data.mintingFeePerMint) / 1_000_000_000
+                      ).toLocaleString(undefined, {
+                        maximumFractionDigits: 9,
+                      })}{" "}
                       SOL
                     </p>
                   </div>
@@ -292,7 +319,7 @@ export default function MarketPage() {
                       index,
                       name: metadata.name,
                       symbol: metadata.symbol,
-                      uri: getIpfsUrl(data.uriIpfsHash),
+                      uri: `ipfs://${data.uriIpfsHash}`,
                     });
                     console.log("Minted NFT:", result);
                     alert(`Minted NFT!\nSignature: ${result.signature}`);

@@ -30,6 +30,7 @@ pub fn initialize_avatar_from_stellar(
         !uri_ipfs_hash.is_empty() && uri_ipfs_hash.len() <= AvatarData::MAX_IPFS_HASH_LEN,
         CustomError::InvalidIpfsHashLength
     );
+    require!(max_supply > 0, CustomError::InvalidMaxSupply);
 
     let avatar_data = &mut ctx.accounts.avatar_data;
     avatar_data.uri_ipfs_hash = uri_ipfs_hash.clone();

@@ -1,11 +1,24 @@
 import * as Tabs from "@radix-ui/react-tabs";
 import { useFetcher } from "@remix-run/react";
-import { useAnchorWallet, useConnection, useWallet } from "@solana/wallet-adapter-react";
+import {
+  useAnchorWallet,
+  useConnection,
+  useWallet,
+} from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { ChangeEvent, useEffect, useState } from "react";
 
 import SceneWithModel from "~/components/3d/SceneWithModel";
-import { Badge, Button, Field, Input, PageSection, Panel, StatCard, Textarea } from "~/components/ui";
+import {
+  Badge,
+  Button,
+  Field,
+  Input,
+  PageSection,
+  Panel,
+  StatCard,
+  Textarea,
+} from "~/components/ui";
 import { NftMetadata } from "~/types/nft";
 
 import { loadBlobFromLocalStorage } from "../utils/saveBlob";
@@ -97,7 +110,9 @@ export default function GenerateAvatar() {
       let modelIpfsUri = "";
       if (uploadedFile) {
         const modelIpfsLink = await uploadFile(uploadedFile);
-        modelIpfsUri = modelIpfsLink.substring(modelIpfsLink.lastIndexOf("/") + 1);
+        modelIpfsUri = modelIpfsLink.substring(
+          modelIpfsLink.lastIndexOf("/") + 1
+        );
         console.log("Uploaded model hash:", modelIpfsUri);
       }
 
@@ -144,11 +159,14 @@ export default function GenerateAvatar() {
           anchorWallet as any,
           anchor.AnchorProvider.defaultOptions()
         );
-        const program = new anchor.Program(minterClient.idlJson as any, provider);
+        const program = new anchor.Program(
+          minterClient.idlJson as any,
+          provider
+        );
         // @ts-ignore
         const minter = minterClient.create(provider, program);
 
-        const maxSupplyBn = new anchor.BN(nftMaxSupply || "0", 10);
+        const maxSupplyBn = new anchor.BN(nftMaxSupply || "1", 10);
         const mintFeeLamports = new anchor.BN(
           Math.round(parseFloat(nftMintFee || "0") * LAMPORTS_PER_SOL)
         );
@@ -179,7 +197,10 @@ export default function GenerateAvatar() {
 
   const previewNode = uploadedFile?.name.match(/\.(glb|vrm)$/i) ? (
     <div className="h-[420px] overflow-hidden rounded-[24px] border border-[rgba(var(--line),0.6)]">
-      <SceneWithModel file={URL.createObjectURL(uploadedFile)} screenshot={true} />
+      <SceneWithModel
+        file={URL.createObjectURL(uploadedFile)}
+        screenshot={true}
+      />
     </div>
   ) : hasPreview ? (
     <div className="overflow-hidden rounded-[24px] border border-[rgba(var(--line),0.6)] bg-[rgba(var(--surface-2),0.76)] p-4">
@@ -319,7 +340,9 @@ export default function GenerateAvatar() {
                   />
                 </Field>
                 <Button
-                  onClick={() => alert("Sorry, this feature still in progress.")}
+                  onClick={() =>
+                    alert("Sorry, this feature still in progress.")
+                  }
                   type="button"
                   variant="secondary"
                   className="w-full"
@@ -328,7 +351,8 @@ export default function GenerateAvatar() {
                 </Button>
                 {!publicKey ? (
                   <p className="text-sm font-medium text-[rgb(var(--danger))]">
-                    Connect your wallet to use generation and deployment actions.
+                    Connect your wallet to use generation and deployment
+                    actions.
                   </p>
                 ) : null}
               </fetcher.Form>
@@ -349,7 +373,11 @@ export default function GenerateAvatar() {
           </Tabs.Root>
 
           {hasPreview && publicKey ? (
-            <Button onClick={handleDeploy} disabled={minting} className="w-full">
+            <Button
+              onClick={handleDeploy}
+              disabled={minting}
+              className="w-full"
+            >
               {minting ? "Deploying collection..." : "Deploy collection"}
             </Button>
           ) : null}

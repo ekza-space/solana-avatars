@@ -25,12 +25,21 @@ pub fn metadata_pda(mint: &Pubkey) -> Pubkey {
 }
 
 pub fn uri_matches_avatar_hash(uri: &str, hash: &str) -> bool {
-    uri == hash || uri == format!("ipfs://{hash}") || uri.ends_with(&format!("/{hash}"))
+    uri == hash || uri.strip_prefix("ipfs://") == Some(hash)
 }
 
 fn anchor_discriminator(ix_name: &str) -> [u8; 8] {
     let mut hasher = Sha256::new();
     hasher.update(format!("global:{ix_name}").as_bytes());
+    let hash = hasher.finalize();
+    let mut discriminator = [0_u8; 8];
+    discriminator.copy_from_slice(&hash[..8]);
+    discriminator
+}
+
+fn anchor_account_discriminator(account_name: &str) -> [u8; 8] {
+    let mut hasher = Sha256::new();
+    hasher.update(format!("account:{account_name}").as_bytes());
     let hash = hasher.finalize();
     let mut discriminator = [0_u8; 8];
     discriminator.copy_from_slice(&hash[..8]);
@@ -60,6 +69,11 @@ pub fn validate_stellar_release<'info>(
     let release_data = release.try_borrow_data()?;
     require!(
         release_data.len() > RELEASE_STATUS_OFFSET,
+        CustomError::InvalidStellarRelease
+    );
+    let release_discriminator = anchor_account_discriminator("Release");
+    require!(
+        release_data.get(..8) == Some(release_discriminator.as_ref()),
         CustomError::InvalidStellarRelease
     );
 
