@@ -29,6 +29,20 @@ async function confirmSig(connection: anchor.web3.Connection, sig: string) {
   });
 }
 
+async function airdropIfLocalnet(
+  connection: anchor.web3.Connection,
+  publicKey: PublicKey,
+  lamports: number
+) {
+  const endpoint = connection.rpcEndpoint;
+  if (!endpoint.includes("127.0.0.1") && !endpoint.includes("localhost")) {
+    return;
+  }
+
+  const sig = await connection.requestAirdrop(publicKey, lamports);
+  await confirmSig(connection, sig);
+}
+
 /* --------------------------------------------------------------------- */
 /* Test suite                                                             */
 /* --------------------------------------------------------------------- */
@@ -113,6 +127,19 @@ describe("avatar‑nft‑minter (SDK v2)", () => {
   let escrowPdaZero!: PublicKey;
   let avatarIndex!: BN;
   let avatarIndexZeroFee!: BN;
+
+  before(async () => {
+    await airdropIfLocalnet(
+      connection,
+      creatorKeypair.publicKey,
+      5 * LAMPORTS_PER_SOL
+    );
+    await airdropIfLocalnet(
+      connection,
+      minterKeypair.publicKey,
+      5 * LAMPORTS_PER_SOL
+    );
+  });
 
   /* ------------------------------------------------------------------ */
   /* Creation & validation                                              */
@@ -393,7 +420,7 @@ describe("avatar‑nft‑minter (SDK v2)", () => {
       console.log(viaIndex);
       expect(viaIndex).to.not.be.null;
       expect(viaIndex!.index.toNumber()).to.equal(i);
-      expect(viaIndex!.ipfsHash).to.equal(all[i].data.ipfsHash);
+      expect(viaIndex!.uriIpfsHash).to.equal(all[i].data.uriIpfsHash);
     }
   });
 });

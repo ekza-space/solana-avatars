@@ -218,6 +218,175 @@
       ]
     },
     {
+      "name": "initialize_avatar_from_stellar",
+      "discriminator": [
+        246,
+        235,
+        48,
+        181,
+        80,
+        48,
+        214,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "avatar_data",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  118,
+                  49
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "registry.next_index",
+                "account": "AvatarRegistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "registry.next_index",
+                "account": "AvatarRegistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stellar_link",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  101,
+                  108,
+                  108,
+                  97,
+                  114,
+                  95,
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  108,
+                  105,
+                  110,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "avatar_data"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stellar_program"
+        },
+        {
+          "name": "stellar_release"
+        },
+        {
+          "name": "stellar_vault"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "uri_ipfs_hash",
+          "type": "string"
+        },
+        {
+          "name": "max_supply",
+          "type": "u64"
+        },
+        {
+          "name": "minting_fee_per_mint",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "mint_nft",
       "discriminator": [
         211,
@@ -468,6 +637,19 @@
         218,
         155
       ]
+    },
+    {
+      "name": "StellarAvatarLink",
+      "discriminator": [
+        93,
+        12,
+        30,
+        38,
+        186,
+        184,
+        97,
+        235
+      ]
     }
   ],
   "errors": [
@@ -510,6 +692,31 @@
       "code": 6007,
       "name": "InvalidMetadataUri",
       "msg": "Metadata URI must match the avatar hash policy."
+    },
+    {
+      "code": 6008,
+      "name": "InvalidStellarProgram",
+      "msg": "Invalid Stellar program."
+    },
+    {
+      "code": 6009,
+      "name": "InvalidStellarRelease",
+      "msg": "Invalid Stellar release account."
+    },
+    {
+      "code": 6010,
+      "name": "InvalidStellarVault",
+      "msg": "Invalid Stellar vault account."
+    },
+    {
+      "code": 6011,
+      "name": "MissingStellarLink",
+      "msg": "Missing Stellar link accounts."
+    },
+    {
+      "code": 6012,
+      "name": "InvalidStellarLink",
+      "msg": "Invalid Stellar avatar link account."
     }
   ],
   "types": [
@@ -580,6 +787,34 @@
           }
         ]
       }
+    },
+    {
+      "name": "StellarAvatarLink",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "avatar_data",
+            "type": "pubkey"
+          },
+          {
+            "name": "stellar_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "release",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
     }
   ],
   "constants": [
@@ -592,6 +827,11 @@
       "name": "ESCROW_SEED",
       "type": "bytes",
       "value": "[97, 118, 97, 116, 97, 114, 95, 101, 115, 99, 114, 111, 119]"
+    },
+    {
+      "name": "STELLAR_LINK_SEED",
+      "type": "bytes",
+      "value": "[115, 116, 101, 108, 108, 97, 114, 95, 97, 118, 97, 116, 97, 114, 95, 108, 105, 110, 107]"
     }
   ]
 }

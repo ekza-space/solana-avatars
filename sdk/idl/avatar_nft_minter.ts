@@ -224,6 +224,175 @@ export type AvatarNftMinter = {
       ]
     },
     {
+      "name": "initializeAvatarFromStellar",
+      "discriminator": [
+        246,
+        235,
+        48,
+        181,
+        80,
+        48,
+        214,
+        106
+      ],
+      "accounts": [
+        {
+          "name": "registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  114,
+                  101,
+                  103,
+                  105,
+                  115,
+                  116,
+                  114,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "avatarData",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  118,
+                  49
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "registry.next_index",
+                "account": "avatarRegistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "escrow",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "registry.next_index",
+                "account": "avatarRegistry"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stellarLink",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  101,
+                  108,
+                  108,
+                  97,
+                  114,
+                  95,
+                  97,
+                  118,
+                  97,
+                  116,
+                  97,
+                  114,
+                  95,
+                  108,
+                  105,
+                  110,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "avatarData"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stellarProgram"
+        },
+        {
+          "name": "stellarRelease"
+        },
+        {
+          "name": "stellarVault"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "uriIpfsHash",
+          "type": "string"
+        },
+        {
+          "name": "maxSupply",
+          "type": "u64"
+        },
+        {
+          "name": "mintingFeePerMint",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "mintNft",
       "discriminator": [
         211,
@@ -474,6 +643,19 @@ export type AvatarNftMinter = {
         218,
         155
       ]
+    },
+    {
+      "name": "stellarAvatarLink",
+      "discriminator": [
+        93,
+        12,
+        30,
+        38,
+        186,
+        184,
+        97,
+        235
+      ]
     }
   ],
   "errors": [
@@ -516,6 +698,31 @@ export type AvatarNftMinter = {
       "code": 6007,
       "name": "invalidMetadataUri",
       "msg": "Metadata URI must match the avatar hash policy."
+    },
+    {
+      "code": 6008,
+      "name": "invalidStellarProgram",
+      "msg": "Invalid Stellar program."
+    },
+    {
+      "code": 6009,
+      "name": "invalidStellarRelease",
+      "msg": "Invalid Stellar release account."
+    },
+    {
+      "code": 6010,
+      "name": "invalidStellarVault",
+      "msg": "Invalid Stellar vault account."
+    },
+    {
+      "code": 6011,
+      "name": "missingStellarLink",
+      "msg": "Missing Stellar link accounts."
+    },
+    {
+      "code": 6012,
+      "name": "invalidStellarLink",
+      "msg": "Invalid Stellar avatar link account."
     }
   ],
   "types": [
@@ -586,6 +793,34 @@ export type AvatarNftMinter = {
           }
         ]
       }
+    },
+    {
+      "name": "stellarAvatarLink",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "avatarData",
+            "type": "pubkey"
+          },
+          {
+            "name": "stellarProgram",
+            "type": "pubkey"
+          },
+          {
+            "name": "release",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
     }
   ],
   "constants": [
@@ -598,6 +833,11 @@ export type AvatarNftMinter = {
       "name": "escrowSeed",
       "type": "bytes",
       "value": "[97, 118, 97, 116, 97, 114, 95, 101, 115, 99, 114, 111, 119]"
+    },
+    {
+      "name": "stellarLinkSeed",
+      "type": "bytes",
+      "value": "[115, 116, 101, 108, 108, 97, 114, 95, 97, 118, 97, 116, 97, 114, 95, 108, 105, 110, 107]"
     }
   ]
 };

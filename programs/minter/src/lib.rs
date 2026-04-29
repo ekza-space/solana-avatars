@@ -1,5 +1,12 @@
 #![allow(unexpected_cfgs)] // TODO: wtf?!
-use anchor_lang::{prelude::*, solana_program::system_instruction};
+use anchor_lang::{
+    prelude::*,
+    solana_program::{
+        instruction::{AccountMeta, Instruction},
+        program::invoke,
+        system_instruction,
+    },
+};
 
 use anchor_spl::{
     associated_token::AssociatedToken,
@@ -16,6 +23,7 @@ use anchor_spl::{
         Token, TokenAccount,
     },
 };
+use sha2::{Digest, Sha256};
 
 declare_id!("29KLLArkfCfRGPgTh4k4qzXvR2JkkXfRnnNZTKn54TKz");
 
@@ -24,6 +32,15 @@ const AVATAR_SEED: &[u8] = b"avatar_v1";
 
 #[constant]
 const ESCROW_SEED: &[u8] = b"avatar_escrow";
+
+#[constant]
+const STELLAR_LINK_SEED: &[u8] = b"stellar_avatar_link";
+
+const SOLANA_STELLAR_PROGRAM_ID: Pubkey = pubkey!("3rVXfq7LLSLqbDzvZuSrQoMytwczLj2Q8Hue62rxPZAA");
+const RELEASE_VAULT_OFFSET: usize = 8 + 32 + 32;
+const RELEASE_STATUS_OFFSET: usize = 8 + 32 + 32 + 32 + 8 + 32;
+const RELEASE_STATUS_FINALIZED: u8 = 1;
+const RELEASE_STATUS_LINKED: u8 = 2;
 
 #[account]
 pub struct Escrow {
@@ -40,6 +57,19 @@ pub struct AvatarRegistry {
     pub bump: u8,
 }
 
+#[account]
+pub struct StellarAvatarLink {
+    pub avatar_data: Pubkey,
+    pub stellar_program: Pubkey,
+    pub release: Pubkey,
+    pub vault: Pubkey,
+    pub bump: u8,
+}
+
+impl StellarAvatarLink {
+    pub const INIT_SPACE: usize = 32 + 32 + 32 + 32 + 1;
+}
+
 impl AvatarRegistry {
     pub const INIT_SPACE: usize = 8 + 1;
 }
@@ -54,6 +84,92 @@ fn metadata_pda(mint: &Pubkey) -> Pubkey {
 
 fn uri_matches_avatar_hash(uri: &str, hash: &str) -> bool {
     uri == hash || uri == format!("ipfs://{hash}") || uri.ends_with(&format!("/{hash}"))
+}
+
+fn anchor_discriminator(ix_name: &str) -> [u8; 8] {
+    let mut hasher = Sha256::new();
+    hasher.update(format!("global:{ix_name}").as_bytes());
+    let hash = hasher.finalize();
+    let mut discriminator = [0_u8; 8];
+    discriminator.copy_from_slice(&hash[..8]);
+    discriminator
+}
+
+fn validate_stellar_release<'info>(
+    stellar_program: &AccountInfo<'info>,
+    release: &AccountInfo<'info>,
+    vault: &AccountInfo<'info>,
+) -> Result<()> {
+    require_keys_eq!(
+        *stellar_program.key,
+        SOLANA_STELLAR_PROGRAM_ID,
+        CustomError::InvalidStellarProgram
+    );
+    require!(
+        stellar_program.executable,
+        CustomError::InvalidStellarProgram
+    );
+    require_keys_eq!(
+        *release.owner,
+        *stellar_program.key,
+        CustomError::InvalidStellarRelease
+    );
+
+    let release_data = release.try_borrow_data()?;
+    require!(
+        release_data.len() > RELEASE_STATUS_OFFSET,
+        CustomError::InvalidStellarRelease
+    );
+
+    let mut vault_bytes = [0_u8; 32];
+    vault_bytes.copy_from_slice(&release_data[RELEASE_VAULT_OFFSET..RELEASE_VAULT_OFFSET + 32]);
+    let stored_vault = Pubkey::new_from_array(vault_bytes);
+    require_keys_eq!(stored_vault, *vault.key, CustomError::InvalidStellarVault);
+
+    let status = release_data[RELEASE_STATUS_OFFSET];
+    require!(
+        status == RELEASE_STATUS_FINALIZED || status == RELEASE_STATUS_LINKED,
+        CustomError::InvalidStellarRelease
+    );
+
+    Ok(())
+}
+
+fn deposit_revenue_to_stellar<'info>(
+    amount: u64,
+    payer: &AccountInfo<'info>,
+    system_program: &AccountInfo<'info>,
+    stellar_program: &AccountInfo<'info>,
+    release: &AccountInfo<'info>,
+    vault: &AccountInfo<'info>,
+) -> Result<()> {
+    let mut data = Vec::with_capacity(16);
+    data.extend_from_slice(&anchor_discriminator("deposit_revenue"));
+    data.extend_from_slice(&amount.to_le_bytes());
+
+    let ix = Instruction {
+        program_id: *stellar_program.key,
+        accounts: vec![
+            AccountMeta::new(*release.key, false),
+            AccountMeta::new(*vault.key, false),
+            AccountMeta::new(*payer.key, true),
+            AccountMeta::new_readonly(*system_program.key, false),
+        ],
+        data,
+    };
+
+    invoke(
+        &ix,
+        &[
+            release.clone(),
+            vault.clone(),
+            payer.clone(),
+            system_program.clone(),
+            stellar_program.clone(),
+        ],
+    )?;
+
+    Ok(())
 }
 
 #[program]
@@ -106,8 +222,61 @@ pub mod avatar_nft_minter {
         Ok(())
     }
 
-    pub fn mint_nft(
-        ctx: Context<MintNft>,
+    pub fn initialize_avatar_from_stellar(
+        ctx: Context<InitializeAvatarFromStellar>,
+        uri_ipfs_hash: String,
+        max_supply: u64,
+        minting_fee_per_mint: u64,
+    ) -> Result<()> {
+        validate_stellar_release(
+            &ctx.accounts.stellar_program,
+            &ctx.accounts.stellar_release,
+            &ctx.accounts.stellar_vault,
+        )?;
+
+        let registry = &mut ctx.accounts.registry;
+        registry.bump = ctx.bumps.registry;
+
+        let index = registry.next_index;
+        registry.next_index = registry
+            .next_index
+            .checked_add(1)
+            .ok_or(CustomError::NumericalOverflow)?;
+
+        require!(
+            uri_ipfs_hash.len() > 0 && uri_ipfs_hash.len() <= AvatarData::MAX_IPFS_HASH_LEN,
+            CustomError::InvalidIpfsHashLength
+        );
+
+        let avatar_data = &mut ctx.accounts.avatar_data;
+        avatar_data.uri_ipfs_hash = uri_ipfs_hash.clone();
+        avatar_data.creator = Pubkey::default();
+        avatar_data.max_supply = max_supply;
+        avatar_data.current_supply = 0;
+        avatar_data.minting_fee_per_mint = minting_fee_per_mint;
+        avatar_data.total_unclaimed_fees = 0;
+        avatar_data.bump = ctx.bumps.avatar_data;
+        avatar_data.index = index;
+
+        ctx.accounts.escrow.bump = ctx.bumps.escrow;
+
+        let stellar_link = &mut ctx.accounts.stellar_link;
+        stellar_link.avatar_data = avatar_data.key();
+        stellar_link.stellar_program = ctx.accounts.stellar_program.key();
+        stellar_link.release = ctx.accounts.stellar_release.key();
+        stellar_link.vault = ctx.accounts.stellar_vault.key();
+        stellar_link.bump = ctx.bumps.stellar_link;
+
+        msg!(
+            "Stellar-linked Avatar PDA initialized for IPFS hash: {}, release: {}",
+            avatar_data.uri_ipfs_hash,
+            stellar_link.release
+        );
+        Ok(())
+    }
+
+    pub fn mint_nft<'info>(
+        ctx: Context<'_, '_, 'info, 'info, MintNft<'info>>,
         name: String,
         symbol: String,
         uri: String,
@@ -132,32 +301,92 @@ pub mod avatar_nft_minter {
             CustomError::MaxSupplyReached
         );
 
-        // 0. Transfer minting_fee_per_mint from minter (payer) to ESCROW PDA
+        // 0. Route minting_fee_per_mint either to legacy escrow or Stellar release vault.
         if avatar_data.minting_fee_per_mint > 0 {
             let fee_to_pay = avatar_data.minting_fee_per_mint;
-            let escrow_key = ctx.accounts.escrow.key();
 
-            let ix = system_instruction::transfer(payer.key, &escrow_key, fee_to_pay);
+            if avatar_data.creator == Pubkey::default() {
+                require!(
+                    ctx.remaining_accounts.len() == 4,
+                    CustomError::MissingStellarLink
+                );
 
-            anchor_lang::solana_program::program::invoke(
-                &ix,
-                &[
-                    payer.to_account_info(),
-                    ctx.accounts.escrow.to_account_info(),
-                    ctx.accounts.system_program.to_account_info(),
-                ],
-            )?;
+                let stellar_link_info = &ctx.remaining_accounts[0];
+                let stellar_program = &ctx.remaining_accounts[1];
+                let stellar_release = &ctx.remaining_accounts[2];
+                let stellar_vault = &ctx.remaining_accounts[3];
+                let stellar_link = Account::<StellarAvatarLink>::try_from(stellar_link_info)?;
+                let (expected_stellar_link, _) = Pubkey::find_program_address(
+                    &[STELLAR_LINK_SEED, avatar_data.key().as_ref()],
+                    ctx.program_id,
+                );
 
-            avatar_data.total_unclaimed_fees = avatar_data
-                .total_unclaimed_fees
-                .checked_add(fee_to_pay)
-                .ok_or(CustomError::NumericalOverflow)?;
+                require_keys_eq!(
+                    stellar_link_info.key(),
+                    expected_stellar_link,
+                    CustomError::InvalidStellarLink
+                );
+                require_keys_eq!(
+                    stellar_link.avatar_data,
+                    avatar_data.key(),
+                    CustomError::InvalidStellarLink
+                );
+                require_keys_eq!(
+                    stellar_link.stellar_program,
+                    *stellar_program.key,
+                    CustomError::InvalidStellarProgram
+                );
+                require_keys_eq!(
+                    stellar_link.release,
+                    *stellar_release.key,
+                    CustomError::InvalidStellarRelease
+                );
+                require_keys_eq!(
+                    stellar_link.vault,
+                    *stellar_vault.key,
+                    CustomError::InvalidStellarVault
+                );
+                validate_stellar_release(stellar_program, stellar_release, stellar_vault)?;
 
-            msg!(
-                "Transferred {} lamports fee to escrow PDA {}",
-                fee_to_pay,
-                escrow_key
-            );
+                deposit_revenue_to_stellar(
+                    fee_to_pay,
+                    &payer.to_account_info(),
+                    &ctx.accounts.system_program.to_account_info(),
+                    stellar_program,
+                    stellar_release,
+                    stellar_vault,
+                )?;
+
+                msg!(
+                    "Deposited {} lamports mint fee into Stellar release vault {}",
+                    fee_to_pay,
+                    stellar_vault.key()
+                );
+            } else {
+                let escrow_key = ctx.accounts.escrow.key();
+
+                let ix = system_instruction::transfer(payer.key, &escrow_key, fee_to_pay);
+
+                invoke(
+                    &ix,
+                    &[
+                        payer.to_account_info(),
+                        ctx.accounts.escrow.to_account_info(),
+                        ctx.accounts.system_program.to_account_info(),
+                    ],
+                )?;
+
+                avatar_data.total_unclaimed_fees = avatar_data
+                    .total_unclaimed_fees
+                    .checked_add(fee_to_pay)
+                    .ok_or(CustomError::NumericalOverflow)?;
+
+                msg!(
+                    "Transferred {} lamports fee to escrow PDA {}",
+                    fee_to_pay,
+                    escrow_key
+                );
+            }
         }
 
         // 1. Mint the token
@@ -319,6 +548,61 @@ pub struct InitializeAvatar<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(uri_ipfs_hash: String, max_supply: u64, minting_fee_per_mint: u64)]
+pub struct InitializeAvatarFromStellar<'info> {
+    #[account(
+        init_if_needed,
+        payer = payer,
+        space = 8 + AvatarRegistry::INIT_SPACE,
+        seeds = [b"avatar_registry"],
+        bump
+    )]
+    pub registry: Account<'info, AvatarRegistry>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + AvatarData::INIT_SPACE,
+        seeds = [
+            AVATAR_SEED.as_ref(),
+            &registry.next_index.to_le_bytes()
+        ],
+        bump
+    )]
+    pub avatar_data: Account<'info, AvatarData>,
+
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + Escrow::INIT_SPACE,
+        seeds = [ESCROW_SEED, &registry.next_index.to_le_bytes()],
+        bump
+    )]
+    pub escrow: Account<'info, Escrow>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + StellarAvatarLink::INIT_SPACE,
+        seeds = [STELLAR_LINK_SEED, avatar_data.key().as_ref()],
+        bump
+    )]
+    pub stellar_link: Account<'info, StellarAvatarLink>,
+
+    /// CHECK: Validated by owner, executable bit, and hard-coded program id.
+    pub stellar_program: AccountInfo<'info>,
+    /// CHECK: Validated as a solana-stellar Release account by fixed-layout fields.
+    pub stellar_release: AccountInfo<'info>,
+    /// CHECK: Validated against the vault stored in the Stellar release account.
+    pub stellar_vault: AccountInfo<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 pub struct MintNft<'info> {
     #[account(
         mut,
@@ -438,4 +722,14 @@ pub enum CustomError {
     InvalidMetadataAccount,
     #[msg("Metadata URI must match the avatar hash policy.")]
     InvalidMetadataUri,
+    #[msg("Invalid Stellar program.")]
+    InvalidStellarProgram,
+    #[msg("Invalid Stellar release account.")]
+    InvalidStellarRelease,
+    #[msg("Invalid Stellar vault account.")]
+    InvalidStellarVault,
+    #[msg("Missing Stellar link accounts.")]
+    MissingStellarLink,
+    #[msg("Invalid Stellar avatar link account.")]
+    InvalidStellarLink,
 }
