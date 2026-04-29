@@ -110,6 +110,12 @@ export type UserProfile = {
           "signer": true
         },
         {
+          "name": "avatarMint"
+        },
+        {
+          "name": "ownerAvatarTokenAccount"
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -133,6 +139,67 @@ export type UserProfile = {
             ]
           }
         },
+        {
+          "name": "avatarMint",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "updateAvatarMint",
+      "docs": [
+        "Updates linked avatar mint after proving token ownership."
+      ],
+      "discriminator": [
+        193,
+        175,
+        221,
+        19,
+        10,
+        23,
+        72,
+        148
+      ],
+      "accounts": [
+        {
+          "name": "profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "profile"
+          ]
+        },
+        {
+          "name": "avatarMint"
+        },
+        {
+          "name": "ownerAvatarTokenAccount"
+        }
+      ],
+      "args": [
         {
           "name": "avatarMint",
           "type": "pubkey"
@@ -181,7 +248,6 @@ export type UserProfile = {
         },
         {
           "name": "owner",
-          "writable": true,
           "signer": true,
           "relations": [
             "profile"
@@ -210,12 +276,6 @@ export type UserProfile = {
               ]
             }
           }
-        },
-        {
-          "name": "avatarMint",
-          "type": {
-            "option": "pubkey"
-          }
         }
       ]
     }
@@ -233,6 +293,28 @@ export type UserProfile = {
         13,
         194
       ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "avatarMintMismatch",
+      "msg": "Passed avatar mint does not match avatar mint account."
+    },
+    {
+      "code": 6001,
+      "name": "avatarTokenOwnerMismatch",
+      "msg": "Avatar token account owner mismatch."
+    },
+    {
+      "code": 6002,
+      "name": "avatarTokenMintMismatch",
+      "msg": "Avatar token account mint mismatch."
+    },
+    {
+      "code": 6003,
+      "name": "avatarTokenBalanceZero",
+      "msg": "Avatar token account balance must be greater than zero."
     }
   ],
   "types": [

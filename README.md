@@ -53,8 +53,46 @@ This intuitive interface lowers the barrier for both users and creators to parti
 ---
 
 ## 🧱 Smart Contracts
-- [`avatar`](https://github.com/ekza-space/solana-avatars/tree/main/programs/avatars): Stores user data and links to avatar NFTs  
+
+- [`avatar`](https://github.com/ekza-space/solana-avatars/tree/main/programs/avatars): Stores user data and links to avatar NFTs
 - [`minter`](https://github.com/ekza-space/solana-avatars/tree/main/programs/minter): Enables publishing and minting of NFT-based avatars
+
+---
+
+## 🔐 Mainnet Protocol Standard
+
+The protocol now follows the security standard below for production releases:
+
+1. **Non-inflationary minting**
+
+   - Each NFT mint is created with `decimals = 0`.
+   - After successful mint + metadata creation, both `mint_authority` and `freeze_authority` are revoked (`None`).
+   - This prevents post-mint inflation and unilateral token freezing.
+
+2. **Canonical metadata integrity**
+
+   - The metadata account must be the canonical Metaplex PDA derived from the mint.
+   - The mint URI must match the avatar hash policy (stored in `AvatarData`), preventing arbitrary metadata substitution.
+
+3. **Escrowed fee accounting**
+
+   - Mint fees are transferred atomically during minting.
+   - `total_unclaimed_fees` is updated with checked arithmetic.
+   - Fee claims are restricted to the avatar creator and validated against escrow balance.
+
+4. **On-chain avatar ownership proof for profiles**
+
+   - Profile creation and avatar updates require proof that the profile owner holds the selected avatar mint in their token account.
+   - This prevents attaching arbitrary third-party mints to a profile.
+
+5. **PDA-scoped access control**
+
+   - All mutable state uses deterministic PDA seeds with signer checks and ownership constraints.
+   - Profile updates/deletes are owner-only, and fee claims are creator-only.
+
+6. **Release gate requirements**
+   - Security tests must include negative paths (unauthorized access, URI mismatch, post-mint inflation attempts).
+   - Mainnet deployments require passing contract + SDK integration tests.
 
 ---
 
@@ -82,4 +120,3 @@ solana-keygen pubkey target-deploy-keypair.json
 ## 📬 Feedback
 
 We welcome issues, contributions, and feature suggestions. Let's build the future of identity together!
-

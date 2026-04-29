@@ -506,6 +506,16 @@ export type AvatarNftMinter = {
       "code": 6005,
       "name": "insufficientEscrowBalance",
       "msg": "Escrow balance insufficient to cover fees and rent."
+    },
+    {
+      "code": 6006,
+      "name": "invalidMetadataAccount",
+      "msg": "Metadata account is not the canonical PDA for this mint."
+    },
+    {
+      "code": 6007,
+      "name": "invalidMetadataUri",
+      "msg": "Metadata URI must match the avatar hash policy."
     }
   ],
   "types": [

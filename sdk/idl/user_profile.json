@@ -104,6 +104,12 @@
           "signer": true
         },
         {
+          "name": "avatar_mint"
+        },
+        {
+          "name": "owner_avatar_token_account"
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -127,6 +133,67 @@
             ]
           }
         },
+        {
+          "name": "avatar_mint",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "update_avatar_mint",
+      "docs": [
+        "Updates linked avatar mint after proving token ownership."
+      ],
+      "discriminator": [
+        193,
+        175,
+        221,
+        19,
+        10,
+        23,
+        72,
+        148
+      ],
+      "accounts": [
+        {
+          "name": "profile",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  102,
+                  105,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "profile"
+          ]
+        },
+        {
+          "name": "avatar_mint"
+        },
+        {
+          "name": "owner_avatar_token_account"
+        }
+      ],
+      "args": [
         {
           "name": "avatar_mint",
           "type": "pubkey"
@@ -175,7 +242,6 @@
         },
         {
           "name": "owner",
-          "writable": true,
           "signer": true,
           "relations": [
             "profile"
@@ -204,12 +270,6 @@
               ]
             }
           }
-        },
-        {
-          "name": "avatar_mint",
-          "type": {
-            "option": "pubkey"
-          }
         }
       ]
     }
@@ -227,6 +287,28 @@
         13,
         194
       ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "AvatarMintMismatch",
+      "msg": "Passed avatar mint does not match avatar mint account."
+    },
+    {
+      "code": 6001,
+      "name": "AvatarTokenOwnerMismatch",
+      "msg": "Avatar token account owner mismatch."
+    },
+    {
+      "code": 6002,
+      "name": "AvatarTokenMintMismatch",
+      "msg": "Avatar token account mint mismatch."
+    },
+    {
+      "code": 6003,
+      "name": "AvatarTokenBalanceZero",
+      "msg": "Avatar token account balance must be greater than zero."
     }
   ],
   "types": [

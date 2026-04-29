@@ -500,6 +500,16 @@
       "code": 6005,
       "name": "InsufficientEscrowBalance",
       "msg": "Escrow balance insufficient to cover fees and rent."
+    },
+    {
+      "code": 6006,
+      "name": "InvalidMetadataAccount",
+      "msg": "Metadata account is not the canonical PDA for this mint."
+    },
+    {
+      "code": 6007,
+      "name": "InvalidMetadataUri",
+      "msg": "Metadata URI must match the avatar hash policy."
     }
   ],
   "types": [

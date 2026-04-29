@@ -1,17 +1,20 @@
 #![allow(unexpected_cfgs)] // TODO: wtf?!
-use anchor_lang::{
-    prelude::*,
-    solana_program::system_instruction,
-};
+use anchor_lang::{prelude::*, solana_program::system_instruction};
 
 use anchor_spl::{
     associated_token::AssociatedToken,
     metadata::{
         create_metadata_accounts_v3,
-        mpl_token_metadata::types::{Creator, DataV2},
+        mpl_token_metadata::{
+            self,
+            types::{Creator, DataV2},
+        },
         CreateMetadataAccountsV3, Metadata,
     },
-    token::{mint_to, Mint, MintTo, Token, TokenAccount},
+    token::{
+        mint_to, set_authority, spl_token::instruction::AuthorityType, Mint, MintTo, SetAuthority,
+        Token, TokenAccount,
+    },
 };
 
 declare_id!("29KLLArkfCfRGPgTh4k4qzXvR2JkkXfRnnNZTKn54TKz");
@@ -22,16 +25,35 @@ const AVATAR_SEED: &[u8] = b"avatar_v1";
 #[constant]
 const ESCROW_SEED: &[u8] = b"avatar_escrow";
 
-
 #[account]
 pub struct Escrow {
     pub bump: u8,
+}
+
+impl Escrow {
+    pub const INIT_SPACE: usize = 1;
 }
 
 #[account]
 pub struct AvatarRegistry {
     pub next_index: u64,
     pub bump: u8,
+}
+
+impl AvatarRegistry {
+    pub const INIT_SPACE: usize = 8 + 1;
+}
+
+fn metadata_pda(mint: &Pubkey) -> Pubkey {
+    Pubkey::find_program_address(
+        &[b"metadata", mpl_token_metadata::ID.as_ref(), mint.as_ref()],
+        &mpl_token_metadata::ID,
+    )
+    .0
+}
+
+fn uri_matches_avatar_hash(uri: &str, hash: &str) -> bool {
+    uri == hash || uri == format!("ipfs://{hash}") || uri.ends_with(&format!("/{hash}"))
 }
 
 #[program]
@@ -45,6 +67,8 @@ pub mod avatar_nft_minter {
         minting_fee_per_mint: u64, // Renamed for clarity
     ) -> Result<()> {
         let registry = &mut ctx.accounts.registry;
+        registry.bump = ctx.bumps.registry;
+
         // grab current index
         let index = registry.next_index;
         // bump counter for next call
@@ -54,7 +78,7 @@ pub mod avatar_nft_minter {
             .ok_or(CustomError::NumericalOverflow)?;
 
         require!(
-            uri_ipfs_hash.len() > 0 && uri_ipfs_hash.len() <= 64,
+            uri_ipfs_hash.len() > 0 && uri_ipfs_hash.len() <= AvatarData::MAX_IPFS_HASH_LEN,
             CustomError::InvalidIpfsHashLength
         );
 
@@ -71,6 +95,7 @@ pub mod avatar_nft_minter {
         avatar_data.total_unclaimed_fees = 0;
         avatar_data.bump = ctx.bumps.avatar_data;
         avatar_data.index = index;
+        ctx.accounts.escrow.bump = ctx.bumps.escrow;
 
         msg!(
             "Avatar PDA initialized for IPFS hash: {}, Max Supply: {}, Fee per Mint: {}",
@@ -91,6 +116,18 @@ pub mod avatar_nft_minter {
         let payer = &ctx.accounts.payer; // This is the minter
 
         require!(
+            uri_matches_avatar_hash(&uri, &avatar_data.uri_ipfs_hash),
+            CustomError::InvalidMetadataUri
+        );
+
+        let expected_metadata = metadata_pda(&ctx.accounts.mint.key());
+        require_keys_eq!(
+            ctx.accounts.metadata_account.key(),
+            expected_metadata,
+            CustomError::InvalidMetadataAccount
+        );
+
+        require!(
             avatar_data.current_supply < avatar_data.max_supply,
             CustomError::MaxSupplyReached
         );
@@ -100,11 +137,7 @@ pub mod avatar_nft_minter {
             let fee_to_pay = avatar_data.minting_fee_per_mint;
             let escrow_key = ctx.accounts.escrow.key();
 
-            let ix = system_instruction::transfer(
-                payer.key,
-                &escrow_key,
-                fee_to_pay,
-            );
+            let ix = system_instruction::transfer(payer.key, &escrow_key, fee_to_pay);
 
             anchor_lang::solana_program::program::invoke(
                 &ix,
@@ -176,6 +209,26 @@ pub mod avatar_nft_minter {
 
         create_metadata_accounts_v3(cpi_context_metadata, data_v2, false, true, None)?;
 
+        // Revoke mint/freeze authority to enforce non-inflationary, non-freezable NFTs.
+        let cpi_program_token = ctx.accounts.token_program.to_account_info();
+        let revoke_mint_ctx = CpiContext::new(
+            cpi_program_token.clone(),
+            SetAuthority {
+                account_or_mint: ctx.accounts.mint.to_account_info(),
+                current_authority: payer.to_account_info(),
+            },
+        );
+        set_authority(revoke_mint_ctx, AuthorityType::MintTokens, None)?;
+
+        let revoke_freeze_ctx = CpiContext::new(
+            cpi_program_token,
+            SetAuthority {
+                account_or_mint: ctx.accounts.mint.to_account_info(),
+                current_authority: payer.to_account_info(),
+            },
+        );
+        set_authority(revoke_freeze_ctx, AuthorityType::FreezeAccount, None)?;
+
         avatar_data.current_supply = avatar_data
             .current_supply
             .checked_add(1)
@@ -191,9 +244,9 @@ pub mod avatar_nft_minter {
     }
 
     pub fn claim_fee(ctx: Context<ClaimFee>) -> Result<()> {
-       let avatar_data = &mut ctx.accounts.avatar_data;
+        let avatar_data = &mut ctx.accounts.avatar_data;
         let creator_info = ctx.accounts.creator.to_account_info();
-        let escrow_info  = ctx.accounts.escrow.to_account_info();
+        let escrow_info = ctx.accounts.escrow.to_account_info();
 
         let fees_to_claim = avatar_data.total_unclaimed_fees;
         require!(fees_to_claim > 0, CustomError::NoFeesToClaim);
@@ -202,8 +255,17 @@ pub mod avatar_nft_minter {
             CustomError::InsufficientEscrowBalance
         );
 
-        **creator_info.try_borrow_mut_lamports()? += fees_to_claim;
-        **escrow_info.try_borrow_mut_lamports()?  -= fees_to_claim;
+        let creator_new_balance = creator_info
+            .lamports()
+            .checked_add(fees_to_claim)
+            .ok_or(CustomError::NumericalOverflow)?;
+        let escrow_new_balance = escrow_info
+            .lamports()
+            .checked_sub(fees_to_claim)
+            .ok_or(CustomError::InsufficientEscrowBalance)?;
+
+        **creator_info.try_borrow_mut_lamports()? = creator_new_balance;
+        **escrow_info.try_borrow_mut_lamports()? = escrow_new_balance;
 
         avatar_data.total_unclaimed_fees = 0;
 
@@ -223,7 +285,7 @@ pub struct InitializeAvatar<'info> {
     #[account(
         init_if_needed,
         payer = payer,
-        space = 8 + 8 + 1, // discriminator + next_index (u64) + bump
+        space = 8 + AvatarRegistry::INIT_SPACE,
         seeds = [b"avatar_registry"],
         bump
     )]
@@ -232,8 +294,7 @@ pub struct InitializeAvatar<'info> {
     #[account(
         init,
         payer = payer,
-        // Space: 8(disc) + (4+64 ipfs) + 32(creator) + 8(max_supply) + 8(current_supply) + 8(fee_per_mint) + 8(unclaimed_fees) + 8(index) + 1(bump)
-        space = 8 + 68 + 32 + 8 + 8 + 8 + 8 + 8 + 1, // = 149 bytes
+        space = 8 + AvatarData::INIT_SPACE,
         seeds = [
             AVATAR_SEED.as_ref(),
             &registry.next_index.to_le_bytes()
@@ -248,7 +309,7 @@ pub struct InitializeAvatar<'info> {
     #[account(
         init,
         payer = payer,
-        space = 8 + 1,
+        space = 8 + Escrow::INIT_SPACE,
         seeds = [ESCROW_SEED, &registry.next_index.to_le_bytes()],
         bump
     )]
@@ -299,7 +360,7 @@ pub struct MintNft<'info> {
             ESCROW_SEED,
             &avatar_data.index.to_le_bytes()
         ],
-        bump
+        bump = escrow.bump
     )]
     pub escrow: Account<'info, Escrow>,
 
@@ -315,7 +376,7 @@ pub struct ClaimFee<'info> {
     #[account(
         mut,
         seeds = [
-            AVATAR_SEED.as_ref(), 
+            AVATAR_SEED.as_ref(),
             &avatar_data.index.to_le_bytes()
         ],
         bump = avatar_data.bump,
@@ -332,7 +393,7 @@ pub struct ClaimFee<'info> {
             ESCROW_SEED,
             &avatar_data.index.to_le_bytes()
         ],
-        bump
+        bump = escrow.bump
     )]
     pub escrow: Account<'info, Escrow>,
 
@@ -350,7 +411,12 @@ pub struct AvatarData {
     pub index: u64,
     pub bump: u8,
 }
-// Expected space: 8 + 68 + 32 + 8 + 8 + 8 + 8 + 8 + 1 = 149 bytes
+
+impl AvatarData {
+    pub const MAX_IPFS_HASH_LEN: usize = 64;
+    // String prefix (4) + max ipfs hash + scalar fields.
+    pub const INIT_SPACE: usize = 4 + Self::MAX_IPFS_HASH_LEN + 32 + 8 + 8 + 8 + 8 + 8 + 1;
+}
 
 #[error_code]
 pub enum CustomError {
@@ -367,6 +433,9 @@ pub enum CustomError {
     #[msg("Numerical overflow occurred.")]
     NumericalOverflow,
     #[msg("Escrow balance insufficient to cover fees and rent.")]
-    // Optional, if explicit check is added
     InsufficientEscrowBalance,
+    #[msg("Metadata account is not the canonical PDA for this mint.")]
+    InvalidMetadataAccount,
+    #[msg("Metadata URI must match the avatar hash policy.")]
+    InvalidMetadataUri,
 }
