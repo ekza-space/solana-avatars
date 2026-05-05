@@ -31,6 +31,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/remix": "^2.16.7",
     "@vitejs/plugin-react": "^4.4.1",
+    "avatars-sdk": "file:../sdk",
     "bs58": "^4",
     "buffer": "^6.0.3",
     "ipfs-http-client": "^60.0.1",

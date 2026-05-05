@@ -27,6 +27,7 @@ export default function AvatarEditor() {
   // Track existing profile on-chain
   const [profileExists, setProfileExists] = useState<boolean>(false);
   const [profilePda, setProfilePda] = useState<PublicKey | null>(null);
+  const [currentAvatarMint, setCurrentAvatarMint] = useState<string | null>(null);
 
   // On wallet connect, try loading the profile PDA to decide create vs update
   useEffect(() => {
@@ -50,6 +51,7 @@ export default function AvatarEditor() {
         setDescriptionInput(decodeByteArray(account.description));
 
         const mintKey = account.avatarMint.toString();
+        setCurrentAvatarMint(mintKey);
         let match = avatarList.find(a => a.avatarMint.toString() === mintKey);
         if (!match) {
           match = {
@@ -62,6 +64,7 @@ export default function AvatarEditor() {
       } catch (error) {
         console.warn("Failed to load profile PDA:", error);
         setProfileExists(false);
+        setCurrentAvatarMint(null);
       }
     })();
   }, [connected, anchorWallet]);
@@ -140,13 +143,17 @@ export default function AvatarEditor() {
 
     try {
       if (profileExists && profilePda) {
+        const selectedAvatarMint = selectedAvatar.avatarMint.toString();
         await avatars.updateProfile({
           username: args.username,
           description: args.description,
-          avatarMint: new PublicKey(selectedAvatar.avatarMint),
+          avatarMint: selectedAvatarMint !== currentAvatarMint
+            ? new PublicKey(selectedAvatar.avatarMint)
+            : null,
         });
         console.log("Profile updated successfully");
         window.alert("Profile updated successfully");
+        setCurrentAvatarMint(selectedAvatarMint);
       } else {
         await avatars.initializeProfile({
           username: args.username,
@@ -155,6 +162,7 @@ export default function AvatarEditor() {
         });
         console.log("Profile initialized successfully");
         window.alert("Profile initialized successfully");
+        setCurrentAvatarMint(selectedAvatar.avatarMint.toString());
       }
     } catch (error) {
       console.error("Failed to save profile", error);
@@ -182,6 +190,7 @@ export default function AvatarEditor() {
       console.log("Profile deleted successfully");
       window.alert("Profile deleted successfully");
       setProfileExists(false);
+      setCurrentAvatarMint(null);
       // Optionally reset form
       setUsernameInput("");
       setDescriptionInput("");
