@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
-import { useWallet, useAnchorWallet } from "@solana/wallet-adapter-react";
-import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
+import {
+  useAnchorWallet,
+  useConnection,
+  useWallet,
+} from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 
 import { decodeByteArray, encodeString } from "~/utils/bytes";
 import AvatarSelector, { avatarList } from "~/components/AvatarSelector";
 import { Badge, Button, Field, Input, PageSection, Panel, StatCard, Textarea } from "~/components/ui";
+import { useSolanaNetwork } from "~/lib/network";
 
 
 // Define the expected structure for avatar creation arguments
@@ -18,6 +23,8 @@ export interface CreateUserAvatarArgs {
 export default function AvatarEditor() {
   const { connected } = useWallet();
   const anchorWallet = useAnchorWallet();
+  const { connection } = useConnection();
+  const { clusterLabel } = useSolanaNetwork();
   // Prevent SSR/client markup mismatch
   const [isClient, setIsClient] = useState(false);
   useEffect(() => {
@@ -38,7 +45,6 @@ export default function AvatarEditor() {
           import("@coral-xyz/anchor"),
           import("avatars-sdk/profile"),
         ]);
-        const connection = new Connection(clusterApiUrl("devnet"));
         const provider = new anchor.AnchorProvider(connection, anchorWallet, anchor.AnchorProvider.defaultOptions());
         const program = new anchor.Program(sdk.idlJson as any, provider) as any;
         const avatars = sdk.create(provider, program as any);
@@ -67,7 +73,7 @@ export default function AvatarEditor() {
         setCurrentAvatarMint(null);
       }
     })();
-  }, [connected, anchorWallet]);
+  }, [connected, anchorWallet, connection]);
 
   const nicknamePlaceholders = [
     "NeonNinja", "CyberFrog", "PixelMage", "QuantumLlama", "CodeSamurai", "Zero404"
@@ -136,7 +142,6 @@ export default function AvatarEditor() {
       import("@coral-xyz/anchor"),
       import("avatars-sdk/profile"),
     ]);
-    const connection = new Connection(clusterApiUrl("devnet"));
     const provider = new anchor.AnchorProvider(connection, anchorWallet, anchor.AnchorProvider.defaultOptions());
     const program = new anchor.Program(sdk.idlJson as any, provider) as any;
     const avatars = sdk.create(provider, program as any);
@@ -181,7 +186,6 @@ export default function AvatarEditor() {
       import("@coral-xyz/anchor"),
       import("avatars-sdk/profile"),
     ]);
-    const connection = new Connection(clusterApiUrl("devnet"));
     const provider = new anchor.AnchorProvider(connection, anchorWallet, anchor.AnchorProvider.defaultOptions());
     const program = new anchor.Program(sdk.idlJson as any, provider) as any;
     const avatars = sdk.create(provider, program as any);
@@ -215,7 +219,11 @@ export default function AvatarEditor() {
       }
     >
       <div className="mb-6 grid gap-5 lg:grid-cols-3">
-        <StatCard label="Network" value="Devnet" hint="Current Solana environment for profile operations." />
+        <StatCard
+          label="Network"
+          value={clusterLabel}
+          hint="Current Solana environment for profile operations."
+        />
         <StatCard label="Mode" value={profileExists ? "Update" : "Create"} hint="Detected automatically from your on-chain PDA." />
         <StatCard label="Selected asset" value={selectedAvatar.avatarMint.toString().slice(0, 8) + "..."} hint="Current NFT bound to the profile form." />
       </div>

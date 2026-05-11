@@ -205,7 +205,8 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList: _avatarList
                                                     publicKey,
                                                     connected,
                                                     [avatar.avatarMint.toString()],
-                                                    sendTransaction
+                                                    sendTransaction,
+                                                    connection
                                                 );
                                             }}
                                             disabled={!connected}

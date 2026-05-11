@@ -1,6 +1,9 @@
+import { useSolanaNetwork } from "~/lib/network";
 import { PageSection, Panel, StatCard } from "~/components/ui";
 
 export default function About() {
+  const { clusterLabel } = useSolanaNetwork();
+
   return (
     <PageSection
       eyebrow="Project Brief"
@@ -35,7 +38,11 @@ export default function About() {
 
         <div className="grid gap-6">
           <StatCard label="Profile" value="Create / Update" hint="Bind username, bio, and selected avatar NFT." />
-          <StatCard label="Deploy" value="Mint Collection" hint="Publish your own 3D avatar collection on devnet." />
+          <StatCard
+            label="Deploy"
+            value="Mint Collection"
+            hint={`Publish your own 3D avatar collection on ${clusterLabel.toLowerCase()}.`}
+          />
           <StatCard label="Market" value="Explore / Mint" hint="Browse creator drops and mint directly from the UI." />
         </div>
       </div>
@@ -50,7 +57,7 @@ export default function About() {
           </div>
           <div className="grid gap-4">
             <p className="ui-copy"><strong className="text-[rgb(var(--text-strong))]">Profile:</strong> configure your on-chain persona and pick an avatar you already own.</p>
-            <p className="ui-copy"><strong className="text-[rgb(var(--text-strong))]">Users:</strong> inspect the profiles currently registered on devnet.</p>
+            <p className="ui-copy"><strong className="text-[rgb(var(--text-strong))]">Users:</strong> inspect the profiles currently registered on this network.</p>
             <p className="ui-copy"><strong className="text-[rgb(var(--text-strong))]">Deploy:</strong> upload a model, configure metadata, and initialize a collection.</p>
             <p className="ui-copy"><strong className="text-[rgb(var(--text-strong))]">Market:</strong> browse shared avatar drops, preview 3D models, and mint what fits your style.</p>
             <p className="ui-copy"><strong className="text-[rgb(var(--text-strong))]">Ekza Space:</strong> jump to the metaverse playground and try your identity in motion.</p>

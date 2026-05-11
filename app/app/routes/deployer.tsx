@@ -20,6 +20,7 @@ import {
   Textarea,
 } from "~/components/ui";
 import { NftMetadata } from "~/types/nft";
+import { useSolanaNetwork } from "~/lib/network";
 
 import { loadBlobFromLocalStorage } from "../utils/saveBlob";
 
@@ -43,6 +44,7 @@ export default function GenerateAvatar() {
   const { publicKey } = useWallet();
   const anchorWallet = useAnchorWallet();
   const { connection } = useConnection();
+  const { buildExplorerTxUrl, clusterLabel } = useSolanaNetwork();
   const fetcher = useFetcher<ActionData>();
 
   useEffect(() => {
@@ -179,7 +181,7 @@ export default function GenerateAvatar() {
           });
 
         alert(
-          `✅ Avatar collection initialised!\n\nAvatar PDA:\n${avatarDataPda.toBase58()}\n\nTransaction:\nhttps://explorer.solana.com/tx/${initSig}?cluster=devnet`
+          `✅ Avatar collection initialised!\n\nAvatar PDA:\n${avatarDataPda.toBase58()}\n\nTransaction:\n${buildExplorerTxUrl(initSig)}`
         );
       } catch (sdkErr: any) {
         alert("Mint failed via SDK: " + sdkErr.message);
@@ -226,7 +228,7 @@ export default function GenerateAvatar() {
     <PageSection
       eyebrow="Collection Deployer"
       title="Publish a 3D avatar collection"
-      description="Upload a model, shape the NFT metadata, and initialize a minter on devnet. The creation pipeline is intact, but the workspace is now much easier to navigate."
+      description={`Upload a model, shape the NFT metadata, and initialize a minter on ${clusterLabel.toLowerCase()}. The creation pipeline is intact, but the workspace is now much easier to navigate.`}
       actions={
         <>
           <Badge>{publicKey ? "Wallet ready" : "Wallet required"}</Badge>

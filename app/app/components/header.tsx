@@ -3,6 +3,7 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useState, useEffect } from "react";
 
 import ThemeToggle from "./theme-toggle";
+import { SOLANA_CLUSTER_OPTIONS, useSolanaNetwork } from "~/lib/network";
 import { cn } from "~/utils/cn";
 
 function useMediaQuery(query: string) {
@@ -33,6 +34,7 @@ export default function Header() {
   const [isClient, setIsClient] = useState(false);
   useEffect(() => setIsClient(true), []);
   const location = useLocation();
+  const { cluster, setCluster, clusterLabel } = useSolanaNetwork();
 
   const [isOpen, setIsOpen] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
@@ -61,6 +63,28 @@ export default function Header() {
           </div>
 
           <div className="ml-auto flex items-center gap-2">
+            {isClient ? (
+              <label className="hidden items-center gap-2 rounded-2xl border border-[rgba(var(--line),0.5)] px-3 py-2 text-xs sm:flex">
+                <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[rgb(var(--text))]">
+                  Network
+                </span>
+                <select
+                  className="rounded-xl border border-[rgba(var(--line),0.42)] bg-transparent px-2 py-1 text-xs font-medium text-[rgb(var(--text-strong))] [outline:none]"
+                  value={cluster}
+                  onChange={(event) =>
+                    setCluster(event.target.value as "localnet" | "devnet" | "mainnet-beta")
+                  }
+                  aria-label="Solana network"
+                >
+                  {SOLANA_CLUSTER_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option === "mainnet-beta" ? "Mainnet" : option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            <div className="ui-badge hidden text-[10px] md:inline-flex">{clusterLabel}</div>
             <ThemeToggle />
             {isDesktop && isClient ? <WalletMultiButton /> : null}
           </div>
@@ -99,6 +123,25 @@ export default function Header() {
             >
               Ekza Space
             </a>
+            {isClient ? (
+              <label className="inline-flex items-center gap-2 rounded-2xl border border-[rgba(var(--line),0.5)] px-4 py-2 text-sm">
+                <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[rgb(var(--text))]">Network</span>
+                <select
+                  className="rounded-lg border border-[rgba(var(--line),0.42)] bg-[rgba(var(--surface),0.4)] px-2 py-1 text-sm text-[rgb(var(--text-strong))]"
+                  value={cluster}
+                  onChange={(event) =>
+                    setCluster(event.target.value as "localnet" | "devnet" | "mainnet-beta")
+                  }
+                  aria-label="Solana network"
+                >
+                  {SOLANA_CLUSTER_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option === "mainnet-beta" ? "Mainnet" : option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
           </nav>
 
           {!isDesktop && (
@@ -153,6 +196,25 @@ export default function Header() {
             >
               Ekza Space
             </a>
+            {isClient ? (
+              <label className="inline-flex items-center gap-2 rounded-2xl border border-[rgba(var(--line),0.5)] px-4 py-2 text-sm">
+                <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[rgb(var(--text))]">Network</span>
+                <select
+                  className="rounded-lg border border-[rgba(var(--line),0.42)] bg-[rgba(var(--surface),0.4)] px-2 py-1 text-sm text-[rgb(var(--text-strong))]"
+                  value={cluster}
+                  onChange={(event) =>
+                    setCluster(event.target.value as "localnet" | "devnet" | "mainnet-beta")
+                  }
+                  aria-label="Solana network"
+                >
+                  {SOLANA_CLUSTER_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option === "mainnet-beta" ? "Mainnet" : option}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             {isClient ? <WalletMultiButton /> : null}
           </nav>
         )}

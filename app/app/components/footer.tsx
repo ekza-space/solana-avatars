@@ -1,4 +1,7 @@
+import { useSolanaNetwork } from "~/lib/network";
+
 export default function Footer() {
+  const { clusterLabel } = useSolanaNetwork();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -23,7 +26,7 @@ export default function Footer() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="ui-badge">Devnet</div>
+          <div className="ui-badge">{clusterLabel}</div>
           <div className="font-mono text-xs uppercase tracking-[0.24em] text-[rgb(var(--text))]">
             © {currentYear}
           </div>

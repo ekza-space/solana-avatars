@@ -1,12 +1,18 @@
 import { createBurnInstruction, getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from "@solana/spl-token";
-import { clusterApiUrl, Connection, PublicKey, Transaction } from "@solana/web3.js";
+import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 
-export const handleBurnInvalidNFTs = async (publicKey: any, connected: any, mints_to_delete: any, sendTransaction: any) => {
+export const handleBurnInvalidNFTs = async (
+  publicKey: any,
+  connected: any,
+  mints_to_delete: string[],
+  sendTransaction: any,
+  connection?: Connection
+) => {
     if (!publicKey || !connected) {
         window.alert("Connect your wallet first.");
         return;
     }
-    const connection = new Connection(clusterApiUrl("devnet"));
+    const rpcConnection = connection || new Connection("http://127.0.0.1:8899");
     const transaction = new Transaction();
     try {
         for (const mintStr of mints_to_delete) {
@@ -25,9 +31,9 @@ export const handleBurnInvalidNFTs = async (publicKey: any, connected: any, mint
                 )
             );
         }
-        // send and confirm transaction with a single signature prompt
-        const signature = await sendTransaction(transaction, connection);
-        await connection.confirmTransaction(signature, "processed");
+    // send and confirm transaction with a single signature prompt
+    const signature = await sendTransaction(transaction, rpcConnection);
+    await rpcConnection.confirmTransaction(signature, "processed");
         console.log("Burn transaction confirmed", signature);
         window.alert("Burn transaction complete. Check console for details.");
     } catch (err) {

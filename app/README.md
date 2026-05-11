@@ -36,9 +36,20 @@ Visit [http://localhost:3000](http://localhost:3000) in your browser to start us
 
 ---
 
-## 🌐 Connect
+## 🌐 Network
 
-This UI works with the Solana devnet by default. You can switch networks in your wallet settings.
+This UI supports three environments: **localnet**, **devnet**, and **mainnet**.
+You can switch the active network from the header (top-right dropdown) and the
+selection is persisted in the browser.
+
+You can also set defaults and RPC overrides through env vars:
+
+```sh
+VITE_SOLANA_NETWORK=devnet
+VITE_SOLANA_LOCALNET_RPC=http://127.0.0.1:8899
+VITE_SOLANA_DEVNET_RPC=https://api.devnet.solana.com
+VITE_SOLANA_MAINNET_RPC=https://api.mainnet-beta.solana.com
+```
 
 ---
 

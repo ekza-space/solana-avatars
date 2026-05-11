@@ -1,22 +1,30 @@
 import { useEffect, useState } from "react";
-import { Connection, clusterApiUrl } from "@solana/web3.js";
+import { useConnection } from "@solana/wallet-adapter-react";
 
 import { Badge, PageSection, Panel } from "~/components/ui";
 import { decodeByteArray } from "~/utils/bytes";
 
 export default function IndexPage() {
+  const { connection } = useConnection();
   const [profiles, setProfiles] = useState<
     { publicKey: string; username: string; description: string; avatarMint: string }[]
   >([]);
 
   useEffect(() => {
+    if (!connection) {
+      return;
+    }
+
     (async () => {
       const [anchor, { default: sdk }] = await Promise.all([
         import("@coral-xyz/anchor"),
         import("avatars-sdk/profile"),
       ]);
-      const connection = new Connection(clusterApiUrl("devnet"));
-      const provider = new anchor.AnchorProvider(connection, (window as any).solana, anchor.AnchorProvider.defaultOptions());
+      const provider = new anchor.AnchorProvider(
+        connection,
+        (window as any).solana,
+        anchor.AnchorProvider.defaultOptions()
+      );
       const program = new anchor.Program(sdk.idlJson as any, provider) as any;
 
       const accounts = await program.account.userProfile.all();
@@ -29,7 +37,7 @@ export default function IndexPage() {
       }));
       setProfiles(decoded);
     })();
-  }, []);
+  }, [connection]);
 
   return (
     <PageSection

@@ -18,15 +18,14 @@ globalThis.Buffer = Buffer;
 
 // Solana Wallet
 import { ConnectionProvider, useWallet, WalletProvider } from "@solana/wallet-adapter-react";
-import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { clusterApiUrl } from "@solana/web3.js";
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 import Footer from "./components/footer";
 import Header from "./components/header";
 import { PageSection, Panel } from "./components/ui";
+import { SolanaNetworkProvider, useSolanaNetwork } from "./lib/network";
 
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -77,6 +76,7 @@ export function Layout({ children }: { children: ReactNode }) {
 function MainContent() {
   const { publicKey } = useWallet();
   const location = useLocation();
+  const { clusterLabel } = useSolanaNetwork();
 
   const curLoc = location.pathname;
 
@@ -91,7 +91,7 @@ function MainContent() {
         <Panel className="mx-auto max-w-3xl p-8 sm:p-10">
           <div className="grid gap-8 lg:grid-cols-[1.35fr_0.95fr]">
             <div className="space-y-4">
-              <div className="ui-badge">Devnet enabled</div>
+              <div className="ui-badge">{clusterLabel}</div>
               <h2 className="font-display text-3xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
                 Web3 identity, minting, and avatar management in one place.
               </h2>
@@ -150,9 +150,16 @@ function ServerFallbackContent() {
 }
 
 export default function App() {
+  return (
+    <SolanaNetworkProvider>
+      <AppWithConnectionGate />
+    </SolanaNetworkProvider>
+  );
+}
+
+function AppWithConnectionGate() {
   const [isHydrated, setIsHydrated] = useState(false);
-  const network = WalletAdapterNetwork.Devnet;
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+  const { endpoint } = useSolanaNetwork();
   const wallets = useMemo(
     () => (isHydrated ? [new PhantomWalletAdapter()] : []),
     [isHydrated]
