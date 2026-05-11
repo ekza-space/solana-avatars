@@ -105,17 +105,13 @@ export default function GenerateAvatar() {
         type: blobPreview.type,
       });
       const previewIpfsLink = await uploadFile(filePreview);
-      const previewIpfsUri = previewIpfsLink.substring(
-        previewIpfsLink.lastIndexOf("/") + 1
-      );
+      const previewIpfsUri = previewIpfsLink;
 
       let modelIpfsUri = "";
       if (uploadedFile) {
         const modelIpfsLink = await uploadFile(uploadedFile);
-        modelIpfsUri = modelIpfsLink.substring(
-          modelIpfsLink.lastIndexOf("/") + 1
-        );
-        console.log("Uploaded model hash:", modelIpfsUri);
+        modelIpfsUri = modelIpfsLink;
+        console.log("Uploaded model URI:", modelIpfsUri);
       }
 
       const metadata: NftMetadata = {
