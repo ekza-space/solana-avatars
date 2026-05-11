@@ -457,20 +457,27 @@ describe("stellar release mint integration", () => {
       avatarDataPda.toBase58()
     );
 
-    try {
-      await ownerClient.publishFromStellarRelease({
-        ipfsHash: `${ipfsHash}Again`,
-        maxSupply: new BN(10),
-        mintingFeePerMint,
-        stellarProgram: STELLAR_PROGRAM_ID,
-        stellarUniverse: releaseContext.universe,
-        stellarRelease: releaseContext.release,
-        stellarVault: releaseContext.vault,
-      });
-      expect.fail("should reject duplicate Stellar release publication");
-    } catch (e: any) {
-      expect(e.message).to.match(/already in use|custom program error/i);
-    }
+    const {
+      avatarDataPda: avatarDataPdaAgain,
+      avatarIndex: avatarIndexAgain,
+    } = await ownerClient.publishFromStellarRelease({
+      ipfsHash: `${ipfsHash}Again`,
+      maxSupply: new BN(10),
+      mintingFeePerMint,
+      stellarProgram: STELLAR_PROGRAM_ID,
+      stellarUniverse: releaseContext.universe,
+      stellarRelease: releaseContext.release,
+      stellarVault: releaseContext.vault,
+    });
+
+    const releaseLinkAfterRepublish = await (
+      minterProgram.account as any
+    ).stellarReleaseLink.fetch(stellarReleaseLinkPda);
+    expect(releaseLinkAfterRepublish.avatarData.toBase58()).to.equal(
+      avatarDataPdaAgain.toBase58()
+    );
+    expect(avatarIndexAgain).to.not.equal(avatarIndex);
+    expect(Number(avatarIndexAgain)).to.be.greaterThan(avatarIndex);
 
     const releaseBeforeMint = await stellarAccounts.release.fetch(
       releaseContext.release

@@ -106,7 +106,7 @@ pub struct InitializeAvatarFromStellar<'info> {
     pub stellar_vault: AccountInfo<'info>,
 
     #[account(
-        init,
+        init_if_needed,
         payer = payer,
         space = 8 + StellarReleaseLink::INIT_SPACE,
         seeds = [STELLAR_RELEASE_LINK_SEED, stellar_release.key().as_ref()],
