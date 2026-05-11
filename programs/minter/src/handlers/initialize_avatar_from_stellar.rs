@@ -1,8 +1,11 @@
 use anchor_lang::prelude::*;
 
 use crate::{
-    contexts::InitializeAvatarFromStellar, error::CustomError, state::AvatarData,
-    utils::validate_stellar_release,
+    constants::RELEASE_STATUS_FINALIZED,
+    contexts::InitializeAvatarFromStellar,
+    error::CustomError,
+    state::AvatarData,
+    utils::{link_avatar_data_to_stellar, validate_stellar_release},
 };
 
 pub fn initialize_avatar_from_stellar(
@@ -11,11 +14,20 @@ pub fn initialize_avatar_from_stellar(
     max_supply: u64,
     minting_fee_per_mint: u64,
 ) -> Result<()> {
-    validate_stellar_release(
+    let origin = validate_stellar_release(
         &ctx.accounts.stellar_program,
         &ctx.accounts.stellar_release,
         &ctx.accounts.stellar_vault,
     )?;
+    require_keys_eq!(
+        origin.universe,
+        ctx.accounts.stellar_universe.key(),
+        CustomError::InvalidStellarRelease
+    );
+    require!(
+        origin.status == RELEASE_STATUS_FINALIZED,
+        CustomError::InvalidStellarRelease
+    );
 
     let registry = &mut ctx.accounts.registry;
     registry.bump = ctx.bumps.registry;
@@ -47,9 +59,28 @@ pub fn initialize_avatar_from_stellar(
     let stellar_link = &mut ctx.accounts.stellar_link;
     stellar_link.avatar_data = avatar_data.key();
     stellar_link.stellar_program = ctx.accounts.stellar_program.key();
+    stellar_link.universe = origin.universe;
+    stellar_link.asset = origin.asset;
     stellar_link.release = ctx.accounts.stellar_release.key();
-    stellar_link.vault = ctx.accounts.stellar_vault.key();
+    stellar_link.vault = origin.vault;
     stellar_link.bump = ctx.bumps.stellar_link;
+
+    let stellar_release_link = &mut ctx.accounts.stellar_release_link;
+    stellar_release_link.release = ctx.accounts.stellar_release.key();
+    stellar_release_link.stellar_program = ctx.accounts.stellar_program.key();
+    stellar_release_link.universe = origin.universe;
+    stellar_release_link.asset = origin.asset;
+    stellar_release_link.vault = origin.vault;
+    stellar_release_link.avatar_data = avatar_data.key();
+    stellar_release_link.bump = ctx.bumps.stellar_release_link;
+
+    link_avatar_data_to_stellar(
+        avatar_data.key(),
+        &ctx.accounts.payer.to_account_info(),
+        &ctx.accounts.stellar_program,
+        &ctx.accounts.stellar_universe,
+        &ctx.accounts.stellar_release,
+    )?;
 
     msg!(
         "Stellar-linked Avatar PDA initialized for IPFS hash: {}, release: {}",

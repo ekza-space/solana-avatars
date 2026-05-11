@@ -15,6 +15,9 @@ export type UserProfile = {
   "instructions": [
     {
       "name": "deleteProfile",
+      "docs": [
+        "Closes the profile PDA and returns lamports to the owner."
+      ],
       "discriminator": [
         213,
         96,
@@ -63,6 +66,9 @@ export type UserProfile = {
     },
     {
       "name": "initializeProfile",
+      "docs": [
+        "Creates the signer’s profile PDA. Fails if it already exists."
+      ],
       "discriminator": [
         32,
         145,
@@ -141,6 +147,9 @@ export type UserProfile = {
     },
     {
       "name": "updateAvatarMint",
+      "docs": [
+        "Updates linked avatar mint after proving token ownership."
+      ],
       "discriminator": [
         193,
         175,
@@ -199,6 +208,9 @@ export type UserProfile = {
     },
     {
       "name": "updateProfile",
+      "docs": [
+        "Partial update of profile fields."
+      ],
       "discriminator": [
         98,
         67,

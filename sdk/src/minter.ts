@@ -37,6 +37,7 @@ export default {
     const REGISTRY_PDA_SEED = "avatar_registry";
     const ESCROW_PDA_SEED = "avatar_escrow";
     const STELLAR_LINK_PDA_SEED = "stellar_avatar_link";
+    const STELLAR_RELEASE_LINK_PDA_SEED = "stellar_release_link";
 
     // ---- PDA helpers ----
     function getAvatarDataPda(index: number): [PublicKey, number] {
@@ -73,6 +74,15 @@ export default {
     function getStellarLinkPda(avatarData: PublicKey): [PublicKey, number] {
       return PublicKey.findProgramAddressSync(
         [Buffer.from(STELLAR_LINK_PDA_SEED), avatarData.toBuffer()],
+        program.programId
+      );
+    }
+
+    function getStellarReleaseLinkPda(
+      stellarRelease: PublicKey
+    ): [PublicKey, number] {
+      return PublicKey.findProgramAddressSync(
+        [Buffer.from(STELLAR_RELEASE_LINK_PDA_SEED), stellarRelease.toBuffer()],
         program.programId
       );
     }
@@ -120,11 +130,14 @@ export default {
       maxSupply: anchor.BN;
       mintingFeePerMint: anchor.BN;
       stellarProgram: PublicKey;
+      stellarUniverse: PublicKey;
       stellarRelease: PublicKey;
       stellarVault: PublicKey;
     }): Promise<{
       avatarDataPda: PublicKey;
       stellarLinkPda: PublicKey;
+      stellarReleaseLinkPda: PublicKey;
+      avatarIndex: number;
       signature: string;
     }> {
       const [registryPda] = PublicKey.findProgramAddressSync(
@@ -145,6 +158,9 @@ export default {
       const [avatarDataPda] = getAvatarDataPda(nextIndex);
       const [escrowPda] = getEscrowPda(nextIndex);
       const [stellarLinkPda] = getStellarLinkPda(avatarDataPda);
+      const [stellarReleaseLinkPda] = getStellarReleaseLinkPda(
+        args.stellarRelease
+      );
 
       const signature = await program.methods
         .initializeAvatarFromStellar(
@@ -159,13 +175,48 @@ export default {
           escrow: escrowPda,
           stellarLink: stellarLinkPda,
           stellarProgram: args.stellarProgram,
+          stellarUniverse: args.stellarUniverse,
           stellarRelease: args.stellarRelease,
           stellarVault: args.stellarVault,
+          stellarReleaseLink: stellarReleaseLinkPda,
           systemProgram: SystemProgram.programId,
         })
         .rpc();
 
-      return { avatarDataPda, stellarLinkPda, signature };
+      return {
+        avatarDataPda,
+        stellarLinkPda,
+        stellarReleaseLinkPda,
+        avatarIndex: nextIndex,
+        signature,
+      };
+    }
+
+    async function publishFromStellarRelease(args: {
+      ipfsHash: string;
+      maxSupply: anchor.BN;
+      mintingFeePerMint: anchor.BN;
+      stellarProgram: PublicKey;
+      stellarUniverse: PublicKey;
+      stellarRelease: PublicKey;
+      stellarVault: PublicKey;
+    }): Promise<{
+      avatarDataPda: PublicKey;
+      stellarLinkPda: PublicKey;
+      stellarReleaseLinkPda: PublicKey;
+      avatarIndex: number;
+      avatarData: Awaited<ReturnType<typeof getAvatarData>>;
+      signature: string;
+    }> {
+      const result = await initializeAvatarFromStellar(args);
+      const avatarData = await getAvatarData(result.avatarDataPda);
+
+      return {
+        ...result,
+        avatarData,
+        avatarIndex:
+          (avatarData as any)?.index?.toNumber?.() ?? result.avatarIndex,
+      };
     }
 
     async function mintNft(args: {
@@ -315,6 +366,39 @@ export default {
       return getAvatarData(pda);
     }
 
+    async function getStellarLink(avatarData: PublicKey) {
+      const [stellarLinkPda] = getStellarLinkPda(avatarData);
+      try {
+        return {
+          pda: stellarLinkPda,
+          account: await program.account.stellarAvatarLink.fetch(
+            stellarLinkPda
+          ),
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    async function getStellarLinkByIndex(index: number) {
+      const [avatarDataPda] = getAvatarDataPda(index);
+      return getStellarLink(avatarDataPda);
+    }
+
+    async function getStellarReleaseLink(stellarRelease: PublicKey) {
+      const [stellarReleaseLinkPda] = getStellarReleaseLinkPda(stellarRelease);
+      try {
+        return {
+          pda: stellarReleaseLinkPda,
+          account: await program.account.stellarReleaseLink.fetch(
+            stellarReleaseLinkPda
+          ),
+        };
+      } catch {
+        return null;
+      }
+    }
+
     // ---- Returned API ----
     return {
       // PDAs
@@ -322,9 +406,11 @@ export default {
       getEscrowPda,
       getMetadataPda,
       getStellarLinkPda,
+      getStellarReleaseLinkPda,
       // Transactions
       initializeAvatar,
       initializeAvatarFromStellar,
+      publishFromStellarRelease,
       mintNft,
       claimFee,
       // Queries
@@ -333,6 +419,9 @@ export default {
       getAllAvatarData,
       getAvatarDataRange,
       getAvatarDataByIndex,
+      getStellarLink,
+      getStellarLinkByIndex,
+      getStellarReleaseLink,
     };
   },
 };

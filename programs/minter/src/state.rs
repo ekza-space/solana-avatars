@@ -23,13 +23,30 @@ impl AvatarRegistry {
 pub struct StellarAvatarLink {
     pub avatar_data: Pubkey,
     pub stellar_program: Pubkey,
+    pub universe: Pubkey,
+    pub asset: Pubkey,
     pub release: Pubkey,
     pub vault: Pubkey,
     pub bump: u8,
 }
 
 impl StellarAvatarLink {
-    pub const INIT_SPACE: usize = 32 + 32 + 32 + 32 + 1;
+    pub const INIT_SPACE: usize = 32 + 32 + 32 + 32 + 32 + 32 + 1;
+}
+
+#[account]
+pub struct StellarReleaseLink {
+    pub release: Pubkey,
+    pub stellar_program: Pubkey,
+    pub universe: Pubkey,
+    pub asset: Pubkey,
+    pub vault: Pubkey,
+    pub avatar_data: Pubkey,
+    pub bump: u8,
+}
+
+impl StellarReleaseLink {
+    pub const INIT_SPACE: usize = 32 + 32 + 32 + 32 + 32 + 32 + 1;
 }
 
 #[account]

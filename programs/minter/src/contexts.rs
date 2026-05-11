@@ -6,9 +6,9 @@ use anchor_spl::{
 };
 
 use crate::{
-    constants::{AVATAR_SEED, ESCROW_SEED, STELLAR_LINK_SEED},
+    constants::{AVATAR_SEED, ESCROW_SEED, STELLAR_LINK_SEED, STELLAR_RELEASE_LINK_SEED},
     error::CustomError,
-    state::{AvatarData, AvatarRegistry, Escrow, StellarAvatarLink},
+    state::{AvatarData, AvatarRegistry, Escrow, StellarAvatarLink, StellarReleaseLink},
 };
 
 #[derive(Accounts)]
@@ -97,10 +97,22 @@ pub struct InitializeAvatarFromStellar<'info> {
 
     /// CHECK: Validated by owner, executable bit, and hard-coded program id.
     pub stellar_program: AccountInfo<'info>,
-    /// CHECK: Validated as a solana-stellar Release account by fixed-layout fields.
+    /// CHECK: Validated by the solana-stellar link_avatar_data CPI.
+    pub stellar_universe: AccountInfo<'info>,
+    /// CHECK: Validated as a solana-stellar Release account by fixed-layout fields and CPI.
+    #[account(mut)]
     pub stellar_release: AccountInfo<'info>,
     /// CHECK: Validated against the vault stored in the Stellar release account.
     pub stellar_vault: AccountInfo<'info>,
+
+    #[account(
+        init,
+        payer = payer,
+        space = 8 + StellarReleaseLink::INIT_SPACE,
+        seeds = [STELLAR_RELEASE_LINK_SEED, stellar_release.key().as_ref()],
+        bump
+    )]
+    pub stellar_release_link: Account<'info, StellarReleaseLink>,
 
     pub system_program: Program<'info, System>,
 }

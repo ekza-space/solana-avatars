@@ -367,10 +367,51 @@ export type AvatarNftMinter = {
           "name": "stellarProgram"
         },
         {
-          "name": "stellarRelease"
+          "name": "stellarUniverse"
+        },
+        {
+          "name": "stellarRelease",
+          "writable": true
         },
         {
           "name": "stellarVault"
+        },
+        {
+          "name": "stellarReleaseLink",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  101,
+                  108,
+                  108,
+                  97,
+                  114,
+                  95,
+                  114,
+                  101,
+                  108,
+                  101,
+                  97,
+                  115,
+                  101,
+                  95,
+                  108,
+                  105,
+                  110,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "stellarRelease"
+              }
+            ]
+          }
         },
         {
           "name": "systemProgram",
@@ -656,6 +697,19 @@ export type AvatarNftMinter = {
         97,
         235
       ]
+    },
+    {
+      "name": "stellarReleaseLink",
+      "discriminator": [
+        94,
+        52,
+        249,
+        193,
+        35,
+        188,
+        145,
+        125
+      ]
     }
   ],
   "errors": [
@@ -666,61 +720,66 @@ export type AvatarNftMinter = {
     },
     {
       "code": 6001,
+      "name": "invalidMaxSupply",
+      "msg": "Maximum supply must be greater than zero."
+    },
+    {
+      "code": 6002,
       "name": "maxSupplyReached",
       "msg": "Maximum supply for this avatar has been reached."
     },
     {
-      "code": 6002,
+      "code": 6003,
       "name": "unauthorized",
       "msg": "Unauthorized action."
     },
     {
-      "code": 6003,
+      "code": 6004,
       "name": "noFeesToClaim",
       "msg": "No fees have been accumulated to claim."
     },
     {
-      "code": 6004,
+      "code": 6005,
       "name": "numericalOverflow",
       "msg": "Numerical overflow occurred."
     },
     {
-      "code": 6005,
+      "code": 6006,
       "name": "insufficientEscrowBalance",
       "msg": "Escrow balance insufficient to cover fees and rent."
     },
     {
-      "code": 6006,
+      "code": 6007,
       "name": "invalidMetadataAccount",
       "msg": "Metadata account is not the canonical PDA for this mint."
     },
     {
-      "code": 6007,
+      "code": 6008,
       "name": "invalidMetadataUri",
       "msg": "Metadata URI must match the avatar hash policy."
     },
     {
-      "code": 6008,
+      "code": 6009,
       "name": "invalidStellarProgram",
       "msg": "Invalid Stellar program."
     },
     {
-      "code": 6009,
+      "code": 6010,
       "name": "invalidStellarRelease",
       "msg": "Invalid Stellar release account."
     },
     {
-      "code": 6010,
+      "code": 6011,
       "name": "invalidStellarVault",
       "msg": "Invalid Stellar vault account."
     },
     {
-      "code": 6011,
+      "code": 6012,
       "name": "missingStellarLink",
       "msg": "Missing Stellar link accounts."
     },
     {
-      "code": 6012,
+      "code": 6013,
       "name": "invalidStellarLink",
       "msg": "Invalid Stellar avatar link account."
     }
@@ -808,11 +867,55 @@ export type AvatarNftMinter = {
             "type": "pubkey"
           },
           {
+            "name": "universe",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset",
+            "type": "pubkey"
+          },
+          {
             "name": "release",
             "type": "pubkey"
           },
           {
             "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "stellarReleaseLink",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "release",
+            "type": "pubkey"
+          },
+          {
+            "name": "stellarProgram",
+            "type": "pubkey"
+          },
+          {
+            "name": "universe",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "avatarData",
             "type": "pubkey"
           },
           {
@@ -838,6 +941,11 @@ export type AvatarNftMinter = {
       "name": "stellarLinkSeed",
       "type": "bytes",
       "value": "[115, 116, 101, 108, 108, 97, 114, 95, 97, 118, 97, 116, 97, 114, 95, 108, 105, 110, 107]"
+    },
+    {
+      "name": "stellarReleaseLinkSeed",
+      "type": "bytes",
+      "value": "[115, 116, 101, 108, 108, 97, 114, 95, 114, 101, 108, 101, 97, 115, 101, 95, 108, 105, 110, 107]"
     }
   ]
 };

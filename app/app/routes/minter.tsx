@@ -1,4 +1,5 @@
 import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
+import { PublicKey } from "@solana/web3.js";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { Badge, Button, PageSection, Panel, StatCard } from "~/components/ui";
@@ -51,20 +52,33 @@ let mocked = [
 ];
 
 type AvatarItem = (typeof mocked)[number] & { metadata?: NftMetadata | null };
+type StellarOriginLink = {
+  avatarData: string;
+  universe: string;
+  asset: string;
+  release: string;
+  vault: string;
+};
+
+type EnrichedAvatarItem = AvatarItem & {
+  stellarLink?: StellarOriginLink | null;
+};
 
 const LS_KEY = "avatarsCache";
+const STELLAR_UI_BASE_URL =
+  import.meta.env.VITE_STELLAR_UI_URL?.trim() || "http://localhost:59206";
 
-function loadCachedAvatars(): AvatarItem[] {
+function loadCachedAvatars(): EnrichedAvatarItem[] {
   if (DISABLE_CACHE || typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(LS_KEY);
-    return raw ? (JSON.parse(raw) as AvatarItem[]) : [];
+    return raw ? (JSON.parse(raw) as EnrichedAvatarItem[]) : [];
   } catch {
     return [];
   }
 }
 
-function saveCachedAvatars(avatars: AvatarItem[]) {
+function saveCachedAvatars(avatars: EnrichedAvatarItem[]) {
   if (DISABLE_CACHE || typeof window === "undefined") return;
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(avatars));
@@ -78,19 +92,63 @@ function saveCachedAvatars(avatars: AvatarItem[]) {
  * under `metadata`. Errors are swallowed so that a single bad fetch
  * does not break the whole grid.
  */
-const enrichWithMetadata = async (raw: AvatarItem[]): Promise<AvatarItem[]> => {
+function mintUriForHash(hash: string) {
+  if (
+    hash.startsWith("http://") ||
+    hash.startsWith("https://") ||
+    hash.startsWith("local:")
+  ) {
+    return hash;
+  }
+  return `ipfs://${hash}`;
+}
+
+function stellarSourceUrl(link: StellarOriginLink) {
+  const base = STELLAR_UI_BASE_URL.endsWith("/")
+    ? STELLAR_UI_BASE_URL.slice(0, -1)
+    : STELLAR_UI_BASE_URL;
+  return `${base}/universe/${link.universe}/source/${link.asset}`;
+}
+
+const publicKeyString = (value: unknown) =>
+  value && typeof (value as any).toBase58 === "function"
+    ? (value as any).toBase58()
+    : String(value || "");
+
+const enrichWithMetadata = async (
+  raw: AvatarItem[],
+  minter?: any
+): Promise<EnrichedAvatarItem[]> => {
   return Promise.all(
     raw.map(async (avatar) => {
+      let metadata: NftMetadata | null = null;
+      let stellarLink: StellarOriginLink | null = null;
+
       try {
         const metadataUrl = getIpfsUrl(avatar.data.uriIpfsHash);
         const res = await fetch(metadataUrl);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const metadata: NftMetadata = await res.json();
-        return { ...avatar, metadata };
+        metadata = await res.json();
       } catch (err) {
         console.error(`Cannot load metadata for avatar #${avatar.index}`, err);
-        return { ...avatar, metadata: null };
       }
+
+      try {
+        const link = await minter?.getStellarLinkByIndex?.(avatar.index);
+        if (link?.account) {
+          stellarLink = {
+            avatarData: publicKeyString(link.account.avatarData),
+            universe: publicKeyString(link.account.universe),
+            asset: publicKeyString(link.account.asset),
+            release: publicKeyString(link.account.release),
+            vault: publicKeyString(link.account.vault),
+          };
+        }
+      } catch (err) {
+        console.error(`Cannot load Stellar link for avatar #${avatar.index}`, err);
+      }
+
+      return { ...avatar, metadata, stellarLink };
     })
   );
 };
@@ -98,7 +156,7 @@ const enrichWithMetadata = async (raw: AvatarItem[]): Promise<AvatarItem[]> => {
 export default function MarketPage() {
   const { connection } = useConnection();
   const anchorWallet = useAnchorWallet();
-  const [avatars, setAvatars] = useState<AvatarItem[] | null>(null);
+  const [avatars, setAvatars] = useState<EnrichedAvatarItem[] | null>(null);
   const [activeModelSrc, setActiveModelSrc] = useState<string | null>(null);
   const [activeModelDescription, setActiveModelDescription] = useState<
     string | null
@@ -163,7 +221,10 @@ export default function MarketPage() {
           start,
           limit,
         });
-        const enriched = await enrichWithMetadata(range as AvatarItem[]);
+        const enriched = await enrichWithMetadata(
+          range as AvatarItem[],
+          minterClientInstance
+        );
 
         // Merge or reset as needed
         const merged =
@@ -229,7 +290,7 @@ export default function MarketPage() {
             </div>
           </Panel>
         ) : (
-          items.map(({ index, data, metadata }) => (
+          items.map(({ index, data, metadata, stellarLink }) => (
             <Panel key={index} className="flex h-full flex-col gap-4">
               {metadata?.image ? (
                 <div className="overflow-hidden rounded-[22px] border border-[rgba(var(--line),0.55)]">
@@ -270,9 +331,25 @@ export default function MarketPage() {
                 <div>
                   <div className="ui-label">Creator</div>
                   <p className="break-all font-mono text-xs text-[rgb(var(--text-strong))]">
-                    {data.creator.toString()}
+                    {data.creator.toString() ===
+                    "11111111111111111111111111111111"
+                      ? "Stellar release"
+                      : data.creator.toString()}
                   </p>
                 </div>
+                {stellarLink ? (
+                  <div>
+                    <div className="ui-label">Source</div>
+                    <a
+                      href={stellarSourceUrl(stellarLink)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-medium text-[rgb(var(--accent))]"
+                    >
+                      Open Stellar asset
+                    </a>
+                  </div>
+                ) : null}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <div className="ui-label">Current</div>
@@ -319,7 +396,20 @@ export default function MarketPage() {
                       index,
                       name: metadata.name,
                       symbol: metadata.symbol,
-                      uri: `ipfs://${data.uriIpfsHash}`,
+                      uri: mintUriForHash(data.uriIpfsHash),
+                      stellar: stellarLink
+                        ? {
+                            stellarLink: minter.getStellarLinkPda(
+                              minter.getAvatarDataPda(index)[0]
+                            )[0],
+                            stellarProgram:
+                              new PublicKey(
+                                "3rVXfq7LLSLqbDzvZuSrQoMytwczLj2Q8Hue62rxPZAA"
+                              ),
+                            stellarRelease: new PublicKey(stellarLink.release),
+                            stellarVault: new PublicKey(stellarLink.vault),
+                          }
+                        : undefined,
                     });
                     console.log("Minted NFT:", result);
                     alert(`Minted NFT!\nSignature: ${result.signature}`);

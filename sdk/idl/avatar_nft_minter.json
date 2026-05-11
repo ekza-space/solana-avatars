@@ -361,10 +361,51 @@
           "name": "stellar_program"
         },
         {
-          "name": "stellar_release"
+          "name": "stellar_universe"
+        },
+        {
+          "name": "stellar_release",
+          "writable": true
         },
         {
           "name": "stellar_vault"
+        },
+        {
+          "name": "stellar_release_link",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  101,
+                  108,
+                  108,
+                  97,
+                  114,
+                  95,
+                  114,
+                  101,
+                  108,
+                  101,
+                  97,
+                  115,
+                  101,
+                  95,
+                  108,
+                  105,
+                  110,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "stellar_release"
+              }
+            ]
+          }
         },
         {
           "name": "system_program",
@@ -650,6 +691,19 @@
         97,
         235
       ]
+    },
+    {
+      "name": "StellarReleaseLink",
+      "discriminator": [
+        94,
+        52,
+        249,
+        193,
+        35,
+        188,
+        145,
+        125
+      ]
     }
   ],
   "errors": [
@@ -660,61 +714,66 @@
     },
     {
       "code": 6001,
+      "name": "InvalidMaxSupply",
+      "msg": "Maximum supply must be greater than zero."
+    },
+    {
+      "code": 6002,
       "name": "MaxSupplyReached",
       "msg": "Maximum supply for this avatar has been reached."
     },
     {
-      "code": 6002,
+      "code": 6003,
       "name": "Unauthorized",
       "msg": "Unauthorized action."
     },
     {
-      "code": 6003,
+      "code": 6004,
       "name": "NoFeesToClaim",
       "msg": "No fees have been accumulated to claim."
     },
     {
-      "code": 6004,
+      "code": 6005,
       "name": "NumericalOverflow",
       "msg": "Numerical overflow occurred."
     },
     {
-      "code": 6005,
+      "code": 6006,
       "name": "InsufficientEscrowBalance",
       "msg": "Escrow balance insufficient to cover fees and rent."
     },
     {
-      "code": 6006,
+      "code": 6007,
       "name": "InvalidMetadataAccount",
       "msg": "Metadata account is not the canonical PDA for this mint."
     },
     {
-      "code": 6007,
+      "code": 6008,
       "name": "InvalidMetadataUri",
       "msg": "Metadata URI must match the avatar hash policy."
     },
     {
-      "code": 6008,
+      "code": 6009,
       "name": "InvalidStellarProgram",
       "msg": "Invalid Stellar program."
     },
     {
-      "code": 6009,
+      "code": 6010,
       "name": "InvalidStellarRelease",
       "msg": "Invalid Stellar release account."
     },
     {
-      "code": 6010,
+      "code": 6011,
       "name": "InvalidStellarVault",
       "msg": "Invalid Stellar vault account."
     },
     {
-      "code": 6011,
+      "code": 6012,
       "name": "MissingStellarLink",
       "msg": "Missing Stellar link accounts."
     },
     {
-      "code": 6012,
+      "code": 6013,
       "name": "InvalidStellarLink",
       "msg": "Invalid Stellar avatar link account."
     }
@@ -802,11 +861,55 @@
             "type": "pubkey"
           },
           {
+            "name": "universe",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset",
+            "type": "pubkey"
+          },
+          {
             "name": "release",
             "type": "pubkey"
           },
           {
             "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StellarReleaseLink",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "release",
+            "type": "pubkey"
+          },
+          {
+            "name": "stellar_program",
+            "type": "pubkey"
+          },
+          {
+            "name": "universe",
+            "type": "pubkey"
+          },
+          {
+            "name": "asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "avatar_data",
             "type": "pubkey"
           },
           {
@@ -832,6 +935,11 @@
       "name": "STELLAR_LINK_SEED",
       "type": "bytes",
       "value": "[115, 116, 101, 108, 108, 97, 114, 95, 97, 118, 97, 116, 97, 114, 95, 108, 105, 110, 107]"
+    },
+    {
+      "name": "STELLAR_RELEASE_LINK_SEED",
+      "type": "bytes",
+      "value": "[115, 116, 101, 108, 108, 97, 114, 95, 114, 101, 108, 101, 97, 115, 101, 95, 108, 105, 110, 107]"
     }
   ]
 }

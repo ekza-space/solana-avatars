@@ -9,6 +9,9 @@
   "instructions": [
     {
       "name": "delete_profile",
+      "docs": [
+        "Closes the profile PDA and returns lamports to the owner."
+      ],
       "discriminator": [
         213,
         96,
@@ -57,6 +60,9 @@
     },
     {
       "name": "initialize_profile",
+      "docs": [
+        "Creates the signer’s profile PDA. Fails if it already exists."
+      ],
       "discriminator": [
         32,
         145,
@@ -135,6 +141,9 @@
     },
     {
       "name": "update_avatar_mint",
+      "docs": [
+        "Updates linked avatar mint after proving token ownership."
+      ],
       "discriminator": [
         193,
         175,
@@ -193,6 +202,9 @@
     },
     {
       "name": "update_profile",
+      "docs": [
+        "Partial update of profile fields."
+      ],
       "discriminator": [
         98,
         67,

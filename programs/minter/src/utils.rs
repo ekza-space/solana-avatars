@@ -10,11 +10,19 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     constants::{
-        RELEASE_STATUS_FINALIZED, RELEASE_STATUS_LINKED, RELEASE_STATUS_OFFSET,
-        RELEASE_VAULT_OFFSET, SOLANA_STELLAR_PROGRAM_ID,
+        RELEASE_ASSET_OFFSET, RELEASE_STATUS_FINALIZED, RELEASE_STATUS_LINKED,
+        RELEASE_STATUS_OFFSET, RELEASE_UNIVERSE_OFFSET, RELEASE_VAULT_OFFSET,
+        SOLANA_STELLAR_PROGRAM_ID,
     },
     error::CustomError,
 };
+
+pub struct StellarReleaseOrigin {
+    pub universe: Pubkey,
+    pub asset: Pubkey,
+    pub vault: Pubkey,
+    pub status: u8,
+}
 
 pub fn metadata_pda(mint: &Pubkey) -> Pubkey {
     Pubkey::find_program_address(
@@ -50,7 +58,7 @@ pub fn validate_stellar_release<'info>(
     stellar_program: &AccountInfo<'info>,
     release: &AccountInfo<'info>,
     vault: &AccountInfo<'info>,
-) -> Result<()> {
+) -> Result<StellarReleaseOrigin> {
     require_keys_eq!(
         *stellar_program.key,
         SOLANA_STELLAR_PROGRAM_ID,
@@ -77,9 +85,15 @@ pub fn validate_stellar_release<'info>(
         CustomError::InvalidStellarRelease
     );
 
-    let mut vault_bytes = [0_u8; 32];
-    vault_bytes.copy_from_slice(&release_data[RELEASE_VAULT_OFFSET..RELEASE_VAULT_OFFSET + 32]);
-    let stored_vault = Pubkey::new_from_array(vault_bytes);
+    let read_pubkey = |offset: usize| -> Pubkey {
+        let mut bytes = [0_u8; 32];
+        bytes.copy_from_slice(&release_data[offset..offset + 32]);
+        Pubkey::new_from_array(bytes)
+    };
+
+    let stored_universe = read_pubkey(RELEASE_UNIVERSE_OFFSET);
+    let stored_asset = read_pubkey(RELEASE_ASSET_OFFSET);
+    let stored_vault = read_pubkey(RELEASE_VAULT_OFFSET);
     require_keys_eq!(stored_vault, *vault.key, CustomError::InvalidStellarVault);
 
     let status = release_data[RELEASE_STATUS_OFFSET];
@@ -88,7 +102,12 @@ pub fn validate_stellar_release<'info>(
         CustomError::InvalidStellarRelease
     );
 
-    Ok(())
+    Ok(StellarReleaseOrigin {
+        universe: stored_universe,
+        asset: stored_asset,
+        vault: stored_vault,
+        status,
+    })
 }
 
 pub fn deposit_revenue_to_stellar<'info>(
@@ -121,6 +140,40 @@ pub fn deposit_revenue_to_stellar<'info>(
             vault.clone(),
             payer.clone(),
             system_program.clone(),
+            stellar_program.clone(),
+        ],
+    )?;
+
+    Ok(())
+}
+
+pub fn link_avatar_data_to_stellar<'info>(
+    avatar_data: Pubkey,
+    owner: &AccountInfo<'info>,
+    stellar_program: &AccountInfo<'info>,
+    universe: &AccountInfo<'info>,
+    release: &AccountInfo<'info>,
+) -> Result<()> {
+    let mut data = Vec::with_capacity(40);
+    data.extend_from_slice(&anchor_discriminator("link_avatar_data"));
+    data.extend_from_slice(avatar_data.as_ref());
+
+    let ix = Instruction {
+        program_id: *stellar_program.key,
+        accounts: vec![
+            AccountMeta::new_readonly(*universe.key, false),
+            AccountMeta::new(*release.key, false),
+            AccountMeta::new_readonly(*owner.key, true),
+        ],
+        data,
+    };
+
+    invoke(
+        &ix,
+        &[
+            universe.clone(),
+            release.clone(),
+            owner.clone(),
             stellar_program.clone(),
         ],
     )?;

@@ -12,7 +12,9 @@ const STELLAR_PROGRAM_ID = new PublicKey(
   "3rVXfq7LLSLqbDzvZuSrQoMytwczLj2Q8Hue62rxPZAA"
 );
 
-describe("stellar lineage equal mint integration", () => {
+type CollaborationPolicy = "lineageEqual" | "weighted";
+
+describe("stellar release mint integration", () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const provider = anchor.getProvider() as anchor.AnchorProvider;
@@ -30,9 +32,22 @@ describe("stellar lineage equal mint integration", () => {
   const contributor = Keypair.generate();
   const branchContributor = Keypair.generate();
   const buyer = Keypair.generate();
+  let nextOwnerUniverseIndex = Date.now();
 
   const toLeBytes = (value: number) =>
     new BN(value).toArrayLike(Buffer, "le", 8);
+
+  const registryPda = () =>
+    PublicKey.findProgramAddressSync(
+      [Buffer.from("registry")],
+      STELLAR_PROGRAM_ID
+    )[0];
+
+  const universeIndexPda = (globalIndex: number) =>
+    PublicKey.findProgramAddressSync(
+      [Buffer.from("universe_index"), toLeBytes(globalIndex)],
+      STELLAR_PROGRAM_ID
+    )[0];
 
   const universePda = (index: number) =>
     PublicKey.findProgramAddressSync(
@@ -82,6 +97,56 @@ describe("stellar lineage equal mint integration", () => {
     await confirmSig(await connection.requestAirdrop(publicKey, lamports));
   }
 
+  async function nextGlobalUniverseIndex() {
+    try {
+      const registry = await stellarAccounts.registry.fetch(registryPda());
+      return registry.universeCount.toNumber();
+    } catch {
+      return 0;
+    }
+  }
+
+  function contributorSigner(publicKey: PublicKey) {
+    if (publicKey.equals(contributor.publicKey)) return contributor;
+    if (publicKey.equals(branchContributor.publicKey)) return branchContributor;
+    return null;
+  }
+
+  async function send(builder: any, signer?: Keypair | null) {
+    if (signer) {
+      await builder.signers([signer]).rpc();
+      return;
+    }
+
+    await builder.rpc();
+  }
+
+  async function createUniverse(policy: CollaborationPolicy, label: string) {
+    const ownerIndex = nextOwnerUniverseIndex++;
+    const globalIndex = await nextGlobalUniverseIndex();
+    const universe = universePda(ownerIndex);
+    const universeLookup = universeIndexPda(globalIndex);
+
+    await stellarProgram.methods
+      .createUniverse(
+        new BN(ownerIndex),
+        `Qm${label}UniverseHash`,
+        { model3D: {} },
+        { [policy]: {} },
+        true
+      )
+      .accountsStrict({
+        registry: registryPda(),
+        universe,
+        universeLookup,
+        owner: owner.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    return { universe, universeLookup, ownerIndex, globalIndex };
+  }
+
   async function createAsset(args: {
     universe: PublicKey;
     index: number;
@@ -100,6 +165,7 @@ describe("stellar lineage equal mint integration", () => {
         new BN(args.index),
         args.kind,
         args.subtype,
+        { ccBy4: {} },
         args.metadataHash,
         args.previewHash
       )
@@ -159,42 +225,24 @@ describe("stellar lineage equal mint integration", () => {
       .rpc();
   }
 
-  before(async () => {
-    await Promise.all([
-      airdrop(contributor.publicKey, 5 * LAMPORTS_PER_SOL),
-      airdrop(branchContributor.publicKey, 5 * LAMPORTS_PER_SOL),
-      airdrop(buyer.publicKey, 5 * LAMPORTS_PER_SOL),
-    ]);
-  });
-
-  it("mints a Stellar-linked avatar and splits mint revenue by lineage", async () => {
-    const universeIndex = Date.now();
-    const universe = universePda(universeIndex);
+  async function buildRelease(args: {
+    policy: CollaborationPolicy;
+    label: string;
+  }) {
+    const { universe, universeLookup, globalIndex } = await createUniverse(
+      args.policy,
+      args.label
+    );
     const baseAsset = assetPda(universe, 0);
-    const uvAsset = assetPda(universe, 1);
-    const animationAsset = assetPda(universe, 2);
+    const textureAsset = assetPda(universe, 1);
+    const rigAsset = assetPda(universe, 2);
     const finalAsset = assetPda(universe, 3);
-    const uvBaseLink = linkPda(uvAsset, baseAsset);
-    const animationBaseLink = linkPda(animationAsset, baseAsset);
-    const finalUvLink = linkPda(finalAsset, uvAsset);
-    const finalAnimationLink = linkPda(finalAsset, animationAsset);
+    const textureBaseLink = linkPda(textureAsset, baseAsset);
+    const rigBaseLink = linkPda(rigAsset, baseAsset);
+    const finalTextureLink = linkPda(finalAsset, textureAsset);
+    const finalRigLink = linkPda(finalAsset, rigAsset);
     const release = releasePda(universe, 0);
     const vault = vaultPda(release);
-
-    await stellarProgram.methods
-      .createUniverse(
-        new BN(universeIndex),
-        "QmIntegrationUniverseHash",
-        { model3D: {} },
-        { lineageEqual: {} },
-        true
-      )
-      .accountsStrict({
-        universe,
-        owner: owner.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .rpc();
 
     await createAsset({
       universe,
@@ -203,56 +251,52 @@ describe("stellar lineage equal mint integration", () => {
       creator: owner,
       kind: { image: {} },
       subtype: { concept: {} },
-      metadataHash: "QmIntegrationBaseHash",
-      previewHash: "QmIntegrationBasePreview",
+      metadataHash: `Qm${args.label}BaseHash`,
+      previewHash: `Qm${args.label}BasePreview`,
     });
-    await submitAndApproveAsset({
-      universe,
-      asset: baseAsset,
-      creator: owner,
-    });
+    await submitAndApproveAsset({ universe, asset: baseAsset, creator: owner });
 
     await createAsset({
       universe,
       index: 1,
-      asset: uvAsset,
+      asset: textureAsset,
       creator: contributor,
       kind: { model3D: {} },
       subtype: { texture: {} },
-      metadataHash: "QmIntegrationUvHash",
-      previewHash: "QmIntegrationUvPreview",
+      metadataHash: `Qm${args.label}TextureHash`,
+      previewHash: `Qm${args.label}TexturePreview`,
     });
     await addParent({
-      childAsset: uvAsset,
+      childAsset: textureAsset,
       parentAsset: baseAsset,
       creator: contributor,
-      assetParent: uvBaseLink,
+      assetParent: textureBaseLink,
     });
     await submitAndApproveAsset({
       universe,
-      asset: uvAsset,
+      asset: textureAsset,
       creator: contributor,
     });
 
     await createAsset({
       universe,
       index: 2,
-      asset: animationAsset,
+      asset: rigAsset,
       creator: branchContributor,
-      kind: { animation: {} },
-      subtype: { motion: {} },
-      metadataHash: "QmIntegrationAnimHash",
-      previewHash: "QmIntegrationAnimPreview",
+      kind: { model3D: {} },
+      subtype: { rig: {} },
+      metadataHash: `Qm${args.label}RigHash`,
+      previewHash: `Qm${args.label}RigPreview`,
     });
     await addParent({
-      childAsset: animationAsset,
+      childAsset: rigAsset,
       parentAsset: baseAsset,
       creator: branchContributor,
-      assetParent: animationBaseLink,
+      assetParent: rigBaseLink,
     });
     await submitAndApproveAsset({
       universe,
-      asset: animationAsset,
+      asset: rigAsset,
       creator: branchContributor,
     });
 
@@ -263,20 +307,20 @@ describe("stellar lineage equal mint integration", () => {
       creator: owner,
       kind: { model3D: {} },
       subtype: { final: {} },
-      metadataHash: "QmIntegrationFinalHash",
-      previewHash: "QmIntegrationFinalPreview",
+      metadataHash: `Qm${args.label}FinalHash`,
+      previewHash: `Qm${args.label}FinalPreview`,
     });
     await addParent({
       childAsset: finalAsset,
-      parentAsset: uvAsset,
+      parentAsset: textureAsset,
       creator: owner,
-      assetParent: finalUvLink,
+      assetParent: finalTextureLink,
     });
     await addParent({
       childAsset: finalAsset,
-      parentAsset: animationAsset,
+      parentAsset: rigAsset,
       creator: owner,
-      assetParent: finalAnimationLink,
+      assetParent: finalRigLink,
     });
     await submitAndApproveAsset({
       universe,
@@ -285,7 +329,7 @@ describe("stellar lineage equal mint integration", () => {
     });
 
     await stellarProgram.methods
-      .createRelease(new BN(0), "QmIntegrationReleaseHash")
+      .createRelease(new BN(0), `Qm${args.label}ReleaseHash`)
       .accountsStrict({
         universe,
         asset: finalAsset,
@@ -302,9 +346,12 @@ describe("stellar lineage equal mint integration", () => {
       branchContributor.publicKey,
     ].sort((a, b) => Buffer.compare(a.toBuffer(), b.toBuffer()));
     const shareAccounts = contributors.map((pk) => sharePda(release, pk));
+    const finalize =
+      args.policy === "weighted"
+        ? stellarProgram.methods.finalizeWeightedRelease(4, 4)
+        : stellarProgram.methods.finalizeLineageEqualRelease(4, 4);
 
-    await stellarProgram.methods
-      .finalizeLineageEqualRelease(4, 4)
+    await finalize
       .accountsStrict({
         universe,
         release,
@@ -314,13 +361,13 @@ describe("stellar lineage equal mint integration", () => {
       })
       .remainingAccounts([
         { pubkey: finalAsset, isWritable: false, isSigner: false },
-        { pubkey: uvAsset, isWritable: false, isSigner: false },
-        { pubkey: animationAsset, isWritable: false, isSigner: false },
+        { pubkey: textureAsset, isWritable: false, isSigner: false },
+        { pubkey: rigAsset, isWritable: false, isSigner: false },
         { pubkey: baseAsset, isWritable: false, isSigner: false },
-        { pubkey: finalUvLink, isWritable: false, isSigner: false },
-        { pubkey: finalAnimationLink, isWritable: false, isSigner: false },
-        { pubkey: uvBaseLink, isWritable: false, isSigner: false },
-        { pubkey: animationBaseLink, isWritable: false, isSigner: false },
+        { pubkey: finalTextureLink, isWritable: false, isSigner: false },
+        { pubkey: finalRigLink, isWritable: false, isSigner: false },
+        { pubkey: textureBaseLink, isWritable: false, isSigner: false },
+        { pubkey: rigBaseLink, isWritable: false, isSigner: false },
         ...shareAccounts.map((pubkey) => ({
           pubkey,
           isWritable: true,
@@ -329,6 +376,27 @@ describe("stellar lineage equal mint integration", () => {
       ])
       .rpc();
 
+    return {
+      universe,
+      universeLookup,
+      globalIndex,
+      finalAsset,
+      release,
+      vault,
+      contributors,
+      shareAccounts,
+    };
+  }
+
+  async function runMintScenario(args: {
+    policy: CollaborationPolicy;
+    label: string;
+    expectedBpsByContributor?: Map<string, number>;
+  }) {
+    const releaseContext = await buildRelease({
+      policy: args.policy,
+      label: args.label,
+    });
     const buyerProvider = new anchor.AnchorProvider(
       connection,
       new anchor.Wallet(buyer),
@@ -340,35 +408,89 @@ describe("stellar lineage equal mint integration", () => {
     );
     const ownerClient = minterSdk.create(provider, minterProgram);
     const buyerClient = minterSdk.create(buyerProvider, buyerMinterProgram);
-
-    const ipfsHash = "QmIntegrationAvatarHash000000000000000000000000";
+    const ipfsHash = `Qm${args.label}AvatarHash`;
     const mintingFeePerMint = new BN(1_000_000);
-    const { avatarDataPda, stellarLinkPda } =
-      await ownerClient.initializeAvatarFromStellar({
-        ipfsHash,
+
+    try {
+      await buyerClient.publishFromStellarRelease({
+        ipfsHash: `${ipfsHash}Rogue`,
         maxSupply: new BN(10),
         mintingFeePerMint,
         stellarProgram: STELLAR_PROGRAM_ID,
-        stellarRelease: release,
-        stellarVault: vault,
+        stellarUniverse: releaseContext.universe,
+        stellarRelease: releaseContext.release,
+        stellarVault: releaseContext.vault,
       });
+      expect.fail("should reject release publication by a non-owner");
+    } catch (e: any) {
+      expect(e.message).to.match(/Unauthorized|custom program error/i);
+    }
 
-    const avatarData = await ownerClient.getAvatarData(avatarDataPda);
-    const avatarIndex = avatarData!.index.toNumber();
+    const {
+      avatarDataPda,
+      stellarLinkPda,
+      stellarReleaseLinkPda,
+      avatarIndex,
+    } = await ownerClient.publishFromStellarRelease({
+      ipfsHash,
+      maxSupply: new BN(10),
+      mintingFeePerMint,
+      stellarProgram: STELLAR_PROGRAM_ID,
+      stellarUniverse: releaseContext.universe,
+      stellarRelease: releaseContext.release,
+      stellarVault: releaseContext.vault,
+    });
 
-    const releaseBeforeMint = await stellarAccounts.release.fetch(release);
+    const releaseLink = await (
+      minterProgram.account as any
+    ).stellarReleaseLink.fetch(stellarReleaseLinkPda);
+    expect(releaseLink.release.toBase58()).to.equal(
+      releaseContext.release.toBase58()
+    );
+    expect(releaseLink.universe.toBase58()).to.equal(
+      releaseContext.universe.toBase58()
+    );
+    expect(releaseLink.asset.toBase58()).to.equal(
+      releaseContext.finalAsset.toBase58()
+    );
+    expect(releaseLink.avatarData.toBase58()).to.equal(
+      avatarDataPda.toBase58()
+    );
+
+    try {
+      await ownerClient.publishFromStellarRelease({
+        ipfsHash: `${ipfsHash}Again`,
+        maxSupply: new BN(10),
+        mintingFeePerMint,
+        stellarProgram: STELLAR_PROGRAM_ID,
+        stellarUniverse: releaseContext.universe,
+        stellarRelease: releaseContext.release,
+        stellarVault: releaseContext.vault,
+      });
+      expect.fail("should reject duplicate Stellar release publication");
+    } catch (e: any) {
+      expect(e.message).to.match(/already in use|custom program error/i);
+    }
+
+    const releaseBeforeMint = await stellarAccounts.release.fetch(
+      releaseContext.release
+    );
+    expect(releaseBeforeMint.status).to.deep.equal({ linked: {} });
+    expect(releaseBeforeMint.linkedAvatarData.toBase58()).to.equal(
+      avatarDataPda.toBase58()
+    );
     expect(releaseBeforeMint.totalDepositedLamports.toNumber()).to.equal(0);
 
     const { tokenAccountPk, mintPk } = await buyerClient.mintNft({
       index: avatarIndex,
-      name: "Lineage Equal Avatar",
-      symbol: "LEQ",
+      name: `${args.label} Avatar`,
+      symbol: args.policy === "weighted" ? "WGT" : "LEQ",
       uri: `ipfs://${ipfsHash}`,
       stellar: {
         stellarLink: stellarLinkPda,
         stellarProgram: STELLAR_PROGRAM_ID,
-        stellarRelease: release,
-        stellarVault: vault,
+        stellarRelease: releaseContext.release,
+        stellarVault: releaseContext.vault,
       },
     });
 
@@ -380,13 +502,15 @@ describe("stellar lineage equal mint integration", () => {
     expect(mint.mintAuthority).to.equal(null);
     expect(mint.freezeAuthority).to.equal(null);
 
-    const releaseAfterMint = await stellarAccounts.release.fetch(release);
+    const releaseAfterMint = await stellarAccounts.release.fetch(
+      releaseContext.release
+    );
     expect(releaseAfterMint.totalDepositedLamports.toNumber()).to.equal(
       mintingFeePerMint.toNumber()
     );
 
     const shareStates = await Promise.all(
-      shareAccounts.map((share) =>
+      releaseContext.shareAccounts.map((share) =>
         stellarAccounts.contributorShare.fetch(share)
       )
     );
@@ -394,29 +518,38 @@ describe("stellar lineage equal mint integration", () => {
       10_000
     );
 
-    for (const [idx, contributorPk] of contributors.entries()) {
+    if (args.expectedBpsByContributor) {
+      const shareByContributor = new Map(
+        shareStates.map((share) => [share.contributor.toBase58(), share.bps])
+      );
+      for (const [
+        contributorPk,
+        expectedBps,
+      ] of args.expectedBpsByContributor) {
+        expect(shareByContributor.get(contributorPk)).to.equal(expectedBps);
+      }
+    } else {
+      expect(shareStates.map((share) => share.bps).sort()).to.deep.equal([
+        3333, 3333, 3334,
+      ]);
+    }
+
+    for (const [idx, contributorPk] of releaseContext.contributors.entries()) {
       const share = shareStates[idx];
       const expectedClaim = Math.floor(
         (mintingFeePerMint.toNumber() * share.bps) / 10_000
       );
-      const signer = contributorPk.equals(contributor.publicKey)
-        ? contributor
-        : branchContributor;
       const builder = stellarProgram.methods.claimRevenue().accountsStrict({
-        release,
-        vault,
-        share: shareAccounts[idx],
+        release: releaseContext.release,
+        vault: releaseContext.vault,
+        share: releaseContext.shareAccounts[idx],
         contributor: contributorPk,
       });
 
-      if (contributorPk.equals(owner.publicKey)) {
-        await builder.rpc();
-      } else {
-        await builder.signers([signer]).rpc();
-      }
+      await send(builder, contributorSigner(contributorPk));
 
       const fetchedShare = await stellarAccounts.contributorShare.fetch(
-        shareAccounts[idx]
+        releaseContext.shareAccounts[idx]
       );
       expect(fetchedShare.claimedLamports.toNumber()).to.equal(expectedClaim);
     }
@@ -424,5 +557,32 @@ describe("stellar lineage equal mint integration", () => {
     const linkedAvatarData = await ownerClient.getAvatarData(avatarDataPda);
     expect(linkedAvatarData!.currentSupply.eqn(1)).to.be.true;
     expect(linkedAvatarData!.totalUnclaimedFees.eqn(0)).to.be.true;
+  }
+
+  before(async () => {
+    await Promise.all([
+      airdrop(contributor.publicKey, 5 * LAMPORTS_PER_SOL),
+      airdrop(branchContributor.publicKey, 5 * LAMPORTS_PER_SOL),
+      airdrop(buyer.publicKey, 5 * LAMPORTS_PER_SOL),
+    ]);
+  });
+
+  it("publishes and mints a lineage-equal Stellar release", async () => {
+    await runMintScenario({
+      policy: "lineageEqual",
+      label: "LineageEqual",
+    });
+  });
+
+  it("publishes and mints a weighted Stellar release", async () => {
+    await runMintScenario({
+      policy: "weighted",
+      label: "Weighted",
+      expectedBpsByContributor: new Map([
+        [owner.publicKey.toBase58(), 5000],
+        [contributor.publicKey.toBase58(), 2500],
+        [branchContributor.publicKey.toBase58(), 2500],
+      ]),
+    });
   });
 });
