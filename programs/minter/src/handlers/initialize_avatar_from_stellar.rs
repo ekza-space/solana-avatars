@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::{
-    constants::RELEASE_STATUS_FINALIZED,
+    constants::{RELEASE_STATUS_FINALIZED, RELEASE_STATUS_LINKED},
     contexts::InitializeAvatarFromStellar,
     error::CustomError,
     state::AvatarData,
@@ -25,8 +25,16 @@ pub fn initialize_avatar_from_stellar(
         CustomError::InvalidStellarRelease
     );
     require!(
-        origin.status == RELEASE_STATUS_FINALIZED,
+        origin.status == RELEASE_STATUS_FINALIZED
+            || origin.status == RELEASE_STATUS_LINKED,
         CustomError::InvalidStellarRelease
+    );
+    msg!(
+        "initialize_avatar_from_stellar: release {} status={} origin_universe {} arg_universe {}",
+        ctx.accounts.stellar_release.key(),
+        origin.status,
+        origin.universe,
+        ctx.accounts.stellar_universe.key()
     );
 
     let registry = &mut ctx.accounts.registry;
@@ -74,13 +82,15 @@ pub fn initialize_avatar_from_stellar(
     stellar_release_link.avatar_data = avatar_data.key();
     stellar_release_link.bump = ctx.bumps.stellar_release_link;
 
-    link_avatar_data_to_stellar(
-        avatar_data.key(),
-        &ctx.accounts.payer.to_account_info(),
-        &ctx.accounts.stellar_program,
-        &ctx.accounts.stellar_universe,
-        &ctx.accounts.stellar_release,
-    )?;
+    if origin.status == RELEASE_STATUS_FINALIZED {
+        link_avatar_data_to_stellar(
+            avatar_data.key(),
+            &ctx.accounts.payer.to_account_info(),
+            &ctx.accounts.stellar_program,
+            &ctx.accounts.stellar_universe,
+            &ctx.accounts.stellar_release,
+        )?;
+    }
 
     msg!(
         "Stellar-linked Avatar PDA initialized for IPFS hash: {}, release: {}",

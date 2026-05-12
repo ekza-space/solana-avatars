@@ -426,12 +426,7 @@ describe("stellar release mint integration", () => {
       expect(e.message).to.match(/Unauthorized|custom program error/i);
     }
 
-    const {
-      avatarDataPda,
-      stellarLinkPda,
-      stellarReleaseLinkPda,
-      avatarIndex,
-    } = await ownerClient.publishFromStellarRelease({
+    const publishParams = {
       ipfsHash,
       maxSupply: new BN(10),
       mintingFeePerMint,
@@ -439,7 +434,14 @@ describe("stellar release mint integration", () => {
       stellarUniverse: releaseContext.universe,
       stellarRelease: releaseContext.release,
       stellarVault: releaseContext.vault,
-    });
+    };
+
+    const {
+      avatarDataPda,
+      stellarLinkPda,
+      stellarReleaseLinkPda,
+      avatarIndex,
+    } = await ownerClient.publishFromStellarRelease(publishParams);
 
     const releaseLink = await (
       minterProgram.account as any

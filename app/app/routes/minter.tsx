@@ -8,6 +8,9 @@ import { NftMetadata } from "~/types/nft";
 import SceneWithModel from "~/components/3d/SceneWithModel";
 
 let DISABLE_CACHE = true;
+const MAX_NAME_BYTES = 32;
+const MAX_SYMBOL_BYTES = 10;
+const MAX_URI_BYTES = 200;
 
 let mocked = [
   {
@@ -103,6 +106,41 @@ function mintUriForHash(hash: string) {
   return `ipfs://${hash}`;
 }
 
+function formatMintError(error: unknown): string {
+  if (error instanceof Error) {
+    const message = error.message;
+    if (
+      message.includes("Index out of range") ||
+      message.includes("Buffer size") ||
+      message.includes("Out of bounds")
+    ) {
+      return "Mint payload is too large for client-side instruction encoding. Please check name/symbol/URI length.";
+    }
+    if (message.includes("mintNft failed")) {
+      return message;
+    }
+    return message;
+  }
+  return "Unknown mint error.";
+}
+
+function normalizeUtf8String(
+  value: unknown,
+  label: string,
+  maxBytes: number
+): string {
+  if (typeof value !== "string") {
+    throw new Error(`Avatar ${label} is not a string.`);
+  }
+  const bytes = new TextEncoder().encode(value).length;
+  if (bytes > maxBytes) {
+    throw new Error(
+      `Avatar ${label} is too long (${bytes} bytes, max ${maxBytes}).`
+    );
+  }
+  return value;
+}
+
 function stellarSourceUrl(link: StellarOriginLink) {
   const base = STELLAR_UI_BASE_URL.endsWith("/")
     ? STELLAR_UI_BASE_URL.slice(0, -1)
@@ -145,7 +183,10 @@ const enrichWithMetadata = async (
           };
         }
       } catch (err) {
-        console.error(`Cannot load Stellar link for avatar #${avatar.index}`, err);
+        console.error(
+          `Cannot load Stellar link for avatar #${avatar.index}`,
+          err
+        );
       }
 
       return { ...avatar, metadata, stellarLink };
@@ -392,27 +433,50 @@ export default function MarketPage() {
                   type="button"
                   onClick={async () => {
                     if (!minter || !metadata) return;
-                    const result = await minter.mintNft({
-                      index,
-                      name: metadata.name,
-                      symbol: metadata.symbol,
-                      uri: mintUriForHash(data.uriIpfsHash),
-                      stellar: stellarLink
-                        ? {
-                            stellarLink: minter.getStellarLinkPda(
-                              minter.getAvatarDataPda(index)[0]
-                            )[0],
-                            stellarProgram:
-                              new PublicKey(
+                    try {
+                      const name = normalizeUtf8String(
+                        metadata.name,
+                        "name",
+                        MAX_NAME_BYTES
+                      );
+                      const symbol = normalizeUtf8String(
+                        metadata.symbol,
+                        "symbol",
+                        MAX_SYMBOL_BYTES
+                      );
+                      const uri = normalizeUtf8String(
+                        mintUriForHash(data.uriIpfsHash),
+                        "metadata URI",
+                        MAX_URI_BYTES
+                      );
+
+                      const result = await minter.mintNft({
+                        index,
+                        name,
+                        symbol,
+                        uri,
+                        stellar: stellarLink
+                          ? {
+                              stellarLink: minter.getStellarLinkPda(
+                                minter.getAvatarDataPda(index)[0]
+                              )[0],
+                              stellarProgram: new PublicKey(
                                 "3rVXfq7LLSLqbDzvZuSrQoMytwczLj2Q8Hue62rxPZAA"
                               ),
-                            stellarRelease: new PublicKey(stellarLink.release),
-                            stellarVault: new PublicKey(stellarLink.vault),
-                          }
-                        : undefined,
-                    });
-                    console.log("Minted NFT:", result);
-                    alert(`Minted NFT!\nSignature: ${result.signature}`);
+                              stellarRelease: new PublicKey(
+                                stellarLink.release
+                              ),
+                              stellarVault: new PublicKey(stellarLink.vault),
+                            }
+                          : undefined,
+                      });
+                      console.log("Minted NFT:", result);
+                      alert(`Minted NFT!\nSignature: ${result.signature}`);
+                    } catch (error) {
+                      const message = formatMintError(error);
+                      console.error("Mint failed:", error);
+                      alert(message);
+                    }
                   }}
                 >
                   Mint

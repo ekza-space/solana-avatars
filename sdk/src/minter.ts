@@ -29,6 +29,65 @@ export default {
   idlType: null as unknown as AvatarNftMinterIDL, // type‑only reference
 
   create(provider: anchor.Provider, program: Program<AvatarNftMinterIDL>) {
+    const instructionCoder = (program as any).coder?.instruction;
+    if (
+      instructionCoder &&
+      !(instructionCoder as any).__supportsDynamicEncoding
+    ) {
+      const originalEncode = instructionCoder.encode.bind(instructionCoder);
+
+      const encodeWithGrowingBuffer = (ixName: string, ix: any): Buffer => {
+        // Anchor's default encoder preallocates a 1000-byte buffer which can
+        // overflow when instruction arguments are unexpectedly long. For safety we
+        // allocate progressively larger buffers and still keep the original
+        // encoder path for regular cases.
+        let span = 1024;
+        const encoder = (instructionCoder as any).ixLayouts?.get(ixName);
+        if (!encoder || !encoder.layout) {
+          return originalEncode(ixName, ix);
+        }
+
+        while (span <= 1_048_576) {
+          const buffer = Buffer.alloc(span);
+          try {
+            const len = encoder.layout.encode(ix, buffer);
+            return Buffer.concat([
+              Buffer.from(encoder.discriminator),
+              buffer.slice(0, len),
+            ]);
+          } catch (error: any) {
+            if (
+              !(error instanceof RangeError) ||
+              typeof error.message !== "string" ||
+              !error.message.includes("Index out of range")
+            ) {
+              throw error;
+            }
+            span *= 2;
+          }
+        }
+
+        return originalEncode(ixName, ix);
+      };
+
+      instructionCoder.encode = (ixName: string, ix: any): Buffer => {
+        try {
+          return originalEncode(ixName, ix);
+        } catch (error: any) {
+          if (
+            !(error instanceof RangeError) ||
+            typeof error.message !== "string" ||
+            !error.message.includes("Index out of range")
+          ) {
+            throw error;
+          }
+          return encodeWithGrowingBuffer(ixName, ix);
+        }
+      };
+
+      (instructionCoder as any).__supportsDynamicEncoding = true;
+    }
+
     // ---- Constants scoped to this client ----
     const payer = provider.publicKey!;
     const METADATA_PROGRAM_ID = new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID);
