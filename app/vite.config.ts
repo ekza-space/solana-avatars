@@ -22,13 +22,11 @@ declare module "@remix-run/node" {
 }
 
 
-// server: {
-//   port: 3000,
-//   host: true,
-//   allowedHosts: ['avatar.ekza.io'],
-// },
-
 export default defineConfig({
+  server: {
+    port: Number(process.env.PORT || process.env.VITE_PORT || 7102),
+    strictPort: true,
+  },
   resolve: {
     alias: {
       "avatars-sdk/profile": path.join(sdkSrc, "profile.ts"),
@@ -42,14 +40,7 @@ export default defineConfig({
       ),
     },
   },
-  // server: {
-  //   proxy: {
-  //     '/ipfs': {
-  //       target: 'http://localhost:8080',
-  //       changeOrigin: true,
-  //     },
-  //   },
-  // },
+  // server.proxy can be added here if local IPFS gateway proxying is needed.
   plugins: [
     remix({
       presets: [vercelPreset()],

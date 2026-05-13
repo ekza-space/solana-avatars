@@ -130,9 +130,11 @@
 
   .ui-button {
     @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold text-white transition duration-200 disabled:cursor-not-allowed disabled:opacity-50;
-    border-color: rgba(var(--line-strong), 0.5);
+    color: rgb(255 255 255) !important;
+    border: 1px solid rgba(var(--line-strong), 0.5) !important;
+    background-color: rgb(var(--accent));
     background:
-      linear-gradient(180deg, rgba(var(--accent), 0.96), rgba(var(--accent-strong), 0.92));
+      linear-gradient(180deg, rgba(var(--accent), 0.96), rgba(var(--accent-strong), 0.92)) !important;
     box-shadow:
       0 10px 30px rgba(var(--accent), 0.18),
       inset 0 1px 0 rgba(255, 255, 255, 0.14);
@@ -145,16 +147,31 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.18);
   }
 
+  :root:not(.dark)
+    .ui-button:not(.ui-button-secondary):not(.ui-button-ghost):not(
+      .ui-button-danger
+    ) {
+    color: rgb(255 255 255) !important;
+    border-color: rgba(var(--accent-strong), 0.78);
+    background:
+      linear-gradient(180deg, rgba(var(--accent), 1), rgba(var(--accent-strong), 0.96)) !important;
+  }
+
   .ui-button-secondary,
   .ui-button-ghost,
   .ui-button-danger {
-    color: rgb(var(--text-strong));
+    color: rgb(var(--text-strong)) !important;
     box-shadow: none;
   }
 
   .ui-button-secondary {
-    background: rgba(var(--surface), 0.72);
-    border-color: rgba(var(--line-strong), 0.34);
+    background: rgba(var(--surface), 0.72) !important;
+    border-color: rgba(var(--line-strong), 0.34) !important;
+  }
+
+  .ui-button-secondary:hover:not(:disabled) {
+    background: rgba(var(--surface-2), 0.86) !important;
+    border-color: rgba(var(--line-strong), 0.58) !important;
   }
 
   .ui-button-ghost {

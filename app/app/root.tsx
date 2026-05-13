@@ -4,6 +4,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useRouteError,
   useLocation,
 } from "@remix-run/react";
 import type { LinksFunction } from "@remix-run/node";
@@ -70,6 +71,37 @@ export function Layout({ children }: { children: ReactNode }) {
         <Scripts />
       </body>
     </html>
+  );
+}
+
+export function ErrorBoundary() {
+  const error = useRouteError();
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : "The avatar interface hit an unexpected rendering error.";
+
+  return (
+    <Layout>
+      <main className="ui-shell flex min-h-dvh items-center justify-center px-4 py-10">
+        <Panel className="max-w-2xl">
+          <div className="ui-eyebrow">Interface recovered</div>
+          <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
+            This view could not load one of its resources.
+          </h1>
+          <p className="ui-copy mt-4">
+            {message}
+          </p>
+          <p className="ui-copy mt-3 text-sm">
+            Check that the local metadata server is running, then refresh the page.
+            The app should keep the rest of the console available instead of
+            dropping into Remix&apos;s developer crash screen.
+          </p>
+        </Panel>
+      </main>
+    </Layout>
   );
 }
 

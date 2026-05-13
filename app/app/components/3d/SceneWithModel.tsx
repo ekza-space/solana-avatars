@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { Center, OrbitControls } from "@react-three/drei";
 
 import ScreenShot from "./ScreenShot";
 import Loader from "./loader";
@@ -95,7 +95,7 @@ export default function SceneWithModel(props: {
         </div>
       )}
       <div
-        className="webGL relative border border-black flex-grow"
+        className="webGL relative flex-grow overflow-hidden rounded-[18px] border border-[rgba(var(--line),0.55)] bg-[rgba(var(--surface-2),0.9)]"
         onMouseLeave={() => {
           if (!screenshot) return;
           setTrigger((value) => value + 1);
@@ -113,29 +113,43 @@ export default function SceneWithModel(props: {
             }
           >
             <Canvas
+              style={{
+                width: "100%",
+                height: "100%",
+                backgroundColor: "rgb(var(--surface-2))",
+              }}
               camera={{
                 position: [0, 4, 5],
                 near: 0.1,
                 far: 1000,
               }}
+              dpr={[1, 2]}
+              gl={{ antialias: true, alpha: true }}
             >
-              <OrbitControls target={[0, 3, 0]} />
+              <OrbitControls target={[0, 0, 0]} />
               <Suspense fallback={<Loader />}>
-                <UploadedModel
-                  key={file}
-                  file={file}
-                  scale={[1, 1, 1]}
-                  position={[0, 0, 0]}
-                  setAnimations={setAnimations}
-                  playAnimation={playAnimation}
-                />
+                <Center>
+                  <UploadedModel
+                    key={file}
+                    file={file}
+                    scale={[1, 1, 1]}
+                    position={[0, 0, 0]}
+                    setAnimations={setAnimations}
+                    playAnimation={playAnimation}
+                  />
+                </Center>
                 {screenshot && <ScreenShot trigger={trigger} />}
               </Suspense>
 
-              <ambientLight intensity={2.5} />
-              <hemisphereLight args={[0xeeeeff, 0x444444, 0.6]} />
-              <directionalLight position={[5, 10, 7]} intensity={1} />
-              <pointLight position={[-10, 15, 10]} intensity={0.8} />
+              <ambientLight intensity={1.8} />
+              <hemisphereLight args={[0xeeeeff, 0x4a4a5a, 0.7]} />
+              <directionalLight position={[8, 12, 8]} intensity={1.1} />
+              <directionalLight
+                position={[-8, 4, -6]}
+                intensity={0.45}
+                color={0x5f9fff}
+              />
+              <pointLight position={[-10, 15, 10]} intensity={0.9} />
             </Canvas>
           </ModelErrorBoundary>
         )}

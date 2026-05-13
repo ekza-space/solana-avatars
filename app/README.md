@@ -23,7 +23,7 @@ yarn install
 yarn dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) in your browser to start using the UI.
+Visit [http://localhost:7102](http://localhost:7102) in your browser to start using the UI.
 
 ---
 
@@ -49,7 +49,7 @@ VITE_SOLANA_NETWORK=devnet
 VITE_SOLANA_LOCALNET_RPC=http://127.0.0.1:8899
 VITE_SOLANA_DEVNET_RPC=https://api.devnet.solana.com
 VITE_SOLANA_MAINNET_RPC=https://api.mainnet-beta.solana.com
-VITE_IPFS_GATEWAY_LOCALNET=http://127.0.0.1:8787/_/uploads/
+VITE_IPFS_GATEWAY_LOCALNET=/api/ipfs/
 VITE_IPFS_GATEWAY=https://ipfs.io/ipfs/
 ```
 

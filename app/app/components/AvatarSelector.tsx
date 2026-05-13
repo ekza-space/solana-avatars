@@ -149,7 +149,7 @@ const AvatarSelector: React.FC<AvatarSelectorProps> = ({ avatarList: _avatarList
                 </div>
 
                 {modelUrl ? (
-                    <div className="h-[460px] overflow-hidden rounded-[24px] border border-[rgba(var(--line),0.6)]">
+                    <div className="h-[460px] overflow-hidden rounded-[24px] border border-[rgba(var(--line),0.55)] bg-[rgba(var(--surface-2),0.9)]">
                         <SceneWithModel file={modelUrl} />
                     </div>
                 ) : (

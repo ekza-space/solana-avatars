@@ -30,7 +30,9 @@ export function PageSection({
           {eyebrow ? <div className="ui-eyebrow">{eyebrow}</div> : null}
           <div className="space-y-2">
             <h1 className="ui-title">{title}</h1>
-            {description ? <p className="ui-copy max-w-3xl">{description}</p> : null}
+            {description ? (
+              <p className="ui-copy max-w-3xl">{description}</p>
+            ) : null}
           </div>
         </div>
         {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
@@ -105,10 +107,23 @@ export function Button({
   className,
   variant = "primary",
   children,
+  style,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "ghost" | "danger";
 }) {
+  const buttonStyle =
+    variant === "primary"
+      ? {
+          color: "rgb(255 255 255)",
+          backgroundColor: "rgb(var(--accent))",
+          background:
+            "linear-gradient(180deg, rgba(var(--accent), 1), rgba(var(--accent-strong), 0.96))",
+          borderColor: "rgba(var(--accent-strong), 0.78)",
+          ...style,
+        }
+      : style;
+
   return (
     <button
       className={cn(
@@ -118,6 +133,7 @@ export function Button({
         variant === "danger" && "ui-button-danger",
         className
       )}
+      style={buttonStyle}
       {...props}
     >
       {children}
@@ -141,7 +157,9 @@ export function Field({
       <span className="ui-label">{label}</span>
       {children}
       {error ? (
-        <span className="text-sm font-medium text-[rgb(var(--danger))]">{error}</span>
+        <span className="text-sm font-medium text-[rgb(var(--danger))]">
+          {error}
+        </span>
       ) : hint ? (
         <span className="ui-copy text-sm">{hint}</span>
       ) : null}
