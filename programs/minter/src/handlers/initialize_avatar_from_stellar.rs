@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
+use solana_stellar::state::ReleaseStatus;
 
 use crate::{
-    constants::{RELEASE_STATUS_FINALIZED, RELEASE_STATUS_LINKED},
     contexts::InitializeAvatarFromStellar,
     error::CustomError,
     state::AvatarData,
@@ -25,12 +25,14 @@ pub fn initialize_avatar_from_stellar(
         CustomError::InvalidStellarRelease
     );
     require!(
-        origin.status == RELEASE_STATUS_FINALIZED
-            || origin.status == RELEASE_STATUS_LINKED,
+        matches!(
+            origin.status,
+            ReleaseStatus::Finalized | ReleaseStatus::Linked
+        ),
         CustomError::InvalidStellarRelease
     );
     msg!(
-        "initialize_avatar_from_stellar: release {} status={} origin_universe {} arg_universe {}",
+        "initialize_avatar_from_stellar: release {} status={:?} origin_universe {} arg_universe {}",
         ctx.accounts.stellar_release.key(),
         origin.status,
         origin.universe,
@@ -82,7 +84,7 @@ pub fn initialize_avatar_from_stellar(
     stellar_release_link.avatar_data = avatar_data.key();
     stellar_release_link.bump = ctx.bumps.stellar_release_link;
 
-    if origin.status == RELEASE_STATUS_FINALIZED {
+    if origin.status == ReleaseStatus::Finalized {
         link_avatar_data_to_stellar(
             avatar_data.key(),
             &ctx.accounts.payer.to_account_info(),

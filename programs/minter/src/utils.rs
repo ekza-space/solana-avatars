@@ -1,27 +1,23 @@
-use anchor_lang::{
-    prelude::*,
-    solana_program::{
-        instruction::{AccountMeta, Instruction},
-        program::invoke,
-    },
-};
+//! The Stellar gate — Avatars side.
+//!
+//! Everything here goes through the `solana-stellar` crate (typed `state::*`
+//! accounts + generated `cpi::*` clients), never hand-rolled offsets or
+//! discriminators: if the upstream `Release` layout or instruction signatures
+//! change, this file fails to COMPILE instead of silently reading garbage.
+//! Gate contract: see solana-stellar/docs/INTEGRATION.md.
+
+use anchor_lang::prelude::*;
 use anchor_spl::metadata::mpl_token_metadata;
-use sha2::{Digest, Sha256};
+use solana_stellar::state::{Release, ReleaseStatus};
 
-use crate::{
-    constants::{
-        RELEASE_ASSET_OFFSET, RELEASE_STATUS_FINALIZED, RELEASE_STATUS_LINKED,
-        RELEASE_STATUS_OFFSET, RELEASE_UNIVERSE_OFFSET, RELEASE_VAULT_OFFSET,
-        SOLANA_STELLAR_PROGRAM_ID,
-    },
-    error::CustomError,
-};
+use crate::error::CustomError;
 
+/// Identity of a validated Stellar release, as read from the typed account.
 pub struct StellarReleaseOrigin {
     pub universe: Pubkey,
     pub asset: Pubkey,
     pub vault: Pubkey,
-    pub status: u8,
+    pub status: ReleaseStatus,
 }
 
 pub fn metadata_pda(mint: &Pubkey) -> Pubkey {
@@ -36,24 +32,8 @@ pub fn uri_matches_avatar_hash(uri: &str, hash: &str) -> bool {
     uri == hash || uri.strip_prefix("ipfs://") == Some(hash)
 }
 
-fn anchor_discriminator(ix_name: &str) -> [u8; 8] {
-    let mut hasher = Sha256::new();
-    hasher.update(format!("global:{ix_name}").as_bytes());
-    let hash = hasher.finalize();
-    let mut discriminator = [0_u8; 8];
-    discriminator.copy_from_slice(&hash[..8]);
-    discriminator
-}
-
-fn anchor_account_discriminator(account_name: &str) -> [u8; 8] {
-    let mut hasher = Sha256::new();
-    hasher.update(format!("account:{account_name}").as_bytes());
-    let hash = hasher.finalize();
-    let mut discriminator = [0_u8; 8];
-    discriminator.copy_from_slice(&hash[..8]);
-    discriminator
-}
-
+/// Validate a solana-stellar `Release` account and return its identity.
+/// Discriminator + layout are enforced by the typed `try_deserialize`.
 pub fn validate_stellar_release<'info>(
     stellar_program: &AccountInfo<'info>,
     release: &AccountInfo<'info>,
@@ -61,7 +41,7 @@ pub fn validate_stellar_release<'info>(
 ) -> Result<StellarReleaseOrigin> {
     require_keys_eq!(
         *stellar_program.key,
-        SOLANA_STELLAR_PROGRAM_ID,
+        solana_stellar::ID,
         CustomError::InvalidStellarProgram
     );
     require!(
@@ -70,46 +50,36 @@ pub fn validate_stellar_release<'info>(
     );
     require_keys_eq!(
         *release.owner,
-        *stellar_program.key,
+        solana_stellar::ID,
         CustomError::InvalidStellarRelease
     );
 
     let release_data = release.try_borrow_data()?;
-    require!(
-        release_data.len() > RELEASE_STATUS_OFFSET,
-        CustomError::InvalidStellarRelease
+    let release_account = Release::try_deserialize(&mut release_data.as_ref())
+        .map_err(|_| CustomError::InvalidStellarRelease)?;
+
+    require_keys_eq!(
+        release_account.vault,
+        *vault.key,
+        CustomError::InvalidStellarVault
     );
-    let release_discriminator = anchor_account_discriminator("Release");
     require!(
-        release_data.get(..8) == Some(release_discriminator.as_ref()),
-        CustomError::InvalidStellarRelease
-    );
-
-    let read_pubkey = |offset: usize| -> Pubkey {
-        let mut bytes = [0_u8; 32];
-        bytes.copy_from_slice(&release_data[offset..offset + 32]);
-        Pubkey::new_from_array(bytes)
-    };
-
-    let stored_universe = read_pubkey(RELEASE_UNIVERSE_OFFSET);
-    let stored_asset = read_pubkey(RELEASE_ASSET_OFFSET);
-    let stored_vault = read_pubkey(RELEASE_VAULT_OFFSET);
-    require_keys_eq!(stored_vault, *vault.key, CustomError::InvalidStellarVault);
-
-    let status = release_data[RELEASE_STATUS_OFFSET];
-    require!(
-        status == RELEASE_STATUS_FINALIZED || status == RELEASE_STATUS_LINKED,
+        matches!(
+            release_account.status,
+            ReleaseStatus::Finalized | ReleaseStatus::Linked
+        ),
         CustomError::InvalidStellarRelease
     );
 
     Ok(StellarReleaseOrigin {
-        universe: stored_universe,
-        asset: stored_asset,
-        vault: stored_vault,
-        status,
+        universe: release_account.universe,
+        asset: release_account.asset,
+        vault: release_account.vault,
+        status: release_account.status,
     })
 }
 
+/// CPI `deposit_revenue`: route mint fees into the Stellar release vault.
 pub fn deposit_revenue_to_stellar<'info>(
     amount: u64,
     payer: &AccountInfo<'info>,
@@ -118,35 +88,22 @@ pub fn deposit_revenue_to_stellar<'info>(
     release: &AccountInfo<'info>,
     vault: &AccountInfo<'info>,
 ) -> Result<()> {
-    let mut data = Vec::with_capacity(16);
-    data.extend_from_slice(&anchor_discriminator("deposit_revenue"));
-    data.extend_from_slice(&amount.to_le_bytes());
-
-    let ix = Instruction {
-        program_id: *stellar_program.key,
-        accounts: vec![
-            AccountMeta::new(*release.key, false),
-            AccountMeta::new(*vault.key, false),
-            AccountMeta::new(*payer.key, true),
-            AccountMeta::new_readonly(*system_program.key, false),
-        ],
-        data,
-    };
-
-    invoke(
-        &ix,
-        &[
-            release.clone(),
-            vault.clone(),
-            payer.clone(),
-            system_program.clone(),
+    solana_stellar::cpi::deposit_revenue(
+        CpiContext::new(
             stellar_program.clone(),
-        ],
-    )?;
-
-    Ok(())
+            solana_stellar::cpi::accounts::DepositRevenue {
+                release: release.clone(),
+                vault: vault.clone(),
+                payer: payer.clone(),
+                system_program: system_program.clone(),
+            },
+        ),
+        amount,
+    )
 }
 
+/// CPI `link_avatar_data`: bind the AvatarData back into the Stellar release
+/// (Finalized → Linked). Signer must be the universe owner.
 pub fn link_avatar_data_to_stellar<'info>(
     avatar_data: Pubkey,
     owner: &AccountInfo<'info>,
@@ -154,29 +111,15 @@ pub fn link_avatar_data_to_stellar<'info>(
     universe: &AccountInfo<'info>,
     release: &AccountInfo<'info>,
 ) -> Result<()> {
-    let mut data = Vec::with_capacity(40);
-    data.extend_from_slice(&anchor_discriminator("link_avatar_data"));
-    data.extend_from_slice(avatar_data.as_ref());
-
-    let ix = Instruction {
-        program_id: *stellar_program.key,
-        accounts: vec![
-            AccountMeta::new_readonly(*universe.key, false),
-            AccountMeta::new(*release.key, false),
-            AccountMeta::new_readonly(*owner.key, true),
-        ],
-        data,
-    };
-
-    invoke(
-        &ix,
-        &[
-            universe.clone(),
-            release.clone(),
-            owner.clone(),
+    solana_stellar::cpi::link_avatar_data(
+        CpiContext::new(
             stellar_program.clone(),
-        ],
-    )?;
-
-    Ok(())
+            solana_stellar::cpi::accounts::LinkAvatarData {
+                universe: universe.clone(),
+                release: release.clone(),
+                owner: owner.clone(),
+            },
+        ),
+        avatar_data,
+    )
 }
