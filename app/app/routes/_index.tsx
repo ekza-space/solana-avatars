@@ -8,7 +8,19 @@ import { PublicKey } from "@solana/web3.js";
 
 import { decodeByteArray, encodeString } from "~/utils/bytes";
 import AvatarSelector, { avatarList } from "~/components/AvatarSelector";
-import { Badge, Button, Field, Input, PageSection, Panel, StatCard, Textarea } from "~/components/ui";
+import {
+  Button,
+  Card,
+  DataList,
+  Field,
+  Input,
+  Meta,
+  Notice,
+  Page,
+  PageHeader,
+  Status,
+  Textarea,
+} from "~/components/ui";
 import { useSolanaNetwork } from "~/lib/network";
 
 
@@ -35,6 +47,10 @@ export default function AvatarEditor() {
   const [profileExists, setProfileExists] = useState<boolean>(false);
   const [profilePda, setProfilePda] = useState<PublicKey | null>(null);
   const [currentAvatarMint, setCurrentAvatarMint] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<
+    { tone: "success" | "error"; text: string } | null
+  >(null);
 
   // On wallet connect, try loading the profile PDA to decide create vs update
   useEffect(() => {
@@ -128,8 +144,11 @@ export default function AvatarEditor() {
   const handleSave = async () => {
     if (!connected || !anchorWallet) {
       console.error("Wallet not connected");
+      setNotice({ tone: "error", text: "Connect a wallet first." });
       return;
     }
+    setNotice(null);
+    setSaving(true);
     // Encode form inputs using the same symmetric helper
     const args: CreateUserAvatarArgs = {
       username: encodeString(usernameInput),
@@ -157,7 +176,7 @@ export default function AvatarEditor() {
             : null,
         });
         console.log("Profile updated successfully");
-        window.alert("Profile updated successfully");
+        setNotice({ tone: "success", text: "Profile updated." });
         setCurrentAvatarMint(selectedAvatarMint);
       } else {
         await avatars.initializeProfile({
@@ -166,11 +185,21 @@ export default function AvatarEditor() {
           avatarMint: new PublicKey(selectedAvatar.avatarMint),
         });
         console.log("Profile initialized successfully");
-        window.alert("Profile initialized successfully");
+        setProfileExists(true);
+        setNotice({ tone: "success", text: "Profile created." });
         setCurrentAvatarMint(selectedAvatar.avatarMint.toString());
       }
     } catch (error) {
       console.error("Failed to save profile", error);
+      setNotice({
+        tone: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to save the profile.",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -181,6 +210,14 @@ export default function AvatarEditor() {
       return;
     }
     if (!profilePda) return;
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm("Delete the profile account on-chain? This cannot be undone.")
+    ) {
+      return;
+    }
+    setNotice(null);
+    setSaving(true);
     // Initialize provider and SDK
     const [anchor, { default: sdk }] = await Promise.all([
       import("@coral-xyz/anchor"),
@@ -192,7 +229,7 @@ export default function AvatarEditor() {
     try {
       await avatars.deleteProfile();
       console.log("Profile deleted successfully");
-      window.alert("Profile deleted successfully");
+      setNotice({ tone: "success", text: "Profile deleted." });
       setProfileExists(false);
       setCurrentAvatarMint(null);
       // Optionally reset form
@@ -201,107 +238,151 @@ export default function AvatarEditor() {
       setSelectedAvatar(avatarList[0]);
     } catch (error) {
       console.error("Failed to delete profile", error);
+      setNotice({
+        tone: "error",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to delete the profile.",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <PageSection
-      eyebrow="Profile Console"
-      title="Build your on-chain identity"
-      description="Manage the same Solana avatar profile flow, now organized as a calmer workstation with clear form states and a dedicated asset browser."
-      actions={
-        <>
-          <Badge tone={profileExists ? "success" : "default"}>
-            {profileExists ? "Profile found" : "New profile"}
-          </Badge>
-          <Badge>{connected ? "Wallet connected" : "Wallet disconnected"}</Badge>
-        </>
-      }
-    >
-      <div className="mb-6 grid gap-5 lg:grid-cols-3">
-        <StatCard
-          label="Network"
-          value={clusterLabel}
-          hint="Current Solana environment for profile operations."
-        />
-        <StatCard label="Mode" value={profileExists ? "Update" : "Create"} hint="Detected automatically from your on-chain PDA." />
-        <StatCard label="Selected asset" value={selectedAvatar.avatarMint.toString().slice(0, 8) + "..."} hint="Current NFT bound to the profile form." />
-      </div>
+    <Page>
+      <PageHeader
+        eyebrow="Profile"
+        title={
+          <>
+            Your on-chain
+            <br />
+            identity.
+          </>
+        }
+        lede="A username, a short bio and one avatar NFT — stored in a profile account you own and can delete at any time."
+        meta={
+          <>
+            <Meta label="Network" value={clusterLabel} />
+            <Meta label="Mode" value={profileExists ? "Update" : "Create"} />
+            <Status tone={connected ? "ok" : "error"}>
+              {connected ? "Wallet connected" : "Wallet disconnected"}
+            </Status>
+          </>
+        }
+      />
 
-      <div className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
-        <Panel className="space-y-5">
-          <div className="space-y-2">
-            <div className="ui-label">Identity Form</div>
-            <h2 className="font-display text-2xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
-              Configure your public persona
-            </h2>
-            <p className="ui-copy">
-              The underlying create, update, and delete logic is unchanged. Only the presentation and layout have been upgraded.
-            </p>
-          </div>
+      {notice ? (
+        <Notice tone={notice.tone} className="mt-8">
+          {notice.text}
+        </Notice>
+      ) : null}
 
-          <div className="grid gap-4">
-            <Field label="Username" hint="Short public handle stored in the profile account.">
-              <Input
-                type="text"
-                value={usernameInput}
-                onChange={(e) => setUsernameInput(e.target.value)}
-                placeholder={suggestedUsername}
+      <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+        <div className="space-y-6">
+          <Card className="p-5 sm:p-6">
+            <h2 className="ui-h3">Identity</h2>
+            <div className="mt-5 grid gap-5">
+              <Field
+                label="Username"
+                hint="Public handle stored in the profile account."
+              >
+                <Input
+                  type="text"
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  placeholder={suggestedUsername}
+                  autoComplete="nickname"
+                />
+              </Field>
+
+              <Field label="Bio" hint="One or two lines. Shown next to your avatar.">
+                <Textarea
+                  value={descriptionInput}
+                  onChange={(e) => setDescriptionInput(e.target.value)}
+                  placeholder={suggestedDescription}
+                  rows={4}
+                />
+              </Field>
+            </div>
+
+            <div className="mt-6 border-t border-[rgb(var(--line))] pt-4">
+              <DataList
+                items={[
+                  {
+                    label: "Avatar mint",
+                    value: selectedAvatar.avatarMint.toString(),
+                  },
+                  profilePda
+                    ? { label: "Profile PDA", value: profilePda.toBase58() }
+                    : null,
+                ]}
               />
-            </Field>
+              <p className="ui-copy-sm mt-3">
+                Pick the avatar on the right — the mint address follows your
+                selection.
+              </p>
+            </div>
 
-            <Field label="Description" hint="Bio or identity blurb shown alongside your avatar.">
-              <Textarea
-                value={descriptionInput}
-                onChange={(e) => setDescriptionInput(e.target.value)}
-                placeholder={suggestedDescription}
-                rows={4}
-              />
-            </Field>
+            <details className="mt-5 border-t border-[rgb(var(--line))] pt-4">
+              <summary className="ui-label cursor-pointer select-none">
+                Advanced · legacy 2D data
+              </summary>
+              <div className="mt-4">
+                <Field
+                  label="Avatar 2D bytes"
+                  optional
+                  hint="CSV byte array kept for backwards compatibility. Leave empty unless you know you need it."
+                >
+                  <Input
+                    type="text"
+                    value={avatar2dInput}
+                    onChange={(e) => setAvatar2dInput(e.target.value)}
+                    placeholder="12, 34, 56"
+                  />
+                </Field>
+              </div>
+            </details>
 
-            <Field label="Avatar Mint" hint="Chosen automatically from the wallet inventory panel.">
-              <Input
-                type="text"
-                value={selectedAvatar.avatarMint.toString()}
-                readOnly
-              />
-            </Field>
-
-            <Field
-              label="Legacy 2D data"
-              hint="Kept for compatibility with the current data model."
-            >
-              <Input
-                type="text"
-                value={avatar2dInput}
-                onChange={(e) => setAvatar2dInput(e.target.value)}
-                placeholder="Optional CSV byte array"
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Button onClick={handleSave} disabled={!connected} className="w-full">
-              {profileExists ? "Update profile" : "Save profile"}
-            </Button>
-            {profileExists ? (
+            <div className="mt-6">
               <Button
-                onClick={handleDelete}
-                disabled={!connected}
-                variant="danger"
+                onClick={handleSave}
+                disabled={!connected || saving}
                 className="w-full"
+              >
+                {saving
+                  ? "Signing…"
+                  : profileExists
+                    ? "Update profile"
+                    : "Create profile"}
+              </Button>
+              {!connected ? (
+                <p className="mt-3 text-sm font-medium text-[rgb(var(--danger))]">
+                  Connect a wallet to save your profile.
+                </p>
+              ) : null}
+            </div>
+          </Card>
+
+          {profileExists ? (
+            <div className="border border-[rgba(var(--danger),0.4)] p-5">
+              <h2 className="ui-h3">Delete profile</h2>
+              <p className="ui-copy-sm mt-2">
+                Closes the profile account on-chain. Your avatar NFT stays in
+                the wallet.
+              </p>
+              <Button
+                variant="danger"
+                className="mt-4"
+                disabled={!connected || saving}
+                onClick={handleDelete}
               >
                 Delete profile
               </Button>
-            ) : null}
-          </div>
-
-          {!connected ? (
-            <p className="text-sm font-medium text-[rgb(var(--danger))]">
-              Please connect your wallet to save your avatar profile.
-            </p>
+            </div>
           ) : null}
-        </Panel>
+        </div>
 
         <AvatarSelector
           avatarList={avatarList}
@@ -309,6 +390,6 @@ export default function AvatarEditor() {
           setSelectedAvatar={setSelectedAvatar}
         />
       </div>
-    </PageSection>
+    </Page>
   );
 }

@@ -3,7 +3,18 @@ import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
-import { Badge, Button, PageSection, Panel, StatCard } from "~/components/ui";
+import {
+  Button,
+  DataList,
+  EmptyState,
+  Meta,
+  Notice,
+  Page,
+  PageHeader,
+  Section,
+  Skeleton,
+  Status,
+} from "~/components/ui";
 import { getIpfsUrl } from "~/utils/ipfsUrls";
 import { NftMetadata } from "~/types/nft";
 import SceneWithModel from "~/components/3d/SceneWithModel";
@@ -74,12 +85,6 @@ type EnrichedAvatarItem = AvatarItem & {
   sourceImageHash?: string | null;
 };
 
-const VIEW_3D_BUTTON_STYLE = {
-  color: "rgb(var(--text-strong, 15 23 42))",
-  backgroundColor: "rgb(var(--surface, 255 255 255))",
-  background: "linear-gradient(180deg, rgba(var(--surface, 255 255 255), 0.97), rgba(var(--surface-2, 239 244 248), 0.9))",
-  borderColor: "rgba(var(--line-strong, 28 36 48), 0.62)",
-};
 
 const LS_KEY = "avatarsCache";
 
@@ -379,6 +384,10 @@ function stellarSourceUrl(link: StellarOriginLink) {
   return `${normalizedBase}/universe/${link.universe}/source/${link.asset}`;
 }
 
+function shortAddress(value: string) {
+  return value.length > 12 ? `${value.slice(0, 4)}…${value.slice(-4)}` : value;
+}
+
 const publicKeyString = (value: unknown) =>
   value && typeof (value as any).toBase58 === "function"
     ? (value as any).toBase58()
@@ -453,6 +462,10 @@ export default function MarketPage() {
   >(null);
   const [fullDescription, setFullDescription] = useState<string | null>(null);
   const [minter, setMinter] = useState<any | null>(null);
+  const [mintingIndex, setMintingIndex] = useState<number | null>(null);
+  const [mintNotice, setMintNotice] = useState<
+    { tone: "success" | "error"; text: string } | null
+  >(null);
 
   // Initialise with the local mock while no wallet/cluster is yet queried
   useEffect(() => {
@@ -570,310 +583,341 @@ export default function MarketPage() {
         Number(item.index) === requestedAvatarIndex)
   );
 
-  return (
-    <PageSection
-      eyebrow="Marketplace"
-      title="Explore avatar collections"
-      description="Browse creator drops, inspect supply and pricing, open 3D previews, and mint directly from the collection feed."
-      actions={
-        <>
-          <Badge>{items.length} items</Badge>
-          <Badge tone={minter ? "success" : "default"}>
-            {minter ? "Minter ready" : "Initializing"}
-          </Badge>
-        </>
-      }
-    >
-      <div className="mb-6 grid gap-5 lg:grid-cols-3">
-        <StatCard
-          label="Source"
-          value="On-chain + IPFS"
-          hint="Registry data and metadata are resolved separately and merged client-side."
-        />
-        <StatCard
-          label="Cache"
-          value={DISABLE_CACHE ? "Disabled" : "Enabled"}
-          hint="Local avatar cache remains available, but is disabled by default right now."
-        />
-        <StatCard
-          label="Preview"
-          value="3D + text modals"
-          hint="React state now drives previews instead of direct DOM mutation."
-        />
-      </div>
+  const isLoading = avatars === null;
+  const showDirectLinkNotice =
+    Boolean(requestedAvatarData) || !Number.isNaN(requestedAvatarIndex);
 
-      {requestedAvatarData || !Number.isNaN(requestedAvatarIndex) ? (
-        <Panel muted className="mb-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="ui-label">Direct mint link</div>
-              <p className="ui-copy">
-                {highlightedAvatar
-                  ? "The deployed avatar drop is pinned at the top of the market."
-                  : "Looking for the deployed avatar drop. Connect the right wallet/cluster if it is not visible yet."}
-              </p>
-            </div>
-            <Badge tone={highlightedAvatar ? "success" : "default"}>
-              {highlightedAvatar
-                ? `Avatar #${highlightedAvatar.index}`
-                : "Searching"}
-            </Badge>
+  return (
+    <Page>
+      <PageHeader
+        eyebrow="Market"
+        title="Avatar drops, ready to mint."
+        lede="Every collection is a 3D model published on-chain. Preview it, check the supply, mint it into your wallet."
+        meta={
+          <>
+            <Meta label="Collections" value={isLoading ? "—" : items.length} />
+            <Meta
+              label="Mint fee unit"
+              value="SOL"
+            />
+            <Status tone={minter ? "ok" : "idle"}>
+              {minter ? "Minter ready" : "Connecting"}
+            </Status>
+          </>
+        }
+        actions={
+          <a href="/deployer" className="ui-button ui-button-secondary">
+            Publish a collection
+          </a>
+        }
+      />
+
+      {mintNotice ? (
+        <Notice tone={mintNotice.tone} className="mt-8">
+          <div className="flex items-start justify-between gap-4">
+            <span className="break-all">{mintNotice.text}</span>
+            <button
+              type="button"
+              className="ui-label shrink-0 hover:text-[rgb(var(--text-strong))]"
+              onClick={() => setMintNotice(null)}
+            >
+              Dismiss
+            </button>
           </div>
-        </Panel>
+        </Notice>
       ) : null}
 
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-        {avatars === null ? (
-          <Panel className="col-span-full">
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="ui-panel-muted h-56 animate-pulse" />
-              <div className="ui-panel-muted h-56 animate-pulse" />
-              <div className="ui-panel-muted h-56 animate-pulse" />
-            </div>
-          </Panel>
+      {showDirectLinkNotice ? (
+        <Notice
+          tone={highlightedAvatar ? "success" : "info"}
+          className="mt-8"
+        >
+          {highlightedAvatar
+            ? `Shared link resolved — collection #${highlightedAvatar.index} is pinned first.`
+            : "Looking for the shared collection. If it stays missing, switch to the cluster it was deployed on."}
+        </Notice>
+      ) : null}
+
+      <Section>
+        {isLoading ? (
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {[0, 1, 2, 3, 4, 5].map((key) => (
+              <div key={key} className="ui-card overflow-hidden" aria-busy="true">
+                <Skeleton className="aspect-square w-full" />
+                <div className="space-y-3 p-4">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : items.length === 0 ? (
+          <EmptyState
+            title="No collections on this network yet"
+            description="Nothing has been deployed to the selected cluster. Switch the network in the header, or publish the first drop yourself."
+            action={
+              <a href="/deployer" className="ui-button">
+                Publish a collection
+              </a>
+            }
+          />
         ) : (
-          items.map(
-            ({ index, data, metadata, stellarLink, sourceImageHash }) => {
-              const imageSource = metadata?.image || sourceImageHash;
-              const isHighlighted =
-                (requestedAvatarData &&
-                  stellarLink?.avatarData === requestedAvatarData) ||
-                (!Number.isNaN(requestedAvatarIndex) &&
-                  Number(index) === requestedAvatarIndex);
-              const canPreviewModel = isRenderableModelMetadata(metadata);
-              // Metadata lives off-chain; when its CID is malformed or unpinned
-              // the collection cannot be minted (name/symbol/uri come from it).
-              const metadataUnavailable = !metadata;
-              const modelAnimationUrl = canPreviewModel
-                ? metadata?.animation_url
-                : "";
-              const modelDescription = metadata?.description || null;
-              return (
-                <Panel
-                  key={index}
-                  className={`flex h-full flex-col gap-4 ${
-                    isHighlighted
-                      ? "ring-2 ring-[rgb(var(--accent))] ring-offset-2 ring-offset-[rgb(var(--bg))]"
-                      : ""
-                  }`}
-                >
-                  {imageSource ? (
-                    <div className="overflow-hidden rounded-[22px] border border-[rgba(var(--line),0.55)]">
-                      <img
-                        src={getIpfsUrl(imageSource)}
-                        alt={metadata?.name || `Avatar ${index}`}
-                        className="h-52 w-full object-cover"
-                      />
-                    </div>
-                  ) : null}
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {items.map(
+              ({ index, data, metadata, stellarLink, sourceImageHash }) => {
+                const imageSource = metadata?.image || sourceImageHash;
+                const isHighlighted =
+                  (requestedAvatarData &&
+                    stellarLink?.avatarData === requestedAvatarData) ||
+                  (!Number.isNaN(requestedAvatarIndex) &&
+                    Number(index) === requestedAvatarIndex);
+                const canPreviewModel = isRenderableModelMetadata(metadata);
+                // Metadata lives off-chain; when its CID is malformed or unpinned
+                // the collection cannot be minted (name/symbol/uri come from it).
+                const metadataUnavailable = !metadata;
+                const modelAnimationUrl = canPreviewModel
+                  ? metadata?.animation_url
+                  : "";
+                const modelDescription = metadata?.description || null;
+                const maxSupplyRaw = Number(data.maxSupply);
+                const isInfinite = maxSupplyRaw > 1000000000000;
+                const feeLamports = Number(data.mintingFeePerMint);
+                const isBusy = mintingIndex === index;
+                const description = metadata?.description?.trim() || "";
 
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="ui-label">Avatar #{index}</div>
-                      <h2 className="font-display text-2xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
-                        {metadata?.name || `Avatar #${index}`}
-                      </h2>
-                    </div>
-                    <Badge>
-                      {Number(data.maxSupply) > 1000000000000
-                        ? "∞ supply"
-                        : `${Number(data.maxSupply)} max`}
-                    </Badge>
-                  </div>
+                return (
+                  <article
+                    key={index}
+                    className="ui-card-action flex h-full flex-col overflow-hidden"
+                    data-selected={isHighlighted ? "true" : undefined}
+                  >
+                    <div className="relative aspect-square w-full overflow-hidden bg-[rgb(var(--surface-2))]">
+                      {imageSource ? (
+                        <img
+                          src={getIpfsUrl(imageSource)}
+                          alt={metadata?.name || `Avatar collection ${index}`}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <span className="ui-label">No preview</span>
+                        </div>
+                      )}
 
-                  {metadata?.description ? (
-                    <p className="ui-copy text-sm">
-                      {metadata.description.slice(0, 160)}
-                      {metadata.description.length > 160 ? "..." : ""}
-                    </p>
-                  ) : metadataUnavailable ? (
-                    <p className="ui-copy text-sm text-[rgb(var(--warning,220_120_60))]">
-                      Metadata is unavailable — its IPFS record could not be
-                      loaded, so this collection cannot be minted.
-                    </p>
-                  ) : (
-                    <p className="ui-copy text-sm">
-                      No description attached to this collection.
-                    </p>
-                  )}
+                      <span className="absolute left-0 top-0 bg-[rgb(var(--accent))] px-2 py-1 font-mono text-[10px] font-semibold tabular-nums tracking-[0.12em] text-[rgb(var(--accent-ink))]">
+                        #{String(index).padStart(3, "0")}
+                      </span>
 
-                  <div className="grid gap-3 border-t border-[rgba(var(--line),0.5)] pt-4 text-sm">
-                    <div>
-                      <div className="ui-label">Creator</div>
-                      <p className="break-all font-mono text-xs text-[rgb(var(--text-strong))]">
-                        {data.creator.toString() ===
-                        "11111111111111111111111111111111"
-                          ? "Stellar release"
-                          : data.creator.toString()}
-                      </p>
-                    </div>
-                    {stellarLink ? (
-                      <div>
-                        <div className="ui-label">Source</div>
-                        <a
-                          href={stellarSourceUrl(stellarLink)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm font-medium text-[rgb(var(--accent))]"
+                      {canPreviewModel ? (
+                        <button
+                          type="button"
+                          className="absolute bottom-0 right-0 bg-[rgb(var(--text-strong))] px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--bg))]"
+                          onClick={() => {
+                            if (!modelAnimationUrl) return;
+                            setActiveModelSrc(getIpfsUrl(modelAnimationUrl));
+                            setActiveModelDescription(modelDescription);
+                          }}
                         >
-                          Open Stellar asset
-                        </a>
-                      </div>
-                    ) : null}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <div className="ui-label">Current</div>
-                        <p className="text-[rgb(var(--text-strong))]">
-                          {Number(data.currentSupply)}
-                        </p>
-                      </div>
-                      <div>
-                        <div className="ui-label">Mint fee</div>
-                        <p className="text-[rgb(var(--text-strong))]">
-                          {(
-                            Number(data.mintingFeePerMint) / 1_000_000_000
-                          ).toLocaleString(undefined, {
-                            maximumFractionDigits: 9,
-                          })}{" "}
-                          SOL
-                        </p>
-                      </div>
+                          View in 3D
+                        </button>
+                      ) : null}
                     </div>
-                  </div>
 
-                  <div className="mt-auto grid gap-3 sm:grid-cols-2">
-                    {canPreviewModel ? (
+                    <div className="flex flex-1 flex-col gap-4 p-4">
+                      <div>
+                        <h2 className="ui-h3">
+                          {metadata?.name || `Avatar #${index}`}
+                        </h2>
+                        {description ? (
+                          <p className="ui-copy-sm mt-1.5 line-clamp-2">
+                            {description}
+                          </p>
+                        ) : metadataUnavailable ? (
+                          <p className="mt-1.5 text-sm leading-relaxed text-[rgb(var(--warning))]">
+                            Metadata could not be loaded from IPFS, so this
+                            collection cannot be minted.
+                          </p>
+                        ) : (
+                          <p className="ui-copy-sm mt-1.5 opacity-70">
+                            No description.
+                          </p>
+                        )}
+                        {description.length > 160 ? (
+                          <button
+                            type="button"
+                            className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[rgb(var(--text-strong))] underline decoration-[rgb(var(--accent-line))] decoration-2 underline-offset-4"
+                            onClick={() => setFullDescription(description)}
+                          >
+                            Read more
+                          </button>
+                        ) : null}
+                      </div>
+
+                      <DataList
+                        className="mt-auto border-t border-[rgb(var(--line))] pt-1"
+                        items={[
+                          {
+                            label: "Price",
+                            value:
+                              feeLamports === 0
+                                ? "Free"
+                                : `${(feeLamports / 1_000_000_000).toLocaleString(
+                                    undefined,
+                                    { maximumFractionDigits: 4 }
+                                  )} SOL`,
+                          },
+                          {
+                            label: "Minted",
+                            value: isInfinite
+                              ? `${Number(data.currentSupply)} / ∞`
+                              : `${Number(data.currentSupply)} / ${maxSupplyRaw}`,
+                          },
+                          {
+                            label: "Creator",
+                            value: (
+                              <span title={data.creator.toString()}>
+                                {data.creator.toString() ===
+                                "11111111111111111111111111111111"
+                                  ? "Stellar release"
+                                  : shortAddress(data.creator.toString())}
+                              </span>
+                            ),
+                          },
+                          stellarLink
+                            ? {
+                                label: "Source",
+                                value: (
+                                  <a
+                                    href={stellarSourceUrl(stellarLink)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="ui-link"
+                                  >
+                                    Stellar asset ↗
+                                  </a>
+                                ),
+                              }
+                            : null,
+                        ]}
+                      />
+
                       <Button
-                        type="button"
-                        variant="secondary"
-                        style={VIEW_3D_BUTTON_STYLE}
-                        onClick={() => {
-                          if (!modelAnimationUrl) return;
-                          setActiveModelSrc(getIpfsUrl(modelAnimationUrl));
-                          setActiveModelDescription(modelDescription);
-                        }}
-                      >
-                        View 3D
-                      </Button>
-                    ) : (
-                      <div />
-                    )}
+                        className="w-full"
+                        disabled={metadataUnavailable || isBusy || !minter}
+                        title={
+                          metadataUnavailable
+                            ? "Metadata could not be loaded for this collection"
+                            : undefined
+                        }
+                        onClick={async () => {
+                          if (!minter || !metadata) return;
+                          setMintNotice(null);
+                          setMintingIndex(index);
+                          try {
+                            const name = normalizeUtf8String(
+                              metadata.name,
+                              "name",
+                              MAX_NAME_BYTES
+                            );
+                            const symbol = normalizeUtf8String(
+                              metadata.symbol,
+                              "symbol",
+                              MAX_SYMBOL_BYTES
+                            );
+                            const uri = normalizeUtf8String(
+                              mintUriForHash(data.uriIpfsHash),
+                              "metadata URI",
+                              MAX_URI_BYTES
+                            );
 
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      style={VIEW_3D_BUTTON_STYLE}
-                      disabled={metadataUnavailable}
-                      title={
-                        metadataUnavailable
-                          ? "Metadata could not be loaded for this collection"
-                          : undefined
-                      }
-                      onClick={async () => {
-                        if (!minter || !metadata) return;
-                        try {
-                          const name = normalizeUtf8String(
-                            metadata.name,
-                            "name",
-                            MAX_NAME_BYTES
-                          );
-                          const symbol = normalizeUtf8String(
-                            metadata.symbol,
-                            "symbol",
-                            MAX_SYMBOL_BYTES
-                          );
-                          const uri = normalizeUtf8String(
-                            mintUriForHash(data.uriIpfsHash),
-                            "metadata URI",
-                            MAX_URI_BYTES
-                          );
-
-                          const result = await minter.mintNft({
-                            index,
-                            name,
-                            symbol,
-                            uri,
-                            stellar: stellarLink
-                              ? {
-                                  stellarLink: minter.getStellarLinkPda(
-                                    minter.getAvatarDataPda(index)[0]
-                                  )[0],
-                                  stellarProgram: new PublicKey(
-                                    "3rVXfq7LLSLqbDzvZuSrQoMytwczLj2Q8Hue62rxPZAA"
-                                  ),
-                                  stellarRelease: new PublicKey(
-                                    stellarLink.release
-                                  ),
-                                  stellarVault: new PublicKey(
-                                    stellarLink.vault
-                                  ),
-                                }
-                              : undefined,
-                          });
-                          console.log("Minted NFT:", result);
-                          alert(`Minted NFT!\nSignature: ${result.signature}`);
+                            const result = await minter.mintNft({
+                              index,
+                              name,
+                              symbol,
+                              uri,
+                              stellar: stellarLink
+                                ? {
+                                    stellarLink: minter.getStellarLinkPda(
+                                      minter.getAvatarDataPda(index)[0]
+                                    )[0],
+                                    stellarProgram: new PublicKey(
+                                      "3rVXfq7LLSLqbDzvZuSrQoMytwczLj2Q8Hue62rxPZAA"
+                                    ),
+                                    stellarRelease: new PublicKey(
+                                      stellarLink.release
+                                    ),
+                                    stellarVault: new PublicKey(
+                                      stellarLink.vault
+                                    ),
+                                  }
+                                : undefined,
+                            });
+                            console.log("Minted NFT:", result);
+                            setMintNotice({
+                              tone: "success",
+                              text: `Minted "${name}". Signature ${result.signature}`,
+                            });
                           } catch (error) {
                             const message = formatMintError(error);
                             console.error("Mint failed:", error);
-                            alert(message);
+                            setMintNotice({ tone: "error", text: message });
+                          } finally {
+                            setMintingIndex(null);
                           }
                         }}
-                    >
-                      {metadataUnavailable ? "Unavailable" : "Mint"}
-                    </Button>
-                  </div>
-
-                  {metadata?.description &&
-                  metadata.description.length > 160 ? (
-                    <button
-                      type="button"
-                      className="self-start text-sm font-medium text-[rgb(var(--accent))]"
-                      onClick={() => setFullDescription(metadata.description)}
-                    >
-                      Read full description
-                    </button>
-                  ) : null}
-                </Panel>
-              );
-            }
-          )
+                      >
+                        {metadataUnavailable
+                          ? "Unavailable"
+                          : isBusy
+                            ? "Minting…"
+                            : "Mint"}
+                      </Button>
+                    </div>
+                  </article>
+                );
+              }
+            )}
+          </div>
         )}
-      </div>
+      </Section>
 
-          {activeModelSrc ? (
-        <OverlayPanel
-          title="3D model preview"
+      {activeModelSrc ? (
+        <Overlay
+          title="3D preview"
           onClose={() => {
             setActiveModelSrc(null);
             setActiveModelDescription(null);
           }}
         >
-          <div className="h-[55vh] overflow-hidden rounded-[22px] border border-[rgba(var(--line),0.55)] bg-[rgba(var(--surface-2),0.86)]">
+          <div className="h-[60vh] border border-[rgb(var(--line))] bg-[rgb(var(--surface-2))]">
             <SceneWithModel file={activeModelSrc} />
           </div>
           {activeModelDescription ? (
-            <Panel muted className="mt-4">
-              <p className="ui-copy text-sm">{activeModelDescription}</p>
-            </Panel>
+            <p className="ui-copy-sm mt-4 max-w-3xl">
+              {activeModelDescription}
+            </p>
           ) : null}
-        </OverlayPanel>
+        </Overlay>
       ) : null}
 
       {fullDescription ? (
-        <OverlayPanel
-          title="Collection description"
+        <Overlay
+          title="Description"
           onClose={() => setFullDescription(null)}
         >
-          <Panel muted>
-            <p className="ui-copy whitespace-pre-wrap">{fullDescription}</p>
-          </Panel>
-        </OverlayPanel>
+          <p className="ui-copy max-w-3xl whitespace-pre-wrap">
+            {fullDescription}
+          </p>
+        </Overlay>
       ) : null}
-    </PageSection>
+    </Page>
   );
 }
 
-function OverlayPanel({
+function Overlay({
   title,
   children,
   onClose,
@@ -882,22 +926,33 @@ function OverlayPanel({
   children: ReactNode;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(2,6,23,0.72)] p-4 backdrop-blur-sm"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div className="w-full max-w-5xl rounded-[28px] border border-[rgba(var(--line-strong),0.45)] bg-[rgba(var(--surface),0.96)] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
-            {title}
-          </h2>
-          <Button type="button" variant="ghost" onClick={onClose}>
-            Close
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Close overlay"
+        tabIndex={-1}
+        className="absolute inset-0 cursor-default bg-[rgba(0,0,0,0.66)]"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="ui-card relative w-full max-w-5xl p-4 sm:p-5"
+      >
+        <div className="mb-4 flex items-center justify-between gap-3 border-b border-[rgb(var(--line))] pb-3">
+          <h2 className="ui-h3">{title}</h2>
+          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close">
+            Close ✕
           </Button>
         </div>
         {children}

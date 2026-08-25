@@ -1,59 +1,104 @@
+import { Link } from "@remix-run/react";
+
 import { useSolanaNetwork } from "~/lib/network";
+
+const columns = [
+  {
+    title: "Product",
+    links: [
+      { label: "Market", to: "/minter" },
+      { label: "Profile", to: "/" },
+      { label: "Deploy", to: "/deployer" },
+      { label: "Users", to: "/users" },
+    ],
+  },
+] as const;
 
 export default function Footer() {
   const { clusterLabel } = useSolanaNetwork();
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="px-4 pb-6 pt-4 sm:px-6">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 rounded-[28px] border border-[rgba(var(--line),0.6)] bg-[rgba(var(--surface),0.72)] px-5 py-5 backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <div className="font-display text-lg font-semibold tracking-tight text-[rgb(var(--text-strong))]">
-            Solana Avatars
+    <footer className="mt-16 border-t border-[rgb(var(--line))]">
+      <div className="mx-auto w-full max-w-[1400px] px-5 py-10 sm:px-8">
+        <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-sm space-y-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-7 items-center bg-[rgb(var(--accent))] px-2 font-display text-sm font-bold leading-none text-[rgb(var(--accent-ink))]">
+                EKZA
+              </span>
+              <span className="font-display text-sm font-bold uppercase tracking-[0.18em] text-[rgb(var(--text-strong))]">
+                Avatars
+              </span>
+            </div>
+            <p className="ui-copy-sm">
+              3D avatars as portable, ownable identity on Solana. Built by{" "}
+              <a
+                href="https://wotori.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ui-link"
+              >
+                Wotori Studio
+              </a>
+              .
+            </p>
           </div>
-          <p className="text-sm text-[rgb(var(--text))]">
-            Crafted by{" "}
-            <a
-              href="https://wotori.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[rgb(var(--accent))]"
-            >
-              Wotori Studio
-            </a>{" "}
-            for web3 identity experiments.
-          </p>
+
+          <div className="flex gap-12">
+            {columns.map((column) => (
+              <nav key={column.title} aria-label={column.title}>
+                <div className="ui-label mb-3">{column.title}</div>
+                <ul className="space-y-2">
+                  {column.links.map((link) => (
+                    <li key={link.label}>
+                      <Link
+                        to={link.to}
+                        className="text-sm text-[rgb(var(--text))] hover:text-[rgb(var(--text-strong))]"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
+
+            <nav aria-label="Elsewhere">
+              <div className="ui-label mb-3">Elsewhere</div>
+              <ul className="space-y-2">
+                <li>
+                  <a
+                    href="https://space.ekza.io"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-[rgb(var(--text))] hover:text-[rgb(var(--text-strong))]"
+                  >
+                    Ekza Space
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/ekza-space/solana-avatars"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-[rgb(var(--text))] hover:text-[rgb(var(--text-strong))]"
+                  >
+                    GitHub
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="ui-badge">{clusterLabel}</div>
-          <div className="font-mono text-xs uppercase tracking-[0.24em] text-[rgb(var(--text))]">
-            © {currentYear}
-          </div>
-          <GitHubLink />
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-[rgb(var(--line))] pt-5">
+          <span className="ui-label">
+            Network · {clusterLabel}
+          </span>
+          <span className="ui-label">© {currentYear} Ekza</span>
         </div>
       </div>
     </footer>
-  );
-}
-
-function GitHubLink() {
-  return (
-    <a
-      href="https://github.com/ekza-space/solana-avatars"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="ui-icon-button"
-      aria-label="Open GitHub repository"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        fill="currentColor"
-        viewBox="0 0 24 24"
-        className="h-4 w-4"
-      >
-        <path d="M12 0a12 12 0 0 0-3.8 23.4c.6.1.8-.2.8-.5v-2c-3.3.7-4-1.6-4-1.6a3.2 3.2 0 0 0-1.3-1.8c-1-.7.1-.7.1-.7a2.6 2.6 0 0 1 1.9 1.3 2.6 2.6 0 0 0 3.6 1 2.6 2.6 0 0 1 .8-1.7c-2.7-.3-5.5-1.3-5.5-5.8a4.5 4.5 0 0 1 1.2-3.2 4.2 4.2 0 0 1 .1-3.1s1-.3 3.3 1.2a11.3 11.3 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2a4.2 4.2 0 0 1 .1 3.1 4.5 4.5 0 0 1 1.2 3.2c0 4.5-2.8 5.5-5.5 5.8a2.9 2.9 0 0 1 .8 2.2v3.3c0 .3.2.6.8.5A12 12 0 0 0 12 0Z" />
-      </svg>
-    </a>
   );
 }

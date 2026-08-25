@@ -25,7 +25,7 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 
 import Footer from "./components/footer";
 import Header from "./components/header";
-import { PageSection, Panel } from "./components/ui";
+import { Card, Page, PageHeader, Skeleton } from "./components/ui";
 import { SolanaNetworkProvider, useSolanaNetwork } from "./lib/network";
 
 export const links: LinksFunction = () => [
@@ -81,25 +81,26 @@ export function ErrorBoundary() {
       ? error.message
       : typeof error === "string"
         ? error
-        : "The avatar interface hit an unexpected rendering error.";
+        : "Unknown rendering error.";
 
   return (
     <Layout>
-      <main className="ui-shell flex min-h-dvh items-center justify-center px-4 py-10">
-        <Panel className="max-w-2xl">
-          <div className="ui-eyebrow">Interface recovered</div>
-          <h1 className="mt-4 font-display text-3xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
-            This view could not load one of its resources.
-          </h1>
-          <p className="ui-copy mt-4">
-            {message}
+      <main className="flex min-h-dvh items-center justify-center px-5 py-16">
+        <div className="w-full max-w-2xl space-y-6">
+          <div className="ui-eyebrow">Error</div>
+          <h1 className="ui-display">Something did not load.</h1>
+          <Card tone="quiet" className="p-5">
+            <div className="ui-label mb-2">Details</div>
+            <p className="ui-mono leading-relaxed">{message}</p>
+          </Card>
+          <p className="ui-copy">
+            Check that the network endpoint and the metadata service are
+            reachable, then reload the page.
           </p>
-          <p className="ui-copy mt-3 text-sm">
-            Check that the local metadata server is running, then refresh the page.
-            The app should keep the rest of the console available instead of
-            dropping into Remix&apos;s developer crash screen.
-          </p>
-        </Panel>
+          <a href="/" className="ui-button">
+            Back to start
+          </a>
+        </div>
       </main>
     </Layout>
   );
@@ -110,46 +111,65 @@ function MainContent() {
   const location = useLocation();
   const { clusterLabel } = useSolanaNetwork();
 
-  const curLoc = location.pathname;
-
-  if (!publicKey && curLoc !== "/about") {
+  if (!publicKey && location.pathname !== "/about") {
     return (
-      <PageSection
-        eyebrow="Wallet Gate"
-        title="Connect your wallet to enter the avatar console"
-        description="Profiles, deployment, and minting stay exactly as before. The wallet gate is simply packaged into a clearer, calmer landing state."
-        className="py-10 sm:py-14"
-      >
-        <Panel className="mx-auto max-w-3xl p-8 sm:p-10">
-          <div className="grid gap-8 lg:grid-cols-[1.35fr_0.95fr]">
-            <div className="space-y-4">
-              <div className="ui-badge">{clusterLabel}</div>
-              <h2 className="font-display text-3xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
-                Web3 identity, minting, and avatar management in one place.
-              </h2>
-              <p className="ui-copy">
-                Connect Phantom to create a profile, publish your own collection,
-                or mint avatars from the marketplace.
+      <main className="flex-1 py-10 sm:py-14">
+        <Page>
+          <PageHeader
+            eyebrow={`Solana · ${clusterLabel}`}
+            title={
+              <>
+                Connect a wallet
+                <br />
+                to continue.
+              </>
+            }
+            lede="Profiles, collections and minting all sign with your own key. Nothing leaves the browser until you confirm it."
+          />
+
+          <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="grid gap-px bg-[rgb(var(--line))] sm:grid-cols-3">
+              {[
+                {
+                  n: "01",
+                  title: "Browse the market",
+                  body: "Open creator drops, preview the 3D model, mint what fits.",
+                },
+                {
+                  n: "02",
+                  title: "Claim an identity",
+                  body: "Bind a username, a bio and an avatar NFT to an on-chain profile.",
+                },
+                {
+                  n: "03",
+                  title: "Publish a collection",
+                  body: "Upload a .glb or .vrm model, set supply and mint fee, deploy.",
+                },
+              ].map((step) => (
+                <div key={step.n} className="bg-[rgb(var(--bg))] p-5">
+                  <div className="ui-index">{step.n}</div>
+                  <h2 className="ui-h3 mt-3">{step.title}</h2>
+                  <p className="ui-copy-sm mt-2">{step.body}</p>
+                </div>
+              ))}
+            </div>
+
+            <Card className="flex flex-col gap-4 p-5">
+              <div className="ui-label">Access</div>
+              <p className="ui-copy-sm">
+                Phantom is supported. Nothing is signed until you confirm it in
+                the wallet.
               </p>
-            </div>
-            <div className="ui-panel-muted flex min-h-[220px] flex-col justify-between gap-6">
-              <div className="space-y-3">
-                <div className="ui-label">Access Required</div>
-                <p className="ui-copy">
-                  The app keeps read/write wallet flows protected until a Solana
-                  account is connected.
-                </p>
-              </div>
               <WalletMultiButton />
-            </div>
+            </Card>
           </div>
-        </Panel>
-      </PageSection>
+        </Page>
+      </main>
     );
   }
 
   return (
-    <main className="flex-1 py-8 sm:py-10">
+    <main className="flex-1 py-8 sm:py-12">
       <Outlet />
     </main>
   );
@@ -163,20 +183,19 @@ function ServerFallbackContent() {
   }
 
   return (
-    <main className="flex-1 py-8 sm:py-10">
-      <PageSection
-        eyebrow="Loading"
-        title="Preparing the wallet layer"
-        description="The client is hydrating before the Solana wallet adapter becomes available."
-      >
-        <Panel className="mx-auto max-w-3xl">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="ui-panel-muted h-28 animate-pulse" />
-            <div className="ui-panel-muted h-28 animate-pulse" />
-            <div className="ui-panel-muted h-28 animate-pulse" />
+    <main className="flex-1 py-8 sm:py-12">
+      <Page>
+        <div className="space-y-6" aria-busy="true">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-12 w-3/4 max-w-xl" />
+          <Skeleton className="h-4 w-1/2 max-w-md" />
+          <div className="grid gap-5 pt-6 sm:grid-cols-2 xl:grid-cols-3">
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
           </div>
-        </Panel>
-      </PageSection>
+        </div>
+      </Page>
     </main>
   );
 }

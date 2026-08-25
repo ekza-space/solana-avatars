@@ -3,222 +3,174 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useState, useEffect } from "react";
 
 import ThemeToggle from "./theme-toggle";
+import { Select } from "./ui";
 import { SOLANA_CLUSTER_OPTIONS, useSolanaNetwork } from "~/lib/network";
-import { cn } from "~/utils/cn";
-
-function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(
-    () => typeof window !== "undefined" && window.matchMedia(query).matches
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mql = window.matchMedia(query);
-    const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, [query]);
-
-  return matches;
-}
 
 const navItems = [
-  { to: "/", label: "Profile" },
-  { to: "/users", label: "Users" },
-  { to: "/deployer", label: "Deploy" },
   { to: "/minter", label: "Market" },
+  { to: "/", label: "Profile" },
+  { to: "/deployer", label: "Deploy" },
+  { to: "/users", label: "Users" },
   { to: "/about", label: "About" },
 ] as const;
+
+function NetworkSelect({ className }: { className?: string }) {
+  const { cluster, setCluster } = useSolanaNetwork();
+  return (
+    <Select
+      className={className}
+      value={cluster}
+      onChange={(event) =>
+        setCluster(event.target.value as (typeof SOLANA_CLUSTER_OPTIONS)[number])
+      }
+      aria-label="Solana network"
+    >
+      {SOLANA_CLUSTER_OPTIONS.map((option) => (
+        <option key={option} value={option}>
+          {option === "mainnet-beta" ? "Mainnet" : option === "devnet" ? "Devnet" : "Localnet"}
+        </option>
+      ))}
+    </Select>
+  );
+}
 
 export default function Header() {
   const [isClient, setIsClient] = useState(false);
   useEffect(() => setIsClient(true), []);
   const location = useLocation();
-  const { cluster, setCluster, clusterLabel } = useSolanaNetwork();
-
   const [isOpen, setIsOpen] = useState(false);
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
 
   return (
-    <header className="sticky top-0 z-50 px-4 pb-4 pt-4 sm:px-6">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 rounded-[28px] border border-[rgba(var(--line),0.72)] bg-[rgba(var(--surface),0.82)] px-4 py-4 shadow-[0_12px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-50 border-b border-[rgb(var(--line))] bg-[rgb(var(--bg))]">
+      {/* signature rule */}
+      <div aria-hidden="true" className="h-[3px] bg-[rgb(var(--accent))]" />
+
+      <div className="mx-auto flex w-full max-w-[1400px] items-center gap-6 px-5 py-3 sm:px-8">
+        <Link
+          to="/minter"
+          className="flex items-center gap-2.5"
+          aria-label="Ekza Avatars — market"
+        >
+          <span className="flex h-8 items-center bg-[rgb(var(--accent))] px-2 font-display text-[15px] font-bold leading-none tracking-tight text-[rgb(var(--accent-ink))]">
+            EKZA
+          </span>
+          <span className="font-display text-[15px] font-bold uppercase leading-none tracking-[0.18em] text-[rgb(var(--text-strong))]">
+            Avatars
+          </span>
+        </Link>
+
+        <nav
+          className="hidden items-center gap-7 md:flex"
+          aria-label="Primary"
+        >
+          {navItems.map((item) => (
             <Link
-              to="/"
-              className="flex items-center gap-3 text-[rgb(var(--text-strong))]"
+              key={item.to}
+              to={item.to}
+              className="ui-navlink"
+              data-active={location.pathname === item.to}
+              aria-current={location.pathname === item.to ? "page" : undefined}
             >
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[rgba(var(--line-strong),0.36)] bg-[rgba(var(--accent),0.08)] font-mono text-xs font-semibold uppercase tracking-[0.24em] text-[rgb(var(--accent))]">
-                AV
-              </span>
-              <span className="hidden sm:block">
-                <span className="font-display text-lg font-semibold tracking-tight">
-                  Solana Avatars
-                </span>
-                <span className="block font-mono text-[11px] uppercase tracking-[0.28em] text-[rgb(var(--text))]">
-                  Friendly wireframe console
-                </span>
-              </span>
+              {item.label}
             </Link>
-          </div>
+          ))}
+          <a
+            href="https://space.ekza.io"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ui-navlink"
+          >
+            Ekza Space ↗
+          </a>
+        </nav>
 
-          <div className="ml-auto flex items-center gap-2">
-            {isClient ? (
-              <label className="hidden items-center gap-2 rounded-2xl border border-[rgba(var(--line),0.5)] px-3 py-2 text-xs sm:flex">
-                <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[rgb(var(--text))]">
-                  Network
-                </span>
-                <select
-                  className="rounded-xl border border-[rgba(var(--line),0.42)] bg-transparent px-2 py-1 text-xs font-medium text-[rgb(var(--text-strong))] [outline:none]"
-                  value={cluster}
-                  onChange={(event) =>
-                    setCluster(event.target.value as "localnet" | "devnet" | "mainnet-beta")
-                  }
-                  aria-label="Solana network"
-                >
-                  {SOLANA_CLUSTER_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option === "mainnet-beta" ? "Mainnet" : option}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-            <div className="ui-badge hidden text-[10px] md:inline-flex">{clusterLabel}</div>
-            <ThemeToggle />
-            {isDesktop && isClient ? <WalletMultiButton /> : null}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {!isDesktop && (
-            <div className="flex items-center gap-2">
-              <div className="ui-badge">Menu</div>
+        <div className="ml-auto flex items-center gap-2">
+          {isClient ? (
+            <NetworkSelect className="hidden w-[118px] text-xs sm:block" />
+          ) : null}
+          <ThemeToggle />
+          {isClient ? (
+            <div className="hidden md:block">
+              <WalletMultiButton />
             </div>
-          )}
+          ) : null}
 
-          <nav className="hidden flex-1 flex-wrap gap-2 md:flex" aria-label="Primary">
-            {navItems.map((item) => {
-              const active = location.pathname === item.to;
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={cn(
-                    "inline-flex min-h-11 items-center rounded-2xl border px-4 py-2 text-sm font-medium transition duration-200",
-                    active
-                      ? "border-[rgba(var(--line-strong),0.55)] bg-[rgba(var(--accent),0.1)] text-[rgb(var(--text-strong))]"
-                      : "border-[rgba(var(--line),0.5)] bg-transparent text-[rgb(var(--text))] hover:border-[rgba(var(--line-strong),0.35)] hover:text-[rgb(var(--text-strong))]"
-                  )}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-            <a
-              href="https://space.ekza.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center rounded-2xl border border-[rgba(var(--line),0.5)] px-4 py-2 text-sm font-medium text-[rgb(var(--text))] hover:border-[rgba(var(--line-strong),0.35)] hover:text-[rgb(var(--text-strong))]"
+          <button
+            type="button"
+            onClick={() => setIsOpen(!isOpen)}
+            className="ui-icon-button md:hidden"
+            aria-label={isOpen ? "Close menu" : "Open menu"}
+            aria-expanded={isOpen}
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
             >
-              Ekza Space
-            </a>
-            {isClient ? (
-              <label className="inline-flex items-center gap-2 rounded-2xl border border-[rgba(var(--line),0.5)] px-4 py-2 text-sm">
-                <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[rgb(var(--text))]">Network</span>
-                <select
-                  className="rounded-lg border border-[rgba(var(--line),0.42)] bg-[rgba(var(--surface),0.4)] px-2 py-1 text-sm text-[rgb(var(--text-strong))]"
-                  value={cluster}
-                  onChange={(event) =>
-                    setCluster(event.target.value as "localnet" | "devnet" | "mainnet-beta")
-                  }
-                  aria-label="Solana network"
-                >
-                  {SOLANA_CLUSTER_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option === "mainnet-beta" ? "Mainnet" : option}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-          </nav>
-
-          {!isDesktop && (
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="ui-icon-button ml-auto"
-              aria-label="Toggle menu"
-              aria-expanded={isOpen}
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d={isOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
-                />
-              </svg>
-            </button>
-          )}
+              <path
+                strokeLinecap="round"
+                strokeWidth={1.75}
+                d={isOpen ? "M6 18L18 6M6 6l12 12" : "M4 7h16M4 12h16M4 17h16"}
+              />
+            </svg>
+          </button>
         </div>
+      </div>
 
-        {!isDesktop && isOpen && (
-          <nav className="grid gap-2 border-t border-[rgba(var(--line),0.52)] pt-4 md:hidden" aria-label="Mobile menu">
-            {navItems.map((item) => {
-              const active = location.pathname === item.to;
-              return (
+      {isOpen ? (
+        <nav
+          className="border-t border-[rgb(var(--line))] bg-[rgb(var(--surface))] px-5 py-4 md:hidden"
+          aria-label="Mobile menu"
+        >
+          <ul className="flex flex-col">
+            {navItems.map((item) => (
+              <li key={item.to} className="border-b border-[rgb(var(--line))]">
                 <Link
-                  key={item.to}
                   to={item.to}
-                  onClick={() => setIsOpen(false)}
-                  className={cn(
-                    "inline-flex min-h-11 items-center rounded-2xl border px-4 py-2 text-sm font-medium transition duration-200",
-                    active
-                      ? "border-[rgba(var(--line-strong),0.55)] bg-[rgba(var(--accent),0.1)] text-[rgb(var(--text-strong))]"
-                      : "border-[rgba(var(--line),0.5)] text-[rgb(var(--text))]"
-                  )}
+                  className="flex min-h-12 items-center justify-between text-base font-medium text-[rgb(var(--text-strong))]"
+                  aria-current={
+                    location.pathname === item.to ? "page" : undefined
+                  }
                 >
                   {item.label}
+                  {location.pathname === item.to ? (
+                    <span
+                      aria-hidden="true"
+                      className="h-2 w-2 bg-[rgb(var(--accent))]"
+                    />
+                  ) : null}
                 </Link>
-              );
-            })}
-            <a
-              href="https://space.ekza.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-11 items-center rounded-2xl border border-[rgba(var(--line),0.5)] px-4 py-2 text-sm font-medium text-[rgb(var(--text))]"
-            >
-              Ekza Space
-            </a>
-            {isClient ? (
-              <label className="inline-flex items-center gap-2 rounded-2xl border border-[rgba(var(--line),0.5)] px-4 py-2 text-sm">
-                <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[rgb(var(--text))]">Network</span>
-                <select
-                  className="rounded-lg border border-[rgba(var(--line),0.42)] bg-[rgba(var(--surface),0.4)] px-2 py-1 text-sm text-[rgb(var(--text-strong))]"
-                  value={cluster}
-                  onChange={(event) =>
-                    setCluster(event.target.value as "localnet" | "devnet" | "mainnet-beta")
-                  }
-                  aria-label="Solana network"
-                >
-                  {SOLANA_CLUSTER_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option === "mainnet-beta" ? "Mainnet" : option}
-                    </option>
-                  ))}
-                </select>
+              </li>
+            ))}
+            <li className="border-b border-[rgb(var(--line))]">
+              <a
+                href="https://space.ekza.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-h-12 items-center text-base font-medium text-[rgb(var(--text-strong))]"
+              >
+                Ekza Space ↗
+              </a>
+            </li>
+          </ul>
+
+          {isClient ? (
+            <div className="mt-4 flex flex-col gap-3">
+              <label className="flex flex-col gap-2">
+                <span className="ui-label">Network</span>
+                <NetworkSelect />
               </label>
-            ) : null}
-            {isClient ? <WalletMultiButton /> : null}
-          </nav>
-        )}
-      </div>
+              <WalletMultiButton />
+            </div>
+          ) : null}
+        </nav>
+      ) : null}
     </header>
   );
 }

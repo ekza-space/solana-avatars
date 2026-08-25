@@ -10,13 +10,14 @@ import { ChangeEvent, useEffect, useState } from "react";
 
 import SceneWithModel from "~/components/3d/SceneWithModel";
 import {
-  Badge,
   Button,
   Field,
   Input,
-  PageSection,
-  Panel,
-  StatCard,
+  Meta,
+  Notice,
+  Page,
+  PageHeader,
+  Status,
   Textarea,
 } from "~/components/ui";
 import { NftMetadata } from "~/types/nft";
@@ -40,6 +41,9 @@ export default function GenerateAvatar() {
   const [nftMintFee, setNftMintFee] = useState("");
   const [minting, setMinting] = useState(false);
   const [tabValue, setTabValue] = useState<"upload" | "generate">("upload");
+  const [notice, setNotice] = useState<
+    { tone: "success" | "error"; text: string; href?: string } | null
+  >(null);
 
   const { publicKey } = useWallet();
   const anchorWallet = useAnchorWallet();
@@ -93,6 +97,7 @@ export default function GenerateAvatar() {
   const handleDeploy = async () => {
     if (!publicKey || !anchorWallet) return;
 
+    setNotice(null);
     setMinting(true);
 
     try {
@@ -176,212 +181,228 @@ export default function GenerateAvatar() {
             mintingFeePerMint: mintFeeLamports,
           });
 
-        alert(
-          `✅ Avatar collection initialised!\n\nAvatar PDA:\n${avatarDataPda.toBase58()}\n\nTransaction:\n${buildExplorerTxUrl(initSig)}`
-        );
+        setNotice({
+          tone: "success",
+          text: `Collection deployed. Avatar PDA ${avatarDataPda.toBase58()}`,
+          href: buildExplorerTxUrl(initSig),
+        });
       } catch (sdkErr: any) {
-        alert("Mint failed via SDK: " + sdkErr.message);
+        setNotice({
+          tone: "error",
+          text: `Deploy failed: ${sdkErr.message}`,
+        });
         console.error("SDK mint failed:", sdkErr);
         setMinting(false);
         return;
       }
     } catch (err: any) {
       console.error("Client: Error in handleDeploy:", err);
-      alert("Mint failed (client-side exception): " + err.message);
+      setNotice({
+        tone: "error",
+        text: `Deploy failed before signing: ${err.message}`,
+      });
     } finally {
       setMinting(false);
     }
   };
 
   const previewNode = uploadedFile?.name.match(/\.(glb|vrm)$/i) ? (
-    <div className="h-[420px] overflow-hidden rounded-[24px] border border-[rgba(var(--line),0.6)]">
+    <div className="h-[440px] border border-[rgb(var(--line))] bg-[rgb(var(--surface-2))]">
       <SceneWithModel
         file={URL.createObjectURL(uploadedFile)}
         screenshot={true}
       />
     </div>
   ) : hasPreview ? (
-    <div className="overflow-hidden rounded-[24px] border border-[rgba(var(--line),0.6)] bg-[rgba(var(--surface-2),0.76)] p-4">
+    <div className="flex h-[440px] items-center justify-center border border-[rgb(var(--line))] bg-[rgb(var(--surface-2))] p-4">
       <img
         src={previewUrl || uploadedPreviewUrl}
         alt="Avatar preview"
-        className="mx-auto aspect-square h-auto max-h-[380px] w-full max-w-md rounded-[20px] object-contain"
+        className="max-h-full w-auto object-contain"
       />
     </div>
   ) : (
-    <div className="flex min-h-[320px] items-center justify-center rounded-[24px] border border-dashed border-[rgba(var(--line-strong),0.36)] bg-[rgba(var(--surface),0.58)]">
-      <div className="space-y-3 text-center">
-        <div className="ui-badge">Preview</div>
-        <p className="ui-copy max-w-sm">
-          Upload a `.glb` or `.vrm` avatar model to generate a preview-ready
-          collection draft.
-        </p>
-      </div>
+    <div className="flex h-[440px] flex-col items-center justify-center gap-3 border border-dashed border-[rgba(var(--line-strong),0.28)] p-6 text-center">
+      <span className="ui-label">Nothing to show yet</span>
+      <p className="ui-copy-sm max-w-xs">
+        Pick a .glb or .vrm file in step 01. The preview image sent to IPFS is
+        captured from this scene.
+      </p>
     </div>
   );
 
   return (
-    <PageSection
-      eyebrow="Collection Deployer"
-      title="Publish a 3D avatar collection"
-      description={`Upload a model, shape the NFT metadata, and initialize a minter on ${clusterLabel.toLowerCase()}. The creation pipeline is intact, but the workspace is now much easier to navigate.`}
-      actions={
-        <>
-          <Badge>{publicKey ? "Wallet ready" : "Wallet required"}</Badge>
-          <Badge tone={hasPreview ? "success" : "default"}>
-            {hasPreview ? "Preview ready" : "Awaiting asset"}
-          </Badge>
-        </>
-      }
-    >
-      <div className="mb-6 grid gap-5 lg:grid-cols-3">
-        <StatCard
-          label="Mint flow"
-          value="Browser SDK"
-          hint="Metadata uploads and on-chain initialization still happen client-side."
-        />
-        <StatCard
-          label="Preview"
-          value={hasPreview ? "Prepared" : "Empty"}
-          hint="Screenshots are still captured from the 3D scene."
-        />
-        <StatCard
-          label="Fee unit"
-          value="SOL"
-          hint="Mint fee is converted to lamports before initializeAvatar."
-        />
-      </div>
+    <Page>
+      <PageHeader
+        eyebrow="Deploy"
+        title={
+          <>
+            Publish a 3D
+            <br />
+            avatar collection.
+          </>
+        }
+        lede="Upload a model, describe it, set supply and price. The metadata goes to IPFS and the collection is initialized on-chain."
+        meta={
+          <>
+            <Meta label="Network" value={clusterLabel} />
+            <Meta label="Fee unit" value="SOL" />
+            <Status tone={publicKey ? "ok" : "error"}>
+              {publicKey ? "Wallet connected" : "Wallet required"}
+            </Status>
+          </>
+        }
+      />
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Panel className="space-y-5">
+      {notice ? (
+        <Notice tone={notice.tone} className="mt-8">
           <div className="space-y-2">
-            <div className="ui-label">Asset preview</div>
-            <h2 className="font-display text-2xl font-semibold tracking-tight text-[rgb(var(--text-strong))]">
-              Live deployment workspace
-            </h2>
+            <p className="break-all">{notice.text}</p>
+            {notice.href ? (
+              <a
+                href={notice.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ui-link inline-block text-sm"
+              >
+                Open in Solana Explorer ↗
+              </a>
+            ) : null}
+          </div>
+        </Notice>
+      ) : null}
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
+        <div className="lg:sticky lg:top-24 lg:self-start">
+          <div className="mb-3 flex items-end justify-between border-b border-[rgb(var(--line))] pb-3">
+            <h2 className="ui-h3">Preview</h2>
+            <span className="ui-label">
+              {hasPreview ? "Ready" : "Waiting for a model"}
+            </span>
           </div>
           {previewNode}
-        </Panel>
+        </div>
 
-        <Panel className="space-y-5">
-          <Tabs.Root
-            value={tabValue}
-            onValueChange={(value) => {
-              setTabValue(value as "upload" | "generate");
-              setPreviewUrl("");
-              setUploadedPreviewUrl("");
-            }}
-            className="space-y-5"
-          >
-            <Tabs.List className="grid grid-cols-2 gap-3">
-              <Tabs.Trigger
-                value="upload"
-                className="rounded-2xl border border-[rgba(var(--line),0.52)] px-4 py-3 text-sm font-medium text-[rgb(var(--text))] transition data-[state=active]:border-[rgba(var(--line-strong),0.58)] data-[state=active]:bg-[rgba(var(--accent),0.1)] data-[state=active]:text-[rgb(var(--text-strong))]"
-              >
-                Upload model
-              </Tabs.Trigger>
-              <Tabs.Trigger
-                value="generate"
-                className="rounded-2xl border border-[rgba(var(--line),0.52)] px-4 py-3 text-sm font-medium text-[rgb(var(--text))] transition data-[state=active]:border-[rgba(var(--line-strong),0.58)] data-[state=active]:bg-[rgba(var(--accent),0.1)] data-[state=active]:text-[rgb(var(--text-strong))]"
-              >
-                Generate idea
-              </Tabs.Trigger>
-            </Tabs.List>
+        <div className="space-y-8">
+          <section>
+            <StepHeading step="01" title="Model" />
+            <Tabs.Root
+              value={tabValue}
+              onValueChange={(value) => {
+                setTabValue(value as "upload" | "generate");
+                setPreviewUrl("");
+                setUploadedPreviewUrl("");
+              }}
+              className="space-y-5"
+            >
+              <Tabs.List className="flex gap-6 border-b border-[rgb(var(--line))]">
+                <Tabs.Trigger value="upload" className="ui-navlink" >
+                  Upload a file
+                </Tabs.Trigger>
+                <Tabs.Trigger value="generate" className="ui-navlink">
+                  Generate (soon)
+                </Tabs.Trigger>
+              </Tabs.List>
 
-            <Tabs.Content value="upload" className="space-y-5">
-              <Field label="3D asset" hint="Supported formats: `.vrm`, `.glb`.">
-                <Input
-                  type="file"
-                  accept=".vrm,.glb,model/gltf-binary"
-                  onChange={handleFileChange}
-                  className="cursor-pointer p-4"
-                />
-              </Field>
-              <p className="ui-copy text-sm">
-                Need something to test with?{" "}
-                <a
-                  href="https://drive.google.com/drive/folders/11oQ8pwVMV9inSVV9cGceI8xTusDxhPC3?usp=drive_link"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[rgb(var(--accent))]"
-                >
-                  Download sample models
-                </a>
-                .
-              </p>
-              <MetadataFields
-                nftName={nftName}
-                setNftName={setNftName}
-                nftSymbol={nftSymbol}
-                setNftSymbol={setNftSymbol}
-                nftDescription={nftDescription}
-                setNftDescription={setNftDescription}
-                nftMaxSupply={nftMaxSupply}
-                setNftMaxSupply={setNftMaxSupply}
-                nftMintFee={nftMintFee}
-                setNftMintFee={setNftMintFee}
-              />
-            </Tabs.Content>
-
-            <Tabs.Content value="generate" className="space-y-5">
-              <fetcher.Form method="post" className="space-y-4">
+              <Tabs.Content value="upload" className="space-y-4">
                 <Field
-                  label="Prompt"
-                  hint="Generator UI stays present, but the actual generation endpoint is still unfinished."
+                  label="3D asset"
+                  hint="Accepted formats: .glb and .vrm."
                 >
-                  <Textarea
-                    name="prompt"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Describe the avatar you want..."
-                    rows={4}
+                  <Input
+                    type="file"
+                    accept=".vrm,.glb,model/gltf-binary"
+                    onChange={handleFileChange}
+                    className="cursor-pointer py-2.5"
                   />
                 </Field>
-                <Button
-                  onClick={() =>
-                    alert("Sorry, this feature still in progress.")
-                  }
-                  type="button"
-                  variant="secondary"
-                  className="w-full"
-                >
-                  Generate preview
-                </Button>
-                {!publicKey ? (
-                  <p className="text-sm font-medium text-[rgb(var(--danger))]">
-                    Connect your wallet to use generation and deployment
-                    actions.
-                  </p>
-                ) : null}
-              </fetcher.Form>
+                <p className="ui-copy-sm">
+                  Nothing to test with?{" "}
+                  <a
+                    href="https://drive.google.com/drive/folders/11oQ8pwVMV9inSVV9cGceI8xTusDxhPC3?usp=drive_link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ui-link"
+                  >
+                    Download sample models
+                  </a>
+                  .
+                </p>
+              </Tabs.Content>
 
-              <MetadataFields
-                nftName={nftName}
-                setNftName={setNftName}
-                nftSymbol={nftSymbol}
-                setNftSymbol={setNftSymbol}
-                nftDescription={nftDescription}
-                setNftDescription={setNftDescription}
-                nftMaxSupply={nftMaxSupply}
-                setNftMaxSupply={setNftMaxSupply}
-                nftMintFee={nftMintFee}
-                setNftMintFee={setNftMintFee}
-              />
-            </Tabs.Content>
-          </Tabs.Root>
+              <Tabs.Content value="generate" className="space-y-4">
+                <fetcher.Form method="post" className="space-y-4">
+                  <Field
+                    label="Prompt"
+                    hint="Model generation is not wired up yet — the field is here to shape the flow."
+                  >
+                    <Textarea
+                      name="prompt"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      placeholder="Describe the avatar you want..."
+                      rows={4}
+                      disabled
+                    />
+                  </Field>
+                  <Button variant="secondary" disabled className="w-full">
+                    Generate preview · coming soon
+                  </Button>
+                </fetcher.Form>
+              </Tabs.Content>
+            </Tabs.Root>
+          </section>
 
-          {hasPreview && publicKey ? (
+          <section>
+            <StepHeading step="02" title="Collection details" />
+            <MetadataFields
+              nftName={nftName}
+              setNftName={setNftName}
+              nftSymbol={nftSymbol}
+              setNftSymbol={setNftSymbol}
+              nftDescription={nftDescription}
+              setNftDescription={setNftDescription}
+              nftMaxSupply={nftMaxSupply}
+              setNftMaxSupply={setNftMaxSupply}
+              nftMintFee={nftMintFee}
+              setNftMintFee={setNftMintFee}
+            />
+          </section>
+
+          <section>
+            <StepHeading step="03" title="Deploy" />
             <Button
               onClick={handleDeploy}
-              disabled={minting}
+              disabled={minting || !hasPreview || !publicKey}
               className="w-full"
             >
-              {minting ? "Deploying collection..." : "Deploy collection"}
+              {minting ? "Deploying…" : "Deploy collection"}
             </Button>
-          ) : null}
-        </Panel>
+            {!publicKey ? (
+              <p className="mt-3 text-sm font-medium text-[rgb(var(--danger))]">
+                Connect a wallet to deploy.
+              </p>
+            ) : !hasPreview ? (
+              <p className="ui-copy-sm mt-3">
+                Upload a model first — the preview image is captured from the 3D
+                scene and pinned together with the metadata.
+              </p>
+            ) : null}
+          </section>
+        </div>
       </div>
-    </PageSection>
+    </Page>
+  );
+}
+
+function StepHeading({ step, title }: { step: string; title: string }) {
+  return (
+    <div className="mb-4 flex items-baseline gap-3 border-b border-[rgb(var(--line))] pb-3">
+      <span className="bg-[rgb(var(--accent))] px-1.5 py-0.5 font-mono text-[10px] font-bold tabular-nums tracking-[0.12em] text-[rgb(var(--accent-ink))]">
+        {step}
+      </span>
+      <h2 className="ui-h3">{title}</h2>
+    </div>
   );
 }
 
@@ -413,16 +434,16 @@ function MetadataFields(props: {
   const infinite = nftMaxSupply === "18446744073709551615";
 
   return (
-    <div className="grid gap-4">
-      <Field label="NFT Name">
+    <div className="grid gap-5">
+      <Field label="Name" hint="Up to 32 bytes — shown on the market card.">
         <Input
           type="text"
-          placeholder="Avatar collection name"
+          placeholder="Neon Runners"
           value={nftName}
           onChange={(e) => setNftName(e.target.value)}
         />
       </Field>
-      <Field label="Symbol" hint="Optional short ticker shown inside metadata.">
+      <Field label="Symbol" optional hint="Short ticker, up to 10 bytes.">
         <Input
           type="text"
           placeholder="AVA3D"
@@ -430,44 +451,54 @@ function MetadataFields(props: {
           onChange={(e) => setNftSymbol(e.target.value)}
         />
       </Field>
-      <Field label="Description">
+      <Field label="Description" optional>
         <Textarea
-          placeholder="Describe the collection"
+          placeholder="What is this collection about?"
           rows={3}
           value={nftDescription}
           onChange={(e) => setNftDescription(e.target.value)}
         />
       </Field>
-      <div className="grid gap-4 md:grid-cols-[1fr_auto]">
-        <Field label="Max Supply">
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field
+          label="Max supply"
+          hint="How many copies can ever be minted."
+        >
           <Input
             type="text"
+            inputMode="numeric"
             placeholder="64"
             value={infinite ? "∞" : nftMaxSupply}
             onChange={(e) => setNftMaxSupply(e.target.value)}
             disabled={infinite}
           />
         </Field>
-        <label className="ui-panel-muted flex items-center gap-3 px-4 py-3">
-          <input
-            type="checkbox"
-            className="h-4 w-4"
-            checked={infinite}
-            onChange={(e) =>
-              setNftMaxSupply(e.target.checked ? "18446744073709551615" : "")
-            }
+        <Field label="Mint fee" hint="In SOL, per mint. 0 makes it free.">
+          <Input
+            type="number"
+            min="0"
+            step="0.001"
+            placeholder="0.001"
+            value={nftMintFee}
+            onChange={(e) => setNftMintFee(e.target.value)}
           />
-          <span className="ui-copy whitespace-nowrap text-sm">Infinity</span>
-        </label>
+        </Field>
       </div>
-      <Field label="Mint Fee (SOL)">
-        <Input
-          type="number"
-          placeholder="0.001"
-          value={nftMintFee}
-          onChange={(e) => setNftMintFee(e.target.value)}
+
+      <label className="flex cursor-pointer items-center gap-3 border border-[rgb(var(--line))] px-4 py-3">
+        <input
+          type="checkbox"
+          className="h-4 w-4 accent-[rgb(var(--accent-line))]"
+          checked={infinite}
+          onChange={(e) =>
+            setNftMaxSupply(e.target.checked ? "18446744073709551615" : "")
+          }
         />
-      </Field>
+        <span className="text-sm text-[rgb(var(--text-strong))]">
+          Unlimited supply
+        </span>
+      </label>
     </div>
   );
 }

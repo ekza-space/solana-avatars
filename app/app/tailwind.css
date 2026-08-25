@@ -2,70 +2,99 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   EKZA AVATARS — "SPEC SHEET" DESIGN SYSTEM
+   --------------------------------------------------------------------------
+   Direction: flat editorial catalogue for 3D assets.
+   - No glass, no blur, no gradients, no soft drop shadows.
+   - Hairline rules separate meaning; surfaces do not stack.
+   - One acid-lime accent per screen, used as a FILL (never as body text).
+   - Oversized display type + tiny tabular mono for machine data.
+   ========================================================================== */
+
 @layer base {
   :root {
     color-scheme: light;
-    --bg: 245 247 250;
+
+    /* surfaces — warm paper, not blue glass */
+    --bg: 247 246 242;
     --surface: 255 255 255;
-    --surface-2: 239 244 248;
-    --line: 198 208 220;
-    --line-strong: 28 36 48;
-    --text: 69 85 107;
-    --text-strong: 15 23 42;
-    --accent: 37 99 235;
-    --accent-strong: 30 64 175;
-    --success: 22 163 74;
-    --danger: 220 38 38;
-    --glow: 56 189 248;
+    --surface-2: 240 239 233;
+
+    /* lines */
+    --line: 216 213 204;
+    --line-strong: 24 24 27;
+
+    /* ink */
+    --text: 87 85 79;
+    --text-strong: 18 18 17;
+
+    /* signature accent — acid lime, always paired with ink */
+    --accent: 205 240 40;
+    --accent-ink: 14 14 12;
+    --accent-line: 122 150 8;
+
+    /* status */
+    --success: 21 116 56;
+    --danger: 183 26 34;
+    --warning: 165 92 8;
+
+    /* geometry */
+    --r: 2px;
   }
 
   .dark {
     color-scheme: dark;
-    --bg: 8 11 19;
-    --surface: 11 19 32;
-    --surface-2: 16 27 45;
-    --line: 52 73 104;
-    --line-strong: 159 188 255;
-    --text: 157 173 196;
-    --text-strong: 240 246 255;
-    --accent: 96 165 250;
-    --accent-strong: 125 211 252;
-    --success: 74 222 128;
+
+    --bg: 10 10 11;
+    --surface: 19 19 21;
+    --surface-2: 27 27 30;
+
+    --line: 48 48 53;
+    --line-strong: 244 244 242;
+
+    --text: 158 158 165;
+    --text-strong: 250 250 248;
+
+    --accent: 210 244 48;
+    --accent-ink: 12 12 10;
+    --accent-line: 210 244 48;
+
+    --success: 86 214 122;
     --danger: 248 113 113;
-    --glow: 56 189 248;
+    --warning: 232 168 66;
   }
 
   html {
-    @apply h-full scroll-smooth;
+    @apply h-full;
   }
 
   body {
     @apply min-h-dvh font-sans antialiased;
-    background:
-      radial-gradient(circle at top, rgba(var(--glow), 0.08), transparent 34%),
-      linear-gradient(to bottom, rgba(var(--surface), 0.92), rgba(var(--bg), 0.98));
+    background: rgb(var(--bg));
     color: rgb(var(--text));
-  }
-
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.08;
-    background-image:
-      linear-gradient(rgba(var(--line-strong), 0.11) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(var(--line-strong), 0.11) 1px, transparent 1px);
-    background-size: 100% 28px, 28px 100%;
-    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent);
-  }
-
-  a {
-    @apply transition-colors duration-200;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
   }
 
   ::selection {
-    background: rgba(var(--accent), 0.22);
+    background: rgb(var(--accent));
+    color: rgb(var(--accent-ink));
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent-line));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
@@ -74,166 +103,419 @@
     @apply relative min-h-dvh;
   }
 
-  .ui-panel {
-    @apply rounded-[28px] border p-5 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-sm;
-    border-color: rgba(var(--line), 0.72);
-    background:
-      linear-gradient(180deg, rgba(var(--surface), 0.94), rgba(var(--surface-2), 0.88));
+  /* ---------- typography ------------------------------------------------ */
+
+  .ui-display {
+    @apply font-display font-bold;
+    font-size: clamp(2.25rem, 5.2vw, 3.75rem);
+    line-height: 1;
+    letter-spacing: -0.035em;
+    color: rgb(var(--text-strong));
   }
 
-  .ui-panel-muted {
-    @apply rounded-3xl border p-5 backdrop-blur-sm;
-    border-color: rgba(var(--line), 0.52);
-    background: rgba(var(--surface), 0.72);
+  .ui-h2 {
+    @apply font-display font-semibold;
+    font-size: clamp(1.375rem, 2.2vw, 1.75rem);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: rgb(var(--text-strong));
   }
 
-  .ui-eyebrow {
-    @apply inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-[0.32em];
-    border-color: rgba(var(--line-strong), 0.35);
-    color: rgb(var(--accent));
-    background: rgba(var(--accent), 0.08);
-  }
-
-  .ui-title {
-    @apply font-display text-4xl font-semibold tracking-tight text-[rgb(var(--text-strong))] sm:text-5xl;
+  .ui-h3 {
+    @apply font-display text-lg font-semibold;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    color: rgb(var(--text-strong));
   }
 
   .ui-copy {
-    @apply text-base leading-7;
+    @apply text-base;
+    line-height: 1.6;
     color: rgb(var(--text));
   }
 
+  .ui-copy-sm {
+    @apply text-sm;
+    line-height: 1.6;
+    color: rgb(var(--text));
+  }
+
+  /* tiny machine label */
   .ui-label {
-    @apply font-mono text-[11px] uppercase tracking-[0.26em];
-    color: rgba(var(--text), 0.84);
+    @apply font-mono text-[10px] font-medium uppercase;
+    letter-spacing: 0.14em;
+    color: rgb(var(--text));
   }
 
-  .ui-input,
-  .ui-textarea {
-    @apply w-full rounded-2xl border px-4 py-3 text-sm text-[rgb(var(--text-strong))] outline-none transition duration-200 placeholder:text-[rgb(var(--text))];
-    border-color: rgba(var(--line), 0.72);
-    background: rgba(var(--surface), 0.82);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  /* section kicker with the signature lime tick */
+  .ui-eyebrow {
+    @apply inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase;
+    letter-spacing: 0.18em;
+    color: rgb(var(--text-strong));
   }
 
-  .ui-input:focus,
-  .ui-textarea:focus {
-    border-color: rgba(var(--line-strong), 0.92);
-    box-shadow:
-      0 0 0 4px rgba(var(--accent), 0.14),
-      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  .ui-eyebrow::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    background: rgb(var(--accent));
+    flex: none;
   }
 
-  .ui-textarea {
-    @apply min-h-[120px] resize-y;
+  .ui-mono {
+    @apply font-mono text-xs;
+    font-variant-numeric: tabular-nums;
+    word-break: break-all;
+    color: rgb(var(--text-strong));
   }
+
+  .ui-index {
+    @apply font-mono text-xs font-medium;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.1em;
+    color: rgb(var(--text));
+  }
+
+  .ui-link {
+    color: rgb(var(--text-strong));
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+    text-decoration-color: rgb(var(--accent-line));
+    @apply font-medium;
+  }
+
+  .ui-link:hover {
+    background: rgb(var(--accent));
+    color: rgb(var(--accent-ink));
+    text-decoration-color: transparent;
+  }
+
+  /* ---------- surfaces -------------------------------------------------- */
+
+  .ui-card {
+    border: 1px solid rgb(var(--line));
+    border-radius: var(--r);
+    background: rgb(var(--surface));
+  }
+
+  .ui-card-quiet {
+    border: 1px solid rgb(var(--line));
+    border-radius: var(--r);
+    background: rgb(var(--surface-2));
+  }
+
+  /* interactive card in a grid */
+  .ui-card-action {
+    @apply transition-colors duration-200;
+    border: 1px solid rgb(var(--line));
+    border-radius: var(--r);
+    background: rgb(var(--surface));
+  }
+
+  .ui-card-action:hover {
+    border-color: rgba(var(--line-strong), 0.45);
+  }
+
+  .ui-card-action[data-selected="true"] {
+    border-color: rgb(var(--accent-line));
+    box-shadow: inset 0 0 0 1px rgb(var(--accent-line));
+  }
+
+  .ui-rule {
+    height: 1px;
+    background: rgb(var(--line));
+    border: 0;
+  }
+
+  /* dotted key/value row, catalogue style */
+  .ui-datarow {
+    @apply flex items-baseline gap-3 py-2;
+    border-bottom: 1px solid rgb(var(--line));
+  }
+
+  .ui-datarow:last-child {
+    border-bottom: 0;
+  }
+
+  .ui-datarow > dt {
+    @apply font-mono text-[10px] uppercase;
+    letter-spacing: 0.14em;
+    color: rgb(var(--text));
+    flex: none;
+  }
+
+  .ui-datarow > dd {
+    @apply ml-auto text-right font-mono text-xs;
+    font-variant-numeric: tabular-nums;
+    color: rgb(var(--text-strong));
+    min-width: 0;
+    word-break: break-all;
+  }
+
+  /* ---------- controls -------------------------------------------------- */
 
   .ui-button {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold text-white transition duration-200 disabled:cursor-not-allowed disabled:opacity-50;
-    color: rgb(255 255 255) !important;
-    border: 1px solid rgba(var(--line-strong), 0.5) !important;
-    background-color: rgb(var(--accent));
-    background:
-      linear-gradient(180deg, rgba(var(--accent), 0.96), rgba(var(--accent-strong), 0.92)) !important;
-    box-shadow:
-      0 10px 30px rgba(var(--accent), 0.18),
-      inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 px-5 text-sm font-semibold transition-colors duration-150;
+    border-radius: var(--r);
+    border: 1px solid rgb(var(--accent));
+    background: rgb(var(--accent));
+    color: rgb(var(--accent-ink));
+    letter-spacing: 0.01em;
   }
 
   .ui-button:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow:
-      0 14px 36px rgba(var(--accent), 0.24),
-      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    background: rgb(var(--text-strong));
+    border-color: rgb(var(--text-strong));
+    color: rgb(var(--bg));
   }
 
-  :root:not(.dark)
-    .ui-button:not(.ui-button-secondary):not(.ui-button-ghost):not(
-      .ui-button-danger
-    ) {
-    color: rgb(255 255 255) !important;
-    border-color: rgba(var(--accent-strong), 0.78);
-    background:
-      linear-gradient(180deg, rgba(var(--accent), 1), rgba(var(--accent-strong), 0.96)) !important;
-  }
-
-  .ui-button-secondary,
-  .ui-button-ghost,
-  .ui-button-danger {
-    color: rgb(var(--text-strong)) !important;
-    box-shadow: none;
+  .ui-button:disabled {
+    @apply cursor-not-allowed;
+    opacity: 0.45;
   }
 
   .ui-button-secondary {
-    background: rgba(var(--surface), 0.72) !important;
-    border-color: rgba(var(--line-strong), 0.34) !important;
+    background: transparent;
+    border-color: rgba(var(--line-strong), 0.32);
+    color: rgb(var(--text-strong));
   }
 
   .ui-button-secondary:hover:not(:disabled) {
-    background: rgba(var(--surface-2), 0.86) !important;
-    border-color: rgba(var(--line-strong), 0.58) !important;
+    background: rgb(var(--text-strong));
+    border-color: rgb(var(--text-strong));
+    color: rgb(var(--bg));
   }
 
   .ui-button-ghost {
     background: transparent;
-    border-color: rgba(var(--line), 0.6);
+    border-color: transparent;
+    color: rgb(var(--text-strong));
+    @apply px-3;
+  }
+
+  .ui-button-ghost:hover:not(:disabled) {
+    background: rgba(var(--line-strong), 0.08);
+    border-color: transparent;
+    color: rgb(var(--text-strong));
   }
 
   .ui-button-danger {
-    color: white;
-    border-color: rgba(var(--danger), 0.42);
-    background: linear-gradient(180deg, rgba(var(--danger), 0.96), rgba(var(--danger), 0.82));
+    background: transparent;
+    border-color: rgba(var(--danger), 0.55);
+    color: rgb(var(--danger));
+  }
+
+  .ui-button-danger:hover:not(:disabled) {
+    background: rgb(var(--danger));
+    border-color: rgb(var(--danger));
+    color: rgb(255 255 255);
+  }
+
+  .ui-button-sm {
+    @apply min-h-9 px-3 text-xs;
   }
 
   .ui-icon-button {
-    @apply inline-flex h-11 w-11 items-center justify-center rounded-2xl border transition duration-200;
+    @apply inline-flex h-11 w-11 cursor-pointer items-center justify-center transition-colors duration-150;
+    border-radius: var(--r);
+    border: 1px solid rgba(var(--line-strong), 0.22);
+    background: transparent;
     color: rgb(var(--text-strong));
-    border-color: rgba(var(--line), 0.72);
-    background: rgba(var(--surface), 0.78);
   }
 
   .ui-icon-button:hover:not(:disabled) {
-    border-color: rgba(var(--line-strong), 0.6);
-    color: rgb(var(--accent));
+    background: rgb(var(--text-strong));
+    border-color: rgb(var(--text-strong));
+    color: rgb(var(--bg));
   }
 
+  .ui-input,
+  .ui-textarea,
+  .ui-select {
+    @apply w-full px-3 py-3 text-sm transition-colors duration-150;
+    border-radius: var(--r);
+    border: 1px solid rgb(var(--line));
+    background: rgb(var(--surface));
+    color: rgb(var(--text-strong));
+    min-height: 44px;
+    outline: none;
+  }
+
+  .ui-input::placeholder,
+  .ui-textarea::placeholder {
+    color: rgba(var(--text), 0.7);
+  }
+
+  .ui-input:hover,
+  .ui-textarea:hover,
+  .ui-select:hover {
+    border-color: rgba(var(--line-strong), 0.4);
+  }
+
+  .ui-input:focus,
+  .ui-textarea:focus,
+  .ui-select:focus {
+    border-color: rgb(var(--accent-line));
+    box-shadow: inset 0 0 0 1px rgb(var(--accent-line));
+  }
+
+  .ui-input:disabled,
+  .ui-textarea:disabled {
+    background: rgb(var(--surface-2));
+    opacity: 0.7;
+  }
+
+  .ui-textarea {
+    @apply min-h-[110px] resize-y;
+    line-height: 1.55;
+  }
+
+  .ui-select {
+    @apply cursor-pointer py-2 pr-8;
+    min-height: 40px;
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, rgb(var(--text)) 50%),
+      linear-gradient(135deg, rgb(var(--text)) 50%, transparent 50%);
+    background-position: calc(100% - 15px) 55%, calc(100% - 10px) 55%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+
+  /* ---------- indicators ------------------------------------------------ */
+
   .ui-badge {
-    @apply inline-flex items-center rounded-full border px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.2em];
-    border-color: rgba(var(--line), 0.72);
+    @apply inline-flex items-center gap-1.5 px-2 py-1 font-mono text-[10px] font-medium uppercase;
+    letter-spacing: 0.12em;
+    border-radius: var(--r);
+    border: 1px solid rgb(var(--line));
     color: rgb(var(--text));
-    background: rgba(var(--surface), 0.72);
+    background: transparent;
+  }
+
+  .ui-badge-solid {
+    border-color: rgb(var(--accent));
+    background: rgb(var(--accent));
+    color: rgb(var(--accent-ink));
   }
 
   .ui-badge-success {
     color: rgb(var(--success));
-    border-color: rgba(var(--success), 0.3);
-    background: rgba(var(--success), 0.12);
+    border-color: rgba(var(--success), 0.45);
   }
 
   .ui-badge-danger {
     color: rgb(var(--danger));
-    border-color: rgba(var(--danger), 0.3);
-    background: rgba(var(--danger), 0.12);
+    border-color: rgba(var(--danger), 0.45);
   }
 
-  .wallet-adapter-button-trigger,
-  .wallet-adapter-button:not([disabled]) {
-    @apply inline-flex min-h-11 items-center justify-center rounded-2xl border px-4 py-2 text-sm font-semibold transition duration-200;
-    color: white !important;
-    border-color: rgba(var(--line-strong), 0.5) !important;
-    background:
-      linear-gradient(180deg, rgba(var(--accent), 0.96), rgba(var(--accent-strong), 0.92)) !important;
-    box-shadow: 0 10px 28px rgba(var(--accent), 0.2);
+  .ui-badge-warning {
+    color: rgb(var(--warning));
+    border-color: rgba(var(--warning), 0.45);
   }
 
-  .wallet-adapter-button-trigger:hover,
-  .wallet-adapter-button:not([disabled]):hover {
-    transform: translateY(-1px);
-    background:
-      linear-gradient(180deg, rgba(var(--accent), 1), rgba(var(--accent-strong), 0.96)) !important;
+  .ui-skeleton {
+    @apply animate-pulse;
+    border-radius: var(--r);
+    background: rgb(var(--surface-2));
   }
 
-  .wallet-adapter-modal-wrapper {
+  /* nav item: no box, an underline carries the state */
+  .ui-navlink {
+    @apply relative inline-flex min-h-11 items-center px-1 text-sm font-medium transition-colors duration-150;
+    color: rgb(var(--text));
+  }
+
+  .ui-navlink:hover {
     color: rgb(var(--text-strong));
   }
+
+  .ui-navlink[data-active="true"],
+  .ui-navlink[data-state="active"] {
+    color: rgb(var(--text-strong));
+  }
+
+  .ui-navlink[data-active="true"]::after,
+  .ui-navlink[data-state="active"]::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgb(var(--accent));
+  }
+}
+
+/* Wallet-adapter overrides live outside @layer components: Tailwind only
+   emits component-layer rules whose class names appear in the content files,
+   and these class names are produced by the wallet library at runtime. */
+/* ---------- wallet adapter overrides ---------------------------------- */
+
+.wallet-adapter-button-trigger {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 44px !important;
+  height: auto !important;
+  padding: 0 20px !important;
+  border-radius: var(--r) !important;
+  border: 1px solid rgb(var(--accent)) !important;
+  background: rgb(var(--accent)) !important;
+  color: rgb(var(--accent-ink)) !important;
+  box-shadow: none !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  transition: background-color 150ms ease, color 150ms ease !important;
+}
+
+.wallet-adapter-button-trigger:hover {
+  background: rgb(var(--text-strong)) !important;
+  border-color: rgb(var(--text-strong)) !important;
+  color: rgb(var(--bg)) !important;
+}
+
+.wallet-adapter-modal-wrapper {
+  border-radius: var(--r) !important;
+  background: rgb(var(--surface)) !important;
+  color: rgb(var(--text-strong)) !important;
+  box-shadow: none !important;
+  border: 1px solid rgb(var(--line)) !important;
+}
+
+.wallet-adapter-modal-title,
+.wallet-adapter-modal-list-more {
+  color: rgb(var(--text-strong)) !important;
+  font-family: inherit !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button {
+  border-radius: var(--r) !important;
+  background: rgb(var(--surface-2)) !important;
+  color: rgb(var(--text-strong)) !important;
+  font-family: inherit !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button:hover {
+  background: rgb(var(--text-strong)) !important;
+  color: rgb(var(--bg)) !important;
+}
+
+.wallet-adapter-dropdown-list {
+  border-radius: var(--r) !important;
+  background: rgb(var(--surface)) !important;
+  border: 1px solid rgb(var(--line)) !important;
+}
+
+.wallet-adapter-dropdown-list-item {
+  border-radius: var(--r) !important;
+  background: transparent !important;
+  color: rgb(var(--text-strong)) !important;
+  font-family: inherit !important;
+}
+
+.wallet-adapter-dropdown-list-item:not([disabled]):hover {
+  background: rgb(var(--surface-2)) !important;
 }
