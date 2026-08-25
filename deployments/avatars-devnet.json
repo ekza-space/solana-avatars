@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "cluster": "devnet",
+  "programId": "29KLLArkfCfRGPgTh4k4qzXvR2JkkXfRnnNZTKn54TKz",
+  "status": "not_started",
+  "owner": null,
+  "rpcHost": null,
+  "source": {
+    "dataset": "Open Source Avatars",
+    "registrySource": "https://github.com/ToxSam/open-source-avatars",
+    "registrySnapshotCommit": "0f9a1b2fd99894736563d55b2c9dc9125700d081",
+    "collections": ["100avatars-r1"],
+    "count": 12
+  },
+  "config": {
+    "maxSupply": "100",
+    "mintFeeLamports": "0",
+    "mintsPerTemplate": 1,
+    "symbol": "EKZAAV",
+    "namePrefix": "Ekza "
+  },
+  "createdAt": null,
+  "updatedAt": null,
+  "completedAt": null,
+  "lastError": null,
+  "avatars": [],
+  "note": "No deployment has been performed. Dry-run never modifies this file; only explicit --execute populates it."
+}

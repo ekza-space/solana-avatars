@@ -5,7 +5,11 @@
     "sdk"
   ],
   "scripts": {
+    "avatars:devnet": "tsc --build sdk/tsconfig.json && node scripts/deploy-opensource-avatars-devnet.js",
+    "avatars:devnet:dry-run": "node scripts/deploy-opensource-avatars-devnet.js --dry-run",
+    "build:sdk": "tsc --build sdk/tsconfig.json",
     "test:localnet:e2e": "bash scripts/test-localnet-e2e.sh",
+    "test:avatars:devnet": "node --test tests/devnet-avatar-collection.unit.test.js",
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
   },

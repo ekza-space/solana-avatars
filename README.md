@@ -98,6 +98,37 @@ The protocol now follows the security standard below for production releases:
 
 ## 🔧 Commands
 
+### Prepare the CC0 devnet avatar collection
+
+The Phase 0 collection script selects a deterministic set of CC0 VRMs from
+the local `opensourceavatars/manifest.json`, builds Metaplex metadata that
+references the existing model URLs, and can publish each template through
+`initialize_avatar` + `mint_nft`.
+
+Dry-run is the default. It does not read a wallet or `PINATA_JWT`, make
+network requests, or write a deployment file:
+
+```sh
+npm run avatars:devnet:dry-run
+# Full metadata preview:
+npm run avatars:devnet:dry-run -- --json
+```
+
+Live execution is deliberately explicit. Use a Helius devnet endpoint (or
+another Solana devnet RPC) and review the dry-run first:
+
+```sh
+PINATA_JWT=... \
+HELIUS_DEVNET_RPC_URL=https://devnet.helius-rpc.com/?api-key=... \
+npm run avatars:devnet -- --execute --wallet /absolute/path/to/id.json
+```
+
+The script verifies the devnet genesis hash before any Pinata upload or
+transaction, never uploads the VRM binaries, checkpoints after every stage,
+and writes resumable evidence to `deployments/avatars-devnet.json`. It does
+not load `.env` files. See `--help` for collection, count, supply, fee, and
+output options.
+
 ### Switch between networks
 
 ```sh
