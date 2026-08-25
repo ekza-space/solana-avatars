@@ -9,6 +9,9 @@
  * On Vercel, `.env` is not deployed unless you add variables in the dashboard;
  * without them, production must not fall back to localhost.
  */
+/** CORS-enabled gateway used when no override is configured (e.g. on Vercel). */
+export const DEFAULT_PUBLIC_IPFS_GATEWAY = "https://ekza.mypinata.cloud/ipfs/";
+
 export function getIpfsGatewayBase(): string {
   const localCluster = getPersistedCluster();
   if (localCluster === "localnet") {
@@ -28,7 +31,10 @@ export function getIpfsGatewayBase(): string {
     return "/api/ipfs/";
   }
 
-  return "https://ipfs.io/ipfs/";
+  // Public ipfs.io answers 403 without CORS headers, so the browser drops every
+  // metadata/image request and the gallery renders empty. Fall back to the
+  // project's own pinning gateway, which serves CORS-enabled responses.
+  return DEFAULT_PUBLIC_IPFS_GATEWAY;
 }
 
 function normalizeGatewayBase(raw: string): string {

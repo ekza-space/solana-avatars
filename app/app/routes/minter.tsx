@@ -641,6 +641,9 @@ export default function MarketPage() {
                 (!Number.isNaN(requestedAvatarIndex) &&
                   Number(index) === requestedAvatarIndex);
               const canPreviewModel = isRenderableModelMetadata(metadata);
+              // Metadata lives off-chain; when its CID is malformed or unpinned
+              // the collection cannot be minted (name/symbol/uri come from it).
+              const metadataUnavailable = !metadata;
               const modelAnimationUrl = canPreviewModel
                 ? metadata?.animation_url
                 : "";
@@ -682,6 +685,11 @@ export default function MarketPage() {
                     <p className="ui-copy text-sm">
                       {metadata.description.slice(0, 160)}
                       {metadata.description.length > 160 ? "..." : ""}
+                    </p>
+                  ) : metadataUnavailable ? (
+                    <p className="ui-copy text-sm text-[rgb(var(--warning,220_120_60))]">
+                      Metadata is unavailable — its IPFS record could not be
+                      loaded, so this collection cannot be minted.
                     </p>
                   ) : (
                     <p className="ui-copy text-sm">
@@ -755,6 +763,12 @@ export default function MarketPage() {
                       type="button"
                       variant="secondary"
                       style={VIEW_3D_BUTTON_STYLE}
+                      disabled={metadataUnavailable}
+                      title={
+                        metadataUnavailable
+                          ? "Metadata could not be loaded for this collection"
+                          : undefined
+                      }
                       onClick={async () => {
                         if (!minter || !metadata) return;
                         try {
@@ -805,7 +819,7 @@ export default function MarketPage() {
                           }
                         }}
                     >
-                      Mint
+                      {metadataUnavailable ? "Unavailable" : "Mint"}
                     </Button>
                   </div>
 

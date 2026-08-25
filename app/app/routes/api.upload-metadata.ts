@@ -2,7 +2,9 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 
 const PINATA_FILE_ENDPOINT = "https://api.pinata.cloud/pinning/pinFileToIPFS";
 const PINATA_JSON_ENDPOINT = "https://api.pinata.cloud/pinning/pinJSONToIPFS";
-const DEFAULT_IPFS_GATEWAY = "https://ipfs.io/ipfs/";
+// ipfs.io serves 403 without CORS headers, so URLs built from it are unusable
+// in the browser. Use the project's own CORS-enabled pinning gateway.
+const DEFAULT_IPFS_GATEWAY = "https://ekza.mypinata.cloud/ipfs/";
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const MAX_JSON_BYTES = 512 * 1024;
 const MAX_MULTIPART_BYTES = 25 * 1024 * 1024;
