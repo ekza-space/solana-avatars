@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const DEPLOYMENT_SCHEMA_VERSION = 1;
-const DEVNET_GENESIS_HASH = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1";
+const DEVNET_GENESIS_HASH = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG";
 const MINTER_PROGRAM_ID = "29KLLArkfCfRGPgTh4k4qzXvR2JkkXfRnnNZTKn54TKz";
 const PINATA_JSON_ENDPOINT = "https://api.pinata.cloud/pinning/pinJSONToIPFS";
 const SOURCE_HOMEPAGE = "https://www.opensourceavatars.com";

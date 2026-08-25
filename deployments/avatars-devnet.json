@@ -2,15 +2,17 @@
   "schemaVersion": 1,
   "cluster": "devnet",
   "programId": "29KLLArkfCfRGPgTh4k4qzXvR2JkkXfRnnNZTKn54TKz",
-  "status": "not_started",
-  "owner": null,
-  "rpcHost": null,
+  "status": "complete",
+  "owner": "Ab5TgPbcB8QVuormXYXHzRVkV7okAbzkS2sU2neKoWvQ",
+  "rpcHost": "devnet.helius-rpc.com",
   "source": {
     "dataset": "Open Source Avatars",
     "registrySource": "https://github.com/ToxSam/open-source-avatars",
     "registrySnapshotCommit": "0f9a1b2fd99894736563d55b2c9dc9125700d081",
-    "collections": ["100avatars-r1"],
-    "count": 12
+    "collections": [
+      "100avatars-r1"
+    ],
+    "count": 5
   },
   "config": {
     "maxSupply": "100",
@@ -19,10 +21,225 @@
     "symbol": "EKZAAV",
     "namePrefix": "Ekza "
   },
-  "createdAt": null,
-  "updatedAt": null,
-  "completedAt": null,
+  "createdAt": "2026-08-25T20:38:14.140Z",
+  "updatedAt": "2026-08-25T20:42:01.811Z",
+  "completedAt": "2026-08-25T20:42:01.811Z",
   "lastError": null,
-  "avatars": [],
-  "note": "No deployment has been performed. Dry-run never modifies this file; only explicit --execute populates it."
+  "avatars": [
+    {
+      "source": {
+        "id": "27ccb24c-1fa1-4931-afed-e182b062c950",
+        "key": "100avatars-r1:27ccb24c-1fa1-4931-afed-e182b062c950",
+        "name": "Devil",
+        "collectionId": "100avatars-r1",
+        "collectionName": "100Avatars R1",
+        "author": "Polygonal-Mind",
+        "license": "CC0",
+        "format": "VRM",
+        "modelUrl": "https://arweave.net/gfVzs1oH_aPaHVxpQK86HT_rqzyrFPOUKUrDJ30yprs",
+        "thumbnailUrl": "https://arweave.net/llxwUMPCfar71x4hLTU4f1-pcsYeGDUD4Gxm1dhWaDg",
+        "sourceUrl": null
+      },
+      "status": "complete",
+      "metadata": {
+        "ipfsHash": "QmWPWwLs5FmTBkqNQo86Qm4PgSSFp9zvsL91nqBHHG3Ptf",
+        "uri": "ipfs://QmWPWwLs5FmTBkqNQo86Qm4PgSSFp9zvsL91nqBHHG3Ptf",
+        "pinSize": 1256,
+        "timestamp": "2026-08-25T20:38:16.308Z",
+        "sha256": "7b87146970c64595cb6d47189e4a3a3e1ccc2e53ca66a02bb8c6ffc26822c485",
+        "pinName": "ekza-avatar-100avatars-r1-27ccb24c-1fa1-4931-afed-e182b062c950.json",
+        "modelUrl": "https://arweave.net/gfVzs1oH_aPaHVxpQK86HT_rqzyrFPOUKUrDJ30yprs",
+        "imageUrl": "https://arweave.net/llxwUMPCfar71x4hLTU4f1-pcsYeGDUD4Gxm1dhWaDg"
+      },
+      "avatarData": {
+        "index": 12,
+        "pda": "DxbtsGp9a5aqyvDCB2pz3o4UbKQhrQd4f6vywkB7J5hL",
+        "initializeSignature": "3hBhpoJBv8mME2kdXio4V29PXoxNEw8s8PAK6Vs7ibngq9h4twAmGeoeimUxrmxpTo1CE2qBf8qyLCTAHHUcKNrK",
+        "recoveredFromChain": false,
+        "currentSupply": "1"
+      },
+      "mints": [
+        {
+          "mint": "9Zd6AHAKfodYc3D8aETYQfS7hgsQ8j7g6xnY9X7czaaS",
+          "tokenAccount": "FcJGeY7jbz8G4sajWS1FjvVFrzdMNnCWavmVn7BFtjWA",
+          "metadataPda": "Gh6exhP8XiJycSM4nhCRFY2tpN1kF9qjbmvWoFnZBfCY",
+          "signature": "2akwbWSLLGfti4vhAABHoY3arnSYYSnoxDkQP6sM3Pgf4BvxxLJ9itUgndg7S2ZHb3KAvRt8mG9GJTKDfVjBcTTk",
+          "verified": true,
+          "verifiedAt": "2026-08-25T20:41:20.766Z"
+        }
+      ]
+    },
+    {
+      "source": {
+        "id": "16aaf84a-3b1c-487f-9871-f9daabf4f504",
+        "key": "100avatars-r1:16aaf84a-3b1c-487f-9871-f9daabf4f504",
+        "name": "Polydancer",
+        "collectionId": "100avatars-r1",
+        "collectionName": "100Avatars R1",
+        "author": "Polygonal-Mind",
+        "license": "CC0",
+        "format": "VRM",
+        "modelUrl": "https://arweave.net/jPOg-G0MPH55ZQmamFhT9f8cHn-hjeAQ0mRO5gWeKMQ",
+        "thumbnailUrl": "https://arweave.net/SUPfb9dzBeLUUpJaEjGPGDkEE_6PylCs3_wU_Em69LM",
+        "sourceUrl": null
+      },
+      "status": "complete",
+      "metadata": {
+        "ipfsHash": "QmPucy3xFMwx54KiQdy49wEL5r8P2vMY4jRoduisq2GZ6U",
+        "uri": "ipfs://QmPucy3xFMwx54KiQdy49wEL5r8P2vMY4jRoduisq2GZ6U",
+        "pinSize": 1266,
+        "timestamp": "2026-08-25T20:41:21.942Z",
+        "sha256": "122a3d4b4d7da42ded5b0366cbc277cc1243ebc12fc77ade00a5f26b50014039",
+        "pinName": "ekza-avatar-100avatars-r1-16aaf84a-3b1c-487f-9871-f9daabf4f504.json",
+        "modelUrl": "https://arweave.net/jPOg-G0MPH55ZQmamFhT9f8cHn-hjeAQ0mRO5gWeKMQ",
+        "imageUrl": "https://arweave.net/SUPfb9dzBeLUUpJaEjGPGDkEE_6PylCs3_wU_Em69LM"
+      },
+      "avatarData": {
+        "index": 13,
+        "pda": "FHw9SM5QSx2WR3odTDCGMsv3ZBRM7L5K5j6p2vHhjFwQ",
+        "initializeSignature": "3LXMi4ARGQhDRXzwH9Vh3b26ShoE9D85HkgoNxjMpGovxzUN8iTkWXuPakn58Bbi6jki8P5KWRc7heAkCuCPQkag",
+        "recoveredFromChain": false,
+        "currentSupply": "1"
+      },
+      "mints": [
+        {
+          "mint": "4UAQS1GYa2Wevxh6PB7LkiHu2DLcK2ZgP4XcY6ThUUBW",
+          "tokenAccount": "9AbjsvbYMysdaZTQE5V6J5kUtQgTKz3w9tYPVB8tZDru",
+          "metadataPda": "AbEiGsW8VCMGoHC2GJzhimuCvQXfAt9HVsEAKb2Zzsae",
+          "signature": "5YSjNGdp4c7oZcwA4eYfMzhnExHjmz5kBWzqcUEUHtJJTd9cX5doRTcgWARTg7FHHRxJGTJuRLzn7YGfgrdtEmFz",
+          "verified": true,
+          "verifiedAt": "2026-08-25T20:41:27.058Z"
+        }
+      ]
+    },
+    {
+      "source": {
+        "id": "8eedc254-88d8-4320-9d96-73acbb7d61cc",
+        "key": "100avatars-r1:8eedc254-88d8-4320-9d96-73acbb7d61cc",
+        "name": "Rose",
+        "collectionId": "100avatars-r1",
+        "collectionName": "100Avatars R1",
+        "author": "Polygonal-Mind",
+        "license": "CC0",
+        "format": "VRM",
+        "modelUrl": "https://arweave.net/Ea1KXujzJatQgCFSMzGOzp_UtHqB1pyia--U3AtkMAY",
+        "thumbnailUrl": "https://arweave.net/MsKV9G8Dvzv1rOfU8aCLlxZ2PtzQ-J9ijkdkFU-ExPo",
+        "sourceUrl": null
+      },
+      "status": "complete",
+      "metadata": {
+        "ipfsHash": "QmWYjvg5Ee76W5vEzG3wBB7CFYp5Cxv83kFMvBCamE1zfU",
+        "uri": "ipfs://QmWYjvg5Ee76W5vEzG3wBB7CFYp5Cxv83kFMvBCamE1zfU",
+        "pinSize": 1254,
+        "timestamp": "2026-08-25T20:41:28.068Z",
+        "sha256": "5dfd1ad6d6f1c8da2c6c1877131fc285de17b2467b7a2c7023b9311190778369",
+        "pinName": "ekza-avatar-100avatars-r1-8eedc254-88d8-4320-9d96-73acbb7d61cc.json",
+        "modelUrl": "https://arweave.net/Ea1KXujzJatQgCFSMzGOzp_UtHqB1pyia--U3AtkMAY",
+        "imageUrl": "https://arweave.net/MsKV9G8Dvzv1rOfU8aCLlxZ2PtzQ-J9ijkdkFU-ExPo"
+      },
+      "avatarData": {
+        "index": 14,
+        "pda": "4vQXGdtYdKPr2hMHidE2g7ZSyoSH7jp9T5NbB2b2Db1a",
+        "initializeSignature": "Lg9P5LmtqUvS3htASEBbZnMeLJFo7ZyQyehYWCpCiwXpYBRBanM7PQhSC34xEDD3sCeYfiAnKsEAe9MGCjA6mzQ",
+        "recoveredFromChain": false,
+        "currentSupply": "1"
+      },
+      "mints": [
+        {
+          "mint": "7cuGNMBCwpcQzBCBn6Gi9JEBAY4quUR8L6UchBPeFGFu",
+          "tokenAccount": "FLUbw26taBkDqyJ3WYkYjRaaPvoBrmYdiroKgjt56jqw",
+          "metadataPda": "D71MBNUUCJkmcBfzH2Hy4vB2D3catf1qA9MqxyRzqPrk",
+          "signature": "5G46EJUpkp7MigNjeKa8S4BUtQ6FdQnYjMfvRxknA5Tyi3aAtzbYk1X7GfcD2EK5D8xLoy2tU21cg7jGV3xHetn8",
+          "verified": true,
+          "verifiedAt": "2026-08-25T20:41:33.500Z"
+        }
+      ]
+    },
+    {
+      "source": {
+        "id": "56b866fc-c6e8-4635-8abb-b587c4c5b5dd",
+        "key": "100avatars-r1:56b866fc-c6e8-4635-8abb-b587c4c5b5dd",
+        "name": "Robert",
+        "collectionId": "100avatars-r1",
+        "collectionName": "100Avatars R1",
+        "author": "Polygonal-Mind",
+        "license": "CC0",
+        "format": "VRM",
+        "modelUrl": "https://arweave.net/gwG7w4bY-A5c3R6A6GOz3xBCgbPvkFQmqPIDtvnNsYI",
+        "thumbnailUrl": "https://arweave.net/gaFPebQ9hSZDa_xNHkja8CH0Qde2y41L95VQTtroWNA",
+        "sourceUrl": null
+      },
+      "status": "complete",
+      "metadata": {
+        "ipfsHash": "QmUjTMKVJ397oHd4vA4wkCdr1V5U7GBN1eWdKJJARkffqV",
+        "uri": "ipfs://QmUjTMKVJ397oHd4vA4wkCdr1V5U7GBN1eWdKJJARkffqV",
+        "pinSize": 1258,
+        "timestamp": "2026-08-25T20:41:34.447Z",
+        "sha256": "0af9a959d8f8a5876cd4e2ae5e6184cd978268fa970dd938b9b91c8148b03732",
+        "pinName": "ekza-avatar-100avatars-r1-56b866fc-c6e8-4635-8abb-b587c4c5b5dd.json",
+        "modelUrl": "https://arweave.net/gwG7w4bY-A5c3R6A6GOz3xBCgbPvkFQmqPIDtvnNsYI",
+        "imageUrl": "https://arweave.net/gaFPebQ9hSZDa_xNHkja8CH0Qde2y41L95VQTtroWNA"
+      },
+      "avatarData": {
+        "index": 15,
+        "pda": "6yquBsKM6BMgRXA8Bs1RxqPLxFNFDrZty1yhsuBEnihV",
+        "initializeSignature": "2ikQozDSXSBN1uZnrrUWU7boVgatQs26ma4kBBGrnqEMNNPLFaHruEmatBtLEep273drjcUij9WzPHfnTtDReKcD",
+        "recoveredFromChain": false,
+        "currentSupply": "1"
+      },
+      "mints": [
+        {
+          "mint": "2qFA6tC3rEzrAckYVREAy1WbuFNqRaJWpPqWnfEKGFhB",
+          "tokenAccount": "5FxmZZ2i81usNjXsCv4ajvi9xXG1gXpRHWmeR75uwwfr",
+          "metadataPda": "6FbStc6hGAXQQTniWKhwtWRQ3Rpe2mtBi6nRoJrHQmQh",
+          "signature": "21MjP3yn9LWfuWAz313JuzkjzGww93Nd6xbpqhSH3aMDb2mHn3CC3WSesBLwSU7eDUyUcpwJ4bRyUBNA5zYMGLmn",
+          "verified": true,
+          "verifiedAt": "2026-08-25T20:41:55.370Z"
+        }
+      ]
+    },
+    {
+      "source": {
+        "id": "718c61cb-32e7-4292-b44c-0c4f6a903968",
+        "key": "100avatars-r1:718c61cb-32e7-4292-b44c-0c4f6a903968",
+        "name": "Bloody",
+        "collectionId": "100avatars-r1",
+        "collectionName": "100Avatars R1",
+        "author": "Polygonal-Mind",
+        "license": "CC0",
+        "format": "VRM",
+        "modelUrl": "https://arweave.net/VBFMTU6Y26re-WiEtl3FxV5wj0DzYUyjeYPyVrhYkic",
+        "thumbnailUrl": "https://arweave.net/sbTlKSCyltB4AqOU7W27QDKftwKgHgpSm-79nYKpHyc",
+        "sourceUrl": null
+      },
+      "status": "complete",
+      "metadata": {
+        "ipfsHash": "Qmbw7QvmfHbSJLhHq5gNqbjbKy5T4eQrCsxNDt8vGD4Bvi",
+        "uri": "ipfs://Qmbw7QvmfHbSJLhHq5gNqbjbKy5T4eQrCsxNDt8vGD4Bvi",
+        "pinSize": 1258,
+        "timestamp": "2026-08-25T20:41:56.406Z",
+        "sha256": "5d4ff490b881202fc1fc5b08230e9b894a57e3c1fd01b3723bb575961bbf57d7",
+        "pinName": "ekza-avatar-100avatars-r1-718c61cb-32e7-4292-b44c-0c4f6a903968.json",
+        "modelUrl": "https://arweave.net/VBFMTU6Y26re-WiEtl3FxV5wj0DzYUyjeYPyVrhYkic",
+        "imageUrl": "https://arweave.net/sbTlKSCyltB4AqOU7W27QDKftwKgHgpSm-79nYKpHyc"
+      },
+      "avatarData": {
+        "index": 16,
+        "pda": "89SpPkmEqu4vDE4RXx1rTJKpNJBczSnRWRvqvpyTh63X",
+        "initializeSignature": "2oCBoMwqEmp3pTYBE18XDLAKSiec8oaVZeGfqZ5PgNot4dhZhKRRVsztsRPkoUStcwzaDrcC2EDest72TLjsh2si",
+        "recoveredFromChain": false,
+        "currentSupply": "1"
+      },
+      "mints": [
+        {
+          "mint": "AEp25fTgKXGRUExs7JcrG64KmKDoqVpU9JmC2yzB1Lxx",
+          "tokenAccount": "EsxcjdFHoBwceCfDcFrtqdh1hvQGS2fV6x2M5FKqQb5f",
+          "metadataPda": "CTsVPfKY2ZuyWMiUjBmAW8qKd6qLxL7TMwbGHwaBxKVE",
+          "signature": "65av6AssjE8DDZiA1AaNA7xVgJ9XmodaJngAWke2e77TNxNrFgZWuyFxw1i4z4RSzT521V8P2abf2dDQCGecM1iH",
+          "verified": true,
+          "verifiedAt": "2026-08-25T20:42:01.661Z"
+        }
+      ]
+    }
+  ]
 }

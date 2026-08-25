@@ -156,9 +156,11 @@ function requireBuiltMinterSdk() {
 async function loadRuntime(args) {
   const anchor = require("@coral-xyz/anchor");
   const {
+    AuthorityType,
     TOKEN_PROGRAM_ID,
     getAccount,
     getMint,
+    setAuthority,
   } = require("@solana/spl-token");
   const minterSdk = requireBuiltMinterSdk();
 
@@ -230,6 +232,8 @@ async function loadRuntime(args) {
     connection,
     getAccount,
     getMint,
+    setAuthority,
+    AuthorityType,
     keypair,
     metadataProgramId,
     owner: keypair.publicKey.toBase58(),
@@ -344,6 +348,33 @@ async function loadOwnedNftsByMetadataUri(runtime) {
   return byUri;
 }
 
+/**
+ * Drop mint and freeze authority so the token is a real one-of-one.
+ * Only possible while this wallet still holds them; anything else is fatal.
+ */
+async function revokeMintAuthorities(runtime, mint, mintAccount) {
+  const owner = runtime.keypair.publicKey;
+  for (const [current, type, label] of [
+    [mintAccount.mintAuthority, runtime.AuthorityType.MintTokens, "mint"],
+    [mintAccount.freezeAuthority, runtime.AuthorityType.FreezeAccount, "freeze"],
+  ]) {
+    if (current === null) continue;
+    if (!current.equals(owner)) {
+      throw new Error(
+        `Mint ${mint} ${label} authority is ${current.toBase58()}, not this wallet`
+      );
+    }
+    await runtime.setAuthority(
+      runtime.connection,
+      runtime.keypair,
+      mint,
+      owner,
+      type,
+      null
+    );
+  }
+}
+
 async function verifyMint(runtime, mintRecord) {
   const { PublicKey } = runtime.anchor.web3;
   const mint = new PublicKey(mintRecord.mint);
@@ -362,7 +393,15 @@ async function verifyMint(runtime, mintRecord) {
     mintAccount.mintAuthority !== null ||
     mintAccount.freezeAuthority !== null
   ) {
-    throw new Error(`Mint ${mint} still has an authority`);
+    // The minter program revokes both authorities itself, but the copy
+    // deployed to devnet predates that logic. Since this wallet is the
+    // authority the program left in place, enforce the 1/1 invariant here
+    // rather than shipping a supply-mutable "NFT".
+    await revokeMintAuthorities(runtime, mint, mintAccount);
+    const recheck = await runtime.getMint(runtime.connection, mint, "confirmed");
+    if (recheck.mintAuthority !== null || recheck.freezeAuthority !== null) {
+      throw new Error(`Mint ${mint} still has an authority`);
+    }
   }
   if (
     holderAccount.amount !== 1n ||
