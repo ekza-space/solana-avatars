@@ -74,28 +74,39 @@ export default function SceneWithModel(props: {
 
   return (
     <div className="flex flex-col w-full h-full">
-      {!modelError && (
-        <div className="flex flex-row justify-center space-x-4 pb-2">
-        {animations &&
-          animations.map((animationName) => (
-            <p
-              key={animationName}
-              className="cursor-pointer text-blue-600 hover:underline select-none"
-              onClick={(e) => {
-                const selectedAnimation = e.currentTarget.textContent;
-                console.log(selectedAnimation);
-                if (selectedAnimation !== null) {
-                  setPlayAnimation(selectedAnimation);
-                }
-              }}
-            >
-              {animationName}
-            </p>
-          ))}
+      {!modelError && animations.length > 0 ? (
+        // Segmented control: the previous version was a row of blue links with
+        // no selected state, so you could not tell which clip was playing.
+        // "tpose" is the model's rest pose, i.e. the stop button.
+        <div
+          role="group"
+          aria-label="Animation"
+          className="mb-3 flex flex-wrap items-center justify-center gap-px self-center border border-[rgb(var(--line))] bg-[rgb(var(--line))]"
+        >
+          {animations.map((animationName) => {
+            const isActive =
+              animationName === (playAnimation || animations[0]);
+            const label = animationName === "tpose" ? "rest" : animationName;
+            return (
+              <button
+                key={animationName}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => setPlayAnimation(animationName)}
+                className={`px-3 py-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors ${
+                  isActive
+                    ? "bg-[rgb(var(--accent))] text-[rgb(var(--accent-ink))]"
+                    : "bg-[rgb(var(--surface))] text-[rgb(var(--text))] hover:bg-[rgb(var(--surface-2))] hover:text-[rgb(var(--text-strong))]"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
-      )}
+      ) : null}
       <div
-        className="webGL relative flex-grow overflow-hidden rounded-[18px] border border-[rgba(var(--line),0.55)] bg-[rgba(var(--surface-2),0.9)]"
+        className="webGL relative flex-grow overflow-hidden border border-[rgb(var(--line))] bg-[rgb(var(--surface-2))]"
         onMouseLeave={() => {
           if (!screenshot) return;
           setTrigger((value) => value + 1);

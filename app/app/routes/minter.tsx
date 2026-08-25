@@ -712,16 +712,39 @@ export default function MarketPage() {
                       </span>
 
                       {canPreviewModel ? (
+                        // The whole thumbnail opens the 3D view: a small corner
+                        // button read as decoration, so people did not realise
+                        // the model was viewable at all.
                         <button
                           type="button"
-                          className="absolute bottom-0 right-0 bg-[rgb(var(--text-strong))] px-3 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--bg))]"
+                          aria-label={`View ${metadata?.name || `collection ${index}`} in 3D`}
+                          className="group absolute inset-0 flex items-end justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--accent))] focus-visible:ring-inset"
                           onClick={() => {
                             if (!modelAnimationUrl) return;
                             setActiveModelSrc(getIpfsUrl(modelAnimationUrl));
                             setActiveModelDescription(modelDescription);
                           }}
                         >
-                          View in 3D
+                          <span
+                            aria-hidden="true"
+                            className="absolute inset-0 bg-[rgb(var(--text-strong))] opacity-0 transition-opacity duration-150 group-hover:opacity-20 group-focus-visible:opacity-20"
+                          />
+                          <span className="relative mb-3 flex items-center gap-2 bg-[rgb(var(--accent))] px-3 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[rgb(var(--accent-ink))] shadow-sm transition-transform duration-150 group-hover:-translate-y-0.5">
+                            <svg
+                              aria-hidden="true"
+                              viewBox="0 0 24 24"
+                              className="h-3.5 w-3.5"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M12 3 3 7.5v9L12 21l9-4.5v-9L12 3Z" />
+                              <path d="M3 7.5 12 12l9-4.5M12 12v9" />
+                            </svg>
+                            View in 3D
+                          </span>
                         </button>
                       ) : null}
                     </div>
