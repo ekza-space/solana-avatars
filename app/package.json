@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
+    "@ekza/avatar-renderer": "git+https://github.com/ekza-space/ekza-avatar-renderer.git#3fd84931219547115cdf4172f7f5ecfb23fa598d",
     "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
     "@metaplex-foundation/umi": "^1.2.0",
     "@metaplex-foundation/umi-bundle-defaults": "^1.2.0",
@@ -38,7 +39,7 @@
     "isbot": "^4.1.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "three": "^0.176.0"
+    "three": "0.185.1"
   },
   "devDependencies": {
     "@remix-run/dev": "2.16.7",
@@ -46,6 +47,7 @@
     "@rollup/plugin-inject": "^5.0.5",
     "@types/react": "^18.2.20",
     "@types/react-dom": "^18.2.7",
+    "@types/three": "0.185.4",
     "@typescript-eslint/eslint-plugin": "^6.7.4",
     "@typescript-eslint/parser": "^6.7.4",
     "autoprefixer": "^10.4.19",
