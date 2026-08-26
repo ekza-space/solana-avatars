@@ -241,5 +241,21 @@
         }
       ]
     }
+  ],
+  "programUpgrades": [
+    {
+      "programId": "56kfTdE1xmCkZ2eDuikD7S5Mr15nmdzQENDWfmdMVtt",
+      "name": "user_profile",
+      "upgradedAt": "2026-08-26",
+      "reason": "chain lagged the source: update_profile still took avatar_mint as a third arg and update_avatar_mint did not exist, so the app's SDK hit InstructionDidNotDeserialize",
+      "note": "UserProfile layout unchanged, so existing profiles and Space's read path survived"
+    },
+    {
+      "programId": "29KLLArkfCfRGPgTh4k4qzXvR2JkkXfRnnNZTKn54TKz",
+      "name": "avatar_nft_minter",
+      "upgradedAt": "2026-08-26",
+      "reason": "deployed build predated the authority revoke, so minted tokens kept mint+freeze authority and were not true 1/1",
+      "verifiedWith": "8YAWs18dd9rfFWkHueu2JxcAiyyNJNwn3XxCdaFtwbiP"
+    }
   ]
 }
