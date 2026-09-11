@@ -1,13 +1,14 @@
 import {
   Component,
   Suspense,
+  useCallback,
   useEffect,
   useState,
   type ErrorInfo,
   type ReactNode,
 } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Center, OrbitControls } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 
 import ScreenShot from "./ScreenShot";
 import Loader from "./loader";
@@ -59,12 +60,19 @@ function ModelErrorFallback({ message }: { message: string }) {
 export default function SceneWithModel(props: {
   file: string;
   screenshot?: boolean;
+  onScreenshot?: (blob: Blob) => void;
+  onPreviewError?: (message: string) => void;
 }) {
-  const { file, screenshot = false } = props;
+  const { file, screenshot = false, onScreenshot, onPreviewError } = props;
   const [trigger, setTrigger] = useState(0);
   const [animations, setAnimations] = useState<string[]>([]);
   const [playAnimation, setPlayAnimation] = useState("");
   const [modelError, setModelError] = useState("");
+  const [readyFile, setReadyFile] = useState("");
+  const onReady = useCallback(() => {
+    setReadyFile(file);
+    setTrigger((value) => value + 1);
+  }, [file]);
 
   useEffect(() => {
     setAnimations([]);
@@ -117,11 +125,11 @@ export default function SceneWithModel(props: {
         ) : (
           <ModelErrorBoundary
             key={file}
-            onError={(message) =>
-              setModelError(
-                `Failed to load 3D model. ${message}`
-              )
-            }
+            onError={(message) => {
+              const description = `Failed to load 3D model. ${message}`;
+              setModelError(description);
+              onPreviewError?.(description);
+            }}
           >
             <Canvas
               style={{
@@ -130,26 +138,26 @@ export default function SceneWithModel(props: {
                 backgroundColor: "rgb(var(--surface-2))",
               }}
               camera={{
-                position: [0, 4, 5],
-                near: 0.1,
+                position: [0, 0, 5],
+                fov: 35,
+                near: 0.01,
                 far: 1000,
               }}
               dpr={[1, 2]}
               gl={{ antialias: true, alpha: true }}
             >
-              <OrbitControls target={[0, 0, 0]} />
+              <OrbitControls makeDefault enablePan={false} />
               <Suspense fallback={<Loader />}>
-                <Center>
-                  <UploadedModel
-                    key={file}
-                    file={file}
-                    scale={[1, 1, 1]}
-                    position={[0, 0, 0]}
-                    setAnimations={setAnimations}
-                    playAnimation={playAnimation}
-                  />
-                </Center>
-                {screenshot && <ScreenShot trigger={trigger} />}
+                <UploadedModel
+                  key={file}
+                  file={file}
+                  scale={[1, 1, 1]}
+                  position={[0, 0, 0]}
+                  setAnimations={setAnimations}
+                  playAnimation={playAnimation}
+                  onReady={onReady}
+                />
+                {screenshot && readyFile === file && <ScreenShot key={file} trigger={trigger} onCapture={onScreenshot} onError={onPreviewError} />}
               </Suspense>
 
               <ambientLight intensity={1.8} />

@@ -8,6 +8,7 @@ type SolanaNetworkContextValue = {
   cluster: SolanaCluster;
   clusterLabel: string;
   endpoint: string;
+  networkLocked: boolean;
   setCluster: (cluster: SolanaCluster) => void;
   buildExplorerTxUrl: (signature: string) => string;
 };
@@ -90,20 +91,22 @@ function buildExplorerTxUrl(cluster: SolanaCluster, endpoint: string, signature:
 
 const SolanaNetworkContext = createContext<SolanaNetworkContextValue | null>(null);
 
-export function SolanaNetworkProvider({ children }: { children: ReactNode }) {
-  const [cluster, setClusterState] = useState<SolanaCluster>(getDefaultClusterFromEnv);
+export function SolanaNetworkProvider({ children, forcedCluster }: { children: ReactNode; forcedCluster?: SolanaCluster }) {
+  const [selectedCluster, setClusterState] = useState<SolanaCluster>(getDefaultClusterFromEnv);
+  const cluster = forcedCluster ?? selectedCluster;
 
   useEffect(() => {
     const stored = getStoredCluster();
-    if (stored && stored !== cluster) {
+    if (stored && stored !== selectedCluster) {
       setClusterState(stored);
     }
-  }, [cluster]);
+  }, [selectedCluster]);
 
   const endpoint = useMemo(() => resolveEndpoint(cluster), [cluster]);
   const clusterLabel = CLUSTER_LABELS[cluster];
 
   const setCluster = (next: SolanaCluster) => {
+    if (forcedCluster) return;
     setClusterState(next);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(SOLANA_NETWORK_STORAGE_KEY, next);
@@ -119,6 +122,7 @@ export function SolanaNetworkProvider({ children }: { children: ReactNode }) {
         cluster,
         clusterLabel,
         endpoint,
+        networkLocked: Boolean(forcedCluster),
         setCluster,
         buildExplorerTxUrl: buildExplorerTxUrlForCluster,
       }}

@@ -1,0 +1,21 @@
+{
+  "network": "solana-devnet",
+  "programId": "29KLLArkfCfRGPgTh4k4qzXvR2JkkXfRnnNZTKn54TKz",
+  "avatar": "Robert (CC0, Polygonal-Mind)",
+  "metadataUri": "ipfs://QmUjTMKVJ397oHd4vA4wkCdr1V5U7GBN1eWdKJJARkffqV",
+  "priceLamports": "1000000",
+  "maxSupply": 5,
+  "creator": "6G8ua3bZ2Zz3NGneGtGQTYhZiy9hpFetK6P1YVaWs7Ea",
+  "buyer": "2MZgzLySvKAYjzDQPmb4qnAaBBdpDprEP2HBZ58TvDrf",
+  "nonOwner": "9Vb9y9YffUw3Pn7qtxeVzHWZL2BYW1LtDXvf9VxDG6N1",
+  "mint": "oDqKQww71LeCSnCHGdU9QwkNfAD5j86ArXJjGKHhGH9",
+  "status": "verified-on-chain",
+  "avatarDataPda": "3bfPehBVoBKXUUzmGGVT3tgQTYkpispqUKfPW1UktASL",
+  "avatarDataIndex": 18,
+  "avatarId": "solana:devnet:avatar-data:3bfPehBVoBKXUUzmGGVT3tgQTYkpispqUKfPW1UktASL",
+  "initializeSignature": "2S8fWrQQpj2yKFqDu4SWxqywE7F5p6uMp1vuASKbLAV8kbYMoXFaiq4p7GhEqqkckCTidFRQ743v6o68ijuswRGv",
+  "purchaseSignature": "2SZwLpG5jsCJdMEhxanJxjqEBpKuHEZx1vrw8Tu9qdicMqRwdEFevGSGGA3EpjS2cVy1Kk4xHaYxErC7hxFPxFew",
+  "tokenAccount": "GukNBRCn1CoLA6j8deUt4GymJibT2EQeHKnb52WBi2y5",
+  "creatorPaymentLamports": "1000000",
+  "verifiedAt": "2026-09-10T16:54:38.637Z"
+}

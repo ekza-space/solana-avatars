@@ -6,46 +6,37 @@ import {
   ScrollRestoration,
   useRouteError,
   useLocation,
+  isRouteErrorResponse,
 } from "@remix-run/react";
-import type { LinksFunction } from "@remix-run/node";
-import SayHi from "~/components/SayHi";
+import { json, redirect, type LoaderFunctionArgs } from "@remix-run/node";
 import { Analytics } from "@vercel/analytics/remix";
-
-import { type ReactNode, useEffect, useMemo, useState } from "react";
-
-// TODO: move to vite config
-import { Buffer } from "buffer";
-globalThis.Buffer = Buffer;
-
-// Solana Wallet
-import { ConnectionProvider, useWallet, WalletProvider } from "@solana/wallet-adapter-react";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
-import { WalletModalProvider, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import "@solana/wallet-adapter-react-ui/styles.css";
-
+import { lazy, Suspense, type ReactNode, useEffect, useState } from "react";
 import Footer from "./components/footer";
 import Header from "./components/header";
-import { Card, Page, PageHeader, Skeleton } from "./components/ui";
-import { SolanaNetworkProvider, useSolanaNetwork } from "./lib/network";
+import { Card, Notice, Page } from "./components/ui";
+import {
+  isLegacyToolPath,
+  normalizePathname,
+  studioRedirectTarget,
+} from "./lib/routes";
 
-export const links: LinksFunction = () => [
-  { rel: "preconnect", href: "https://fonts.googleapis.com" },
-  {
-    rel: "preconnect",
-    href: "https://fonts.gstatic.com",
-    crossOrigin: "anonymous",
-  },
-  {
-    rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap",
-  },
-];
+const LegacyShell = lazy(() => import("./components/legacy-shell"));
 
+export function loader({ request }: LoaderFunctionArgs) {
+  const url = new URL(request.url);
+  if (
+    normalizePathname(url.pathname) === "/studio" &&
+    url.pathname !== "/studio"
+  )
+    return redirect(studioRedirectTarget(url.search));
+  return json({ demoEnabled: process.env.EKZA_STUDIO_DEMO === "1" });
+}
+
+// System font fallbacks keep the core experience independent of Google Fonts.
 const themeBootScript = `
 (() => {
   try {
-    const key = "solana-avatars-theme";
-    const saved = localStorage.getItem(key);
+    const saved = localStorage.getItem("solana-avatars-theme");
     const preferred = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     const theme = saved === "light" || saved === "dark" ? saved : preferred;
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -76,172 +67,74 @@ export function Layout({ children }: { children: ReactNode }) {
 
 export function ErrorBoundary() {
   const error = useRouteError();
+  const notFound = isRouteErrorResponse(error) && error.status === 404;
   const message =
     error instanceof Error
       ? error.message
+      : isRouteErrorResponse(error)
+      ? error.statusText
       : typeof error === "string"
-        ? error
-        : "Unknown rendering error.";
-
+      ? error
+      : "A page component could not be loaded.";
   return (
-    <Layout>
-      <main className="flex min-h-dvh items-center justify-center px-5 py-16">
-        <div className="w-full max-w-2xl space-y-6">
-          <div className="ui-eyebrow">Error</div>
-          <h1 className="ui-display">Something did not load.</h1>
+    <main className="flex min-h-dvh items-center justify-center px-5 py-16">
+      <div className="w-full max-w-2xl space-y-6">
+        <div className="ui-eyebrow">
+          {notFound ? "Page not found" : "Page error"}
+        </div>
+        <h1 className="ui-display">
+          {notFound ? "This page is not here." : "Something did not load."}
+        </h1>
+        {!notFound ? (
           <Card tone="quiet" className="p-5">
             <div className="ui-label mb-2">Details</div>
-            <p className="ui-mono leading-relaxed">{message}</p>
+            <p className="ui-mono leading-relaxed">{message.slice(0, 500)}</p>
           </Card>
-          <p className="ui-copy">
-            Check that the network endpoint and the metadata service are
-            reachable, then reload the page.
-          </p>
-          <a href="/" className="ui-button">
-            Back to start
-          </a>
-        </div>
-      </main>
-    </Layout>
-  );
-}
-
-function MainContent() {
-  const { publicKey } = useWallet();
-  const location = useLocation();
-  const { clusterLabel } = useSolanaNetwork();
-
-  if (!publicKey && location.pathname !== "/about") {
-    return (
-      <main className="flex-1 py-10 sm:py-14">
-        <Page>
-          <PageHeader
-            eyebrow={`Solana · ${clusterLabel}`}
-            title={
-              <>
-                Connect a wallet
-                <br />
-                to continue.
-              </>
-            }
-            lede="Profiles, collections and minting all sign with your own key. Nothing leaves the browser until you confirm it."
-          />
-
-          <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="grid gap-px bg-[rgb(var(--line))] sm:grid-cols-3">
-              {[
-                {
-                  n: "01",
-                  title: "Browse the market",
-                  body: "Open creator drops, preview the 3D model, mint what fits.",
-                },
-                {
-                  n: "02",
-                  title: "Claim an identity",
-                  body: "Bind a username, a bio and an avatar NFT to an on-chain profile.",
-                },
-                {
-                  n: "03",
-                  title: "Publish a collection",
-                  body: "Upload a .glb or .vrm model, set supply and mint fee, deploy.",
-                },
-              ].map((step) => (
-                <div key={step.n} className="bg-[rgb(var(--bg))] p-5">
-                  <div className="ui-index">{step.n}</div>
-                  <h2 className="ui-h3 mt-3">{step.title}</h2>
-                  <p className="ui-copy-sm mt-2">{step.body}</p>
-                </div>
-              ))}
-            </div>
-
-            <Card className="flex flex-col gap-4 p-5">
-              <div className="ui-label">Access</div>
-              <p className="ui-copy-sm">
-                Phantom is supported. Nothing is signed until you confirm it in
-                the wallet.
-              </p>
-              <WalletMultiButton />
-            </Card>
-          </div>
-        </Page>
-      </main>
-    );
-  }
-
-  return (
-    <main className="flex-1 py-8 sm:py-12">
-      <Outlet />
+        ) : null}
+        <p className="ui-copy">
+          Your Ekza account and saved avatars are unchanged. Return to Avatar
+          Studio to continue.
+        </p>
+        <a href="/studio" className="ui-button">
+          Back to Avatar Studio
+        </a>
+      </div>
     </main>
   );
 }
 
-function ServerFallbackContent() {
-  const location = useLocation();
-
-  if (location.pathname === "/about") {
-    return <Outlet />;
-  }
-
+function LegacyLoading() {
   return (
-    <main className="flex-1 py-8 sm:py-12">
-      <Page>
-        <div className="space-y-6" aria-busy="true">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-12 w-3/4 max-w-xl" />
-          <Skeleton className="h-4 w-1/2 max-w-md" />
-          <div className="grid gap-5 pt-6 sm:grid-cols-2 xl:grid-cols-3">
-            <Skeleton className="h-64" />
-            <Skeleton className="h-64" />
-            <Skeleton className="h-64" />
-          </div>
-        </div>
-      </Page>
-    </main>
+    <Page>
+      <Notice>
+        Loading optional Web3 tools… Your Ekza account is separate.
+      </Notice>
+    </Page>
+  );
+}
+
+function ClientLegacyPage() {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  if (!hydrated) return <LegacyLoading />;
+  return (
+    <Suspense fallback={<LegacyLoading />}>
+      <LegacyShell>
+        <Outlet />
+      </LegacyShell>
+    </Suspense>
   );
 }
 
 export default function App() {
+  const { pathname } = useLocation();
   return (
-    <SolanaNetworkProvider>
-      <AppWithConnectionGate />
-    </SolanaNetworkProvider>
-  );
-}
-
-function AppWithConnectionGate() {
-  const [isHydrated, setIsHydrated] = useState(false);
-  const { endpoint } = useSolanaNetwork();
-  const wallets = useMemo(
-    () => (isHydrated ? [new PhantomWalletAdapter()] : []),
-    [isHydrated]
-  );
-
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
-  if (!isHydrated) {
-    return (
-      <div className="ui-shell flex min-h-dvh flex-col">
-        <Header />
-        <ServerFallbackContent />
-        <Footer />
-      </div>
-    );
-  }
-
-  return (
-    <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          <div className="ui-shell flex min-h-dvh flex-col">
-            <Header />
-            <SayHi />
-            <MainContent />
-            <Footer />
-          </div>
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+    <div className="ui-shell flex min-h-dvh flex-col">
+      <Header />
+      <main className="flex-1 py-8 sm:py-12">
+        {isLegacyToolPath(pathname) ? <ClientLegacyPage /> : <Outlet />}
+      </main>
+      <Footer />
+    </div>
   );
 }

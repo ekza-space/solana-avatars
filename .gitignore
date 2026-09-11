@@ -8,3 +8,4 @@ test-ledger
 .yarn
 
 target-deploy-keypair*.json
+.avatar-roundtrip-local/

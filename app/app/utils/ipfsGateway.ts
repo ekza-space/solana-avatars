@@ -1,3 +1,5 @@
+import { isPassportPublicationRoute, isPassportPurchaseRoute } from "~/lib/routes";
+
 /**
  * Base URL for resolving IPFS CIDs in the browser (must end with `/`).
  *
@@ -45,6 +47,8 @@ function normalizeGatewayBase(raw: string): string {
 
 function getPersistedCluster(): "localnet" | "devnet" | "mainnet-beta" | null {
   if (typeof window === "undefined") return null;
+
+  if (isPassportPurchaseRoute(window.location.pathname, window.location.search) || isPassportPublicationRoute(window.location.pathname, window.location.search)) return "devnet";
 
   const raw = window.localStorage
     .getItem("solana-avatars-cluster")

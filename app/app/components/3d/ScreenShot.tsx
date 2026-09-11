@@ -1,33 +1,29 @@
 import { useThree } from "@react-three/fiber";
 import { useEffect } from "react";
-import * as THREE from "three";
-import { saveBlobToLocalStorage } from "~/utils/saveBlob";
-
-export default function ScreenShot({ ...props }) {
+export default function ScreenShot({ trigger, onCapture, onError }: {
+  trigger: number;
+  onCapture?: (blob: Blob) => void;
+  onError?: (message: string) => void;
+}) {
   const { gl, scene, camera } = useThree();
 
   useEffect(() => {
-    console.log("screenshot effect");
-    storeScreenShot();
-  }, [props.trigger]);
-
-  function storeScreenShot() {
-    console.log(gl);
-    gl.render(scene, camera);
-    gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.toneMappingExposure = 0.6;
-    gl.domElement.toBlob(
-      function (blob) {
-        if (blob) {
-          saveBlobToLocalStorage(blob, "previewIPFS");
-          console.log("Screenshot saved to local storage.");
-        } else {
-          console.warn("Screenshot blob is null.");
-        }
-      },
-      "image/png",
-      1.0
-    );
-  }
+    let active = true;
+    // The model has loaded. Wait for its framing/layout before rendering the
+    // same scene the creator sees, without changing its tone mapping.
+    const frame = requestAnimationFrame(() => {
+      try {
+        gl.render(scene, camera);
+        gl.domElement.toBlob((blob) => {
+          if (!active) return;
+          if (blob?.size) onCapture?.(blob);
+          else onError?.("The preview image could not be captured. Reload the model and retry.");
+        }, "image/png");
+      } catch {
+        if (active) onError?.("The preview image could not be captured. Reload the model and retry.");
+      }
+    });
+    return () => { active = false; cancelAnimationFrame(frame); };
+  }, [trigger, gl, scene, camera, onCapture, onError]);
   return null;
 }

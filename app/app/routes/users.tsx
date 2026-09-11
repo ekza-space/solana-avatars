@@ -105,7 +105,7 @@ export default function UsersPage() {
               "Nobody has created a profile on this cluster. Be the first one."
             }
             action={
-              <a href="/" className="ui-button">
+              <a href="/web3/profile" className="ui-button">
                 Create a profile
               </a>
             }

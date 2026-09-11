@@ -1,0 +1,97 @@
+{
+  "generatedAt": "2026-09-10T16:57:45.944720Z",
+  "items": [
+    {
+      "id": "solana:devnet:avatar-data:3bfPehBVoBKXUUzmGGVT3tgQTYkpispqUKfPW1UktASL",
+      "license": {
+        "attribution": null,
+        "spdx": "CC0-1.0"
+      },
+      "name": "Robert",
+      "projectSupport": [
+        {
+          "platform": "universal",
+          "profile": "vrm-humanoid-v0",
+          "projectId": "ekza-space",
+          "status": "approved"
+        },
+        {
+          "platform": "ios",
+          "profile": "arkit-body-v1",
+          "projectId": "ekza-mirror",
+          "status": "approved"
+        },
+        {
+          "platform": "desktop",
+          "profile": "humanoid-glb-v1",
+          "projectId": "omoba",
+          "status": "approved"
+        }
+      ],
+      "provenance": {
+        "avatarDataIndex": 18,
+        "avatarDataPda": "3bfPehBVoBKXUUzmGGVT3tgQTYkpispqUKfPW1UktASL",
+        "creator": "6G8ua3bZ2Zz3NGneGtGQTYhZiy9hpFetK6P1YVaWs7Ea",
+        "metadataSha256": "0af9a959d8f8a5876cd4e2ae5e6184cd978268fa970dd938b9b91c8148b03732",
+        "metadataUri": "ipfs://QmUjTMKVJ397oHd4vA4wkCdr1V5U7GBN1eWdKJJARkffqV",
+        "network": "solana-devnet",
+        "program": "29KLLArkfCfRGPgTh4k4qzXvR2JkkXfRnnNZTKn54TKz",
+        "sourceModelUri": "ar://gwG7w4bY-A5c3R6A6GOz3xBCgbPvkFQmqPIDtvnNsYI"
+      },
+      "renditions": [
+        {
+          "assetPath": "/v1/assets/5e3edaf330577ee4c3f6440b8989af3722e7c800bb90eb037f1c05cdfe61fd7c.vrm",
+          "canonicalUri": "ar://gwG7w4bY-A5c3R6A6GOz3xBCgbPvkFQmqPIDtvnNsYI",
+          "downloadUrl": null,
+          "format": "vrm0",
+          "id": "sha256:5e3edaf330577ee4c3f6440b8989af3722e7c800bb90eb037f1c05cdfe61fd7c",
+          "mediaType": "model/vrm",
+          "minOsVersion": null,
+          "platform": "universal",
+          "profile": "vrm-humanoid-v0",
+          "rigFit": null,
+          "sha256": "5e3edaf330577ee4c3f6440b8989af3722e7c800bb90eb037f1c05cdfe61fd7c",
+          "sizeBytes": 1656464,
+          "status": "ready",
+          "units": "meters"
+        },
+        {
+          "assetPath": "/v1/assets/044df769160a581e95706c3a0ed395a13ef5757ed4ac66c692b1809fcc203434.usdz",
+          "canonicalUri": "urn:sha256:044df769160a581e95706c3a0ed395a13ef5757ed4ac66c692b1809fcc203434",
+          "downloadUrl": null,
+          "format": "usdz",
+          "id": "sha256:044df769160a581e95706c3a0ed395a13ef5757ed4ac66c692b1809fcc203434",
+          "mediaType": "model/vnd.usdz+zip",
+          "minOsVersion": "17.0",
+          "platform": "ios",
+          "profile": "arkit-body-v1",
+          "rigFit": null,
+          "sha256": "044df769160a581e95706c3a0ed395a13ef5757ed4ac66c692b1809fcc203434",
+          "sizeBytes": 853959,
+          "status": "ready",
+          "units": "meters"
+        },
+        {
+          "assetPath": "/v1/assets/546ddea729486de56289aef537a16bc716c7085dd93f31c66fd9ab3d740783c2.glb",
+          "canonicalUri": "urn:sha256:546ddea729486de56289aef537a16bc716c7085dd93f31c66fd9ab3d740783c2",
+          "downloadUrl": null,
+          "format": "glb",
+          "id": "sha256:546ddea729486de56289aef537a16bc716c7085dd93f31c66fd9ab3d740783c2",
+          "mediaType": "model/gltf-binary",
+          "minOsVersion": null,
+          "platform": "desktop",
+          "profile": "humanoid-glb-v1",
+          "rigFit": null,
+          "sha256": "546ddea729486de56289aef537a16bc716c7085dd93f31c66fd9ab3d740783c2",
+          "sizeBytes": 1885072,
+          "status": "ready",
+          "units": "meters"
+        }
+      ],
+      "thumbnailUrl": "https://arweave.net/gaFPebQ9hSZDa_xNHkja8CH0Qde2y41L95VQTtroWNA"
+    }
+  ],
+  "network": "solana-devnet",
+  "program": "29KLLArkfCfRGPgTh4k4qzXvR2JkkXfRnnNZTKn54TKz",
+  "schema": "ekza.avatar.catalog.v1"
+}

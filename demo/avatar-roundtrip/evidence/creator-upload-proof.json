@@ -1,0 +1,45 @@
+{
+  "schema": "ekza.creator-upload.live-proof.v1",
+  "startedAt": "2026-09-11T03:51:10.291Z",
+  "origin": "http://127.0.0.1:5190",
+  "scope": "Existing public CC0 VRM and explicitly labelled upload rehearsal metadata; no collection publication, NFT mint, payment or deployment.",
+  "checks": [
+    {
+      "name": "anonymous upload rejected before storage",
+      "status": 401
+    },
+    {
+      "name": "ephemeral creator signed browser wallet challenge",
+      "passed": true
+    },
+    {
+      "name": "authenticated real Pinata VRM upload and exact byte readback",
+      "passed": true,
+      "cid": "QmezMeWgEqYVpJPvPG4b8JAox9Gv23GLuQm7Y2hF2ykEgz",
+      "sha256": "5e3edaf330577ee4c3f6440b8989af3722e7c800bb90eb037f1c05cdfe61fd7c",
+      "sizeBytes": 1656464
+    },
+    {
+      "name": "authenticated real Pinata JSON upload and exact semantic/canonical JSON readback",
+      "passed": true,
+      "cid": "QmcBkxaxFUF12RJ5jM9syakPeqJQbjDaUwZt4r2q498M5j",
+      "canonicalJsonSha256": "10c6d866d9d9c4275a6f0f7fdd0d39e2ff582d2def40c6869d33eceef722bcf9"
+    }
+  ],
+  "creator": "6G8ua3bZ2Zz3NGneGtGQTYhZiy9hpFetK6P1YVaWs7Ea",
+  "model": {
+    "cid": "QmezMeWgEqYVpJPvPG4b8JAox9Gv23GLuQm7Y2hF2ykEgz",
+    "uri": "https://ekza.mypinata.cloud/ipfs/QmezMeWgEqYVpJPvPG4b8JAox9Gv23GLuQm7Y2hF2ykEgz",
+    "sha256": "5e3edaf330577ee4c3f6440b8989af3722e7c800bb90eb037f1c05cdfe61fd7c",
+    "sizeBytes": 1656464
+  },
+  "metadata": {
+    "cid": "QmcBkxaxFUF12RJ5jM9syakPeqJQbjDaUwZt4r2q498M5j",
+    "uri": "https://ekza.mypinata.cloud/ipfs/QmcBkxaxFUF12RJ5jM9syakPeqJQbjDaUwZt4r2q498M5j",
+    "downloadedSha256": "32d40a9ffb5ad11febe8531ec5386b73d5d412648dd0457fd02197ed4547c763",
+    "canonicalJsonSha256": "10c6d866d9d9c4275a6f0f7fdd0d39e2ff582d2def40c6869d33eceef722bcf9",
+    "sizeBytes": 743
+  },
+  "completedAt": "2026-09-11T03:51:20.817Z",
+  "passed": true
+}

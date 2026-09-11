@@ -1,7 +1,9 @@
 import { useSearchParams } from "@remix-run/react";
-import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
-import { Connection, PublicKey } from "@solana/web3.js";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { Connection, PublicKey, Transaction } from "@solana/web3.js";
+import bs58 from "bs58";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Button,
@@ -18,6 +20,12 @@ import {
 import { getIpfsUrl } from "~/utils/ipfsUrls";
 import { NftMetadata } from "~/types/nft";
 import SceneWithModel from "~/components/3d/SceneWithModel";
+import { loadMinterCatalog, MinterCompatibility, type MinterCatalogState } from "~/components/minter-compatibility";
+import { clearPendingPurchase, loadSelectedAvatar, readPendingPurchase, rememberPendingPurchase, signPurchaseForCurrentWallet, type PendingPurchase } from "~/lib/minter-selection";
+import { useMinterConnection } from "~/lib/minter-connection";
+import { MinterPendingError, MinterRejectedError } from "~/lib/minter-transport";
+import { useSolanaNetwork } from "~/lib/network";
+import { readOnlyMinterWallet } from "~/lib/minter-reader";
 
 let DISABLE_CACHE = true;
 const MAX_NAME_BYTES = 32;
@@ -81,6 +89,7 @@ type StellarOriginLink = {
 };
 
 type EnrichedAvatarItem = AvatarItem & {
+  avatarData: string;
   stellarLink?: StellarOriginLink | null;
   sourceImageHash?: string | null;
 };
@@ -396,7 +405,8 @@ const publicKeyString = (value: unknown) =>
 const enrichWithMetadata = async (
   raw: AvatarItem[],
   minter: any,
-  connection: Connection
+  connection: Connection,
+  useDevnetResolver = false
 ): Promise<EnrichedAvatarItem[]> => {
   return Promise.all(
     raw.map(async (avatar) => {
@@ -405,8 +415,10 @@ const enrichWithMetadata = async (
       let sourceImageHash: string | null = null;
 
       try {
-        const metadataUrl = getIpfsUrl(avatar.data.uriIpfsHash);
-        const res = await fetch(metadataUrl);
+        const metadataUrl = useDevnetResolver
+          ? `/api/avatar-metadata?avatarData=${encodeURIComponent(minter.getAvatarDataPda(avatar.index)[0].toBase58())}`
+          : getIpfsUrl(avatar.data.uriIpfsHash);
+        const res = await fetch(metadataUrl, { signal: AbortSignal.timeout(useDevnetResolver ? 60_000 : 10_000), credentials: "omit", redirect: "error" });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         metadata = await res.json();
       } catch (err) {
@@ -446,26 +458,70 @@ const enrichWithMetadata = async (
         );
       }
 
-      return { ...avatar, metadata, stellarLink, sourceImageHash };
+      return { ...avatar, avatarData: minter.getAvatarDataPda(avatar.index)[0].toBase58(), metadata, stellarLink, sourceImageHash };
     })
   );
 };
 
 export default function MarketPage() {
-  const { connection } = useConnection();
+  const { connection } = useMinterConnection();
   const anchorWallet = useAnchorWallet();
+  const { setVisible: showWalletModal } = useWalletModal();
+  const { cluster } = useSolanaNetwork();
+  const walletAddress = anchorWallet?.publicKey.toBase58() || "";
+  const buyerContext = `${cluster}:${walletAddress}`;
+  const buyerContextRef = useRef(buyerContext);
+  buyerContextRef.current = buyerContext;
+  const [pendingPurchase, setPendingPurchase] = useState<PendingPurchase | null>(null);
+  const [checkingPurchase, setCheckingPurchase] = useState(false);
+  const purchaseAttemptRef = useRef<(Omit<PendingPurchase, "signature"> & { signature?: string }) | null>(null);
   const [searchParams] = useSearchParams();
+  const requestedAvatarData = searchParams.get("avatarData")?.trim() || "";
   const [avatars, setAvatars] = useState<EnrichedAvatarItem[] | null>(null);
   const [activeModelSrc, setActiveModelSrc] = useState<string | null>(null);
   const [activeModelDescription, setActiveModelDescription] = useState<
     string | null
   >(null);
+
+  useEffect(() => { setPendingPurchase(walletAddress ? readPendingPurchase(walletAddress, cluster) : null); setCheckingPurchase(false); }, [walletAddress, cluster]);
+
+  const checkPendingPurchase = async () => {
+    if (!pendingPurchase || checkingPurchase) return;
+    const pending = pendingPurchase, context = buyerContext;
+    setCheckingPurchase(true);
+    try {
+      const result = await connection.confirmTransaction(pending.signature, "confirmed");
+      clearPendingPurchase(pending);
+      if (buyerContextRef.current !== context) return;
+      setPendingPurchase(null);
+      if (result.value.err) {
+        setMintNotice({ tone: "error", text: "This transaction failed on-chain. No avatar was minted; you can review the details and try again." });
+      } else {
+        setMintNotice({ tone: "success", text: "Your avatar purchase is confirmed. Open your library with the same wallet.", signature: pending.signature });
+      }
+    } catch {
+      // Keep the original signature and block a duplicate mint until its status is known.
+    } finally { if (buyerContextRef.current === context) setCheckingPurchase(false); }
+  };
   const [fullDescription, setFullDescription] = useState<string | null>(null);
   const [minter, setMinter] = useState<any | null>(null);
   const [mintingIndex, setMintingIndex] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [supportCatalog, setSupportCatalog] = useState<MinterCatalogState>({ status: "loading" });
+  const [supportAttempt, setSupportAttempt] = useState(0);
   const [mintNotice, setMintNotice] = useState<
-    { tone: "success" | "error"; text: string } | null
+    { tone: "success" | "error"; text: string; signature?: string } | null
   >(null);
+
+  useEffect(() => {
+    let active = true;
+    setSupportCatalog({ status: "loading" });
+    if (cluster === "devnet") {
+      void loadMinterCatalog().then((result) => { if (active) setSupportCatalog(result); });
+    }
+    return () => { active = false; };
+  }, [cluster, supportAttempt]);
 
   // Initialise with the local mock while no wallet/cluster is yet queried
   useEffect(() => {
@@ -476,12 +532,13 @@ export default function MarketPage() {
   }, []);
 
   useEffect(() => {
-    if (!connection || !anchorWallet || typeof window === "undefined") {
+    if (!connection || typeof window === "undefined") {
       setMinter(null);
       return;
     }
 
     let cancelled = false;
+    setMinter(null); setAvatars(null); setLoadError(""); setMintNotice(null);
 
     (async () => {
       try {
@@ -491,7 +548,20 @@ export default function MarketPage() {
         ]);
         const provider = new anchor.AnchorProvider(
           connection,
-          anchorWallet as any,
+          anchorWallet ? {
+            ...anchorWallet,
+            signTransaction: (transaction: any) => signPurchaseForCurrentWallet(transaction,
+              (value) => anchorWallet.signTransaction(value),
+              () => !cancelled && buyerContextRef.current === buyerContext,
+              (signed) => {
+                const attempt = purchaseAttemptRef.current;
+                if (cluster !== "devnet" || !attempt || attempt.wallet !== walletAddress || attempt.network !== cluster) return;
+                if (!(signed instanceof Transaction) || !signed.signature) throw new Error("The signed purchase could not be saved for confirmation.");
+                attempt.signature = bs58.encode(signed.signature);
+                const pending = { ...attempt, signature: attempt.signature };
+                rememberPendingPurchase(pending); setPendingPurchase(pending);
+              }),
+          } : readOnlyMinterWallet(),
           anchor.AnchorProvider.defaultOptions()
         );
         const program = new anchor.Program(
@@ -502,7 +572,17 @@ export default function MarketPage() {
         const minterClientInstance = minterClient.create(provider, program);
 
         if (cancelled) return;
-        setMinter(minterClientInstance);
+        if (requestedAvatarData) {
+          const selected = await loadSelectedAvatar(requestedAvatarData,
+            (address) => (program.account as any).avatarData.fetch(new PublicKey(address)),
+            (index) => minterClientInstance.getAvatarDataPda(index)[0].toBase58());
+          if (cancelled) return;
+          const enriched = await enrichWithMetadata([selected as unknown as AvatarItem], minterClientInstance, connection, cluster === "devnet");
+          if (cancelled) return;
+          setAvatars(enriched); setMinter(minterClientInstance);
+          if (!enriched[0]?.metadata) setLoadError("The collection was found, but its metadata could not be loaded. Retry to enable the purchase.");
+          return;
+        }
 
         // --- On‑chain count ---
         const { registry } = await minterClientInstance.getAvatarRegistry();
@@ -514,6 +594,7 @@ export default function MarketPage() {
         // If cache is up‑to‑date just ensure it is in state and quit
         if (cached.length === onChainCount) {
           setAvatars(cached);
+          setMinter(minterClientInstance);
           return;
         }
 
@@ -527,7 +608,8 @@ export default function MarketPage() {
         const enriched = await enrichWithMetadata(
           range as AvatarItem[],
           minterClientInstance,
-          connection
+          connection,
+          cluster === "devnet"
         );
 
         // Merge or reset as needed
@@ -537,10 +619,13 @@ export default function MarketPage() {
         if (cancelled) return;
         saveCachedAvatars(merged);
         setAvatars(merged);
+        setMinter(minterClientInstance);
       } catch (error) {
         console.error("Failed to initialize minter client:", error);
         if (!cancelled) {
           setMinter(null);
+          setAvatars([]);
+          setLoadError("The collection could not be loaded on this network. Check your connection and retry.");
         }
       }
     })();
@@ -548,9 +633,8 @@ export default function MarketPage() {
     return () => {
       cancelled = true;
     };
-  }, [connection, anchorWallet]);
+  }, [connection, anchorWallet, requestedAvatarData, loadAttempt, buyerContext, cluster, walletAddress]);
 
-  const requestedAvatarData = searchParams.get("avatarData")?.trim() || "";
   const requestedAvatarIndexRaw = searchParams.get("avatarIndex")?.trim() || "";
   const requestedAvatarIndex = requestedAvatarIndexRaw
     ? Number(requestedAvatarIndexRaw)
@@ -564,12 +648,12 @@ export default function MarketPage() {
     return source.slice().sort((left, right) => {
       const leftMatch =
         (requestedAvatarData &&
-          left.stellarLink?.avatarData === requestedAvatarData) ||
+          left.avatarData === requestedAvatarData) ||
         (!Number.isNaN(requestedAvatarIndex) &&
           Number(left.index) === requestedAvatarIndex);
       const rightMatch =
         (requestedAvatarData &&
-          right.stellarLink?.avatarData === requestedAvatarData) ||
+          right.avatarData === requestedAvatarData) ||
         (!Number.isNaN(requestedAvatarIndex) &&
           Number(right.index) === requestedAvatarIndex);
       return Number(rightMatch) - Number(leftMatch);
@@ -578,7 +662,7 @@ export default function MarketPage() {
   const highlightedAvatar = items.find(
     (item) =>
       (requestedAvatarData &&
-        item.stellarLink?.avatarData === requestedAvatarData) ||
+        item.avatarData === requestedAvatarData) ||
       (!Number.isNaN(requestedAvatarIndex) &&
         Number(item.index) === requestedAvatarIndex)
   );
@@ -586,6 +670,7 @@ export default function MarketPage() {
   const isLoading = avatars === null;
   const showDirectLinkNotice =
     Boolean(requestedAvatarData) || !Number.isNaN(requestedAvatarIndex);
+  const publishHref = cluster === "devnet" ? "/deployer?network=devnet" : "/deployer";
 
   return (
     <Page>
@@ -601,21 +686,27 @@ export default function MarketPage() {
               value="SOL"
             />
             <Status tone={minter ? "ok" : "idle"}>
-              {minter ? "Minter ready" : "Connecting"}
+              {minter ? anchorWallet ? "Ready to buy" : "Preview ready" : "Loading collection"}
             </Status>
           </>
         }
         actions={
-          <a href="/deployer" className="ui-button ui-button-secondary">
+          <a href={publishHref} className="ui-button ui-button-secondary">
             Publish a collection
           </a>
         }
       />
 
-      {mintNotice ? (
+      {loadError ? <Notice tone="error" className="mt-8"><p>{loadError}</p><Button className="mt-3" variant="secondary" onClick={() => setLoadAttempt((value) => value + 1)}>Retry collection</Button></Notice> : null}
+
+      {pendingPurchase ? <Notice className="mt-8"><p>Purchase confirmation is pending. Check the original transaction before starting another purchase.</p><p className="mt-2 break-all font-mono text-xs">{pendingPurchase.signature}</p><div className="mt-3 flex flex-wrap gap-3"><Button disabled={checkingPurchase || mintingIndex !== null} onClick={() => void checkPendingPurchase()}>{checkingPurchase || mintingIndex !== null ? "Checking confirmation…" : "Check confirmation"}</Button><a className="ui-button ui-button-secondary" href={`/passport?receipt=${encodeURIComponent(pendingPurchase.signature)}`}>Check library with this wallet</a><a className="ui-link" href={`https://explorer.solana.com/tx/${pendingPurchase.signature}?cluster=${pendingPurchase.network}`} target="_blank" rel="noreferrer">Transaction details</a></div></Notice> : null}
+
+      {mintNotice && !pendingPurchase ? (
         <Notice tone={mintNotice.tone} className="mt-8">
           <div className="flex items-start justify-between gap-4">
-            <span className="break-all">{mintNotice.text}</span>
+            <div><p className="break-all">{mintNotice.text}</p>
+              {mintNotice.signature ? <a className="ui-button mt-4" href={`/passport?receipt=${encodeURIComponent(mintNotice.signature)}`}>Open purchase & supported projects</a> : null}
+            </div>
             <button
               type="button"
               className="ui-label shrink-0 hover:text-[rgb(var(--text-strong))]"
@@ -658,7 +749,7 @@ export default function MarketPage() {
             title="No collections on this network yet"
             description="Nothing has been deployed to the selected cluster. Switch the network in the header, or publish the first drop yourself."
             action={
-              <a href="/deployer" className="ui-button">
+              <a href={publishHref} className="ui-button">
                 Publish a collection
               </a>
             }
@@ -666,11 +757,11 @@ export default function MarketPage() {
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {items.map(
-              ({ index, data, metadata, stellarLink, sourceImageHash }) => {
+              ({ index, data, metadata, stellarLink, sourceImageHash, avatarData }) => {
                 const imageSource = metadata?.image || sourceImageHash;
                 const isHighlighted =
                   (requestedAvatarData &&
-                    stellarLink?.avatarData === requestedAvatarData) ||
+                    avatarData === requestedAvatarData) ||
                   (!Number.isNaN(requestedAvatarIndex) &&
                     Number(index) === requestedAvatarIndex);
                 const canPreviewModel = isRenderableModelMetadata(metadata);
@@ -779,6 +870,12 @@ export default function MarketPage() {
                         ) : null}
                       </div>
 
+                      {cluster === "devnet" ? <MinterCompatibility
+                        avatarData={avatarData}
+                        catalog={supportCatalog}
+                        onRetry={() => { setSupportCatalog({ status: "loading" }); setSupportAttempt((value) => value + 1); }}
+                      /> : null}
+
                       <DataList
                         className="mt-auto border-t border-[rgb(var(--line))] pt-1"
                         items={[
@@ -789,7 +886,7 @@ export default function MarketPage() {
                                 ? "Free"
                                 : `${(feeLamports / 1_000_000_000).toLocaleString(
                                     undefined,
-                                    { maximumFractionDigits: 4 }
+                                    { maximumFractionDigits: 9 }
                                   )} SOL`,
                           },
                           {
@@ -829,16 +926,19 @@ export default function MarketPage() {
 
                       <Button
                         className="w-full"
-                        disabled={metadataUnavailable || isBusy || !minter}
+                        disabled={metadataUnavailable || mintingIndex !== null || Boolean(pendingPurchase) || !minter || Number(data.currentSupply) >= maxSupplyRaw}
                         title={
                           metadataUnavailable
                             ? "Metadata could not be loaded for this collection"
                             : undefined
                         }
                         onClick={async () => {
-                          if (!minter || !metadata) return;
+                          if (!anchorWallet) { showWalletModal(true); return; }
+                          if (!minter || !metadata || pendingPurchase || readPendingPurchase(walletAddress, cluster)) return;
                           setMintNotice(null);
                           setMintingIndex(index);
+                          const attempt: Omit<PendingPurchase, "signature"> & { signature?: string } = { wallet: walletAddress, network: cluster, index };
+                          purchaseAttemptRef.current = attempt;
                           try {
                             const name = normalizeUtf8String(
                               metadata.name,
@@ -879,15 +979,29 @@ export default function MarketPage() {
                                 : undefined,
                             });
                             console.log("Minted NFT:", result);
+                            clearPendingPurchase({ ...attempt, signature: result.signature });
+                            if (buyerContextRef.current !== buyerContext) return;
+                            setPendingPurchase(null);
                             setMintNotice({
                               tone: "success",
                               text: `Minted "${name}". Signature ${result.signature}`,
+                              signature: result.signature,
                             });
+                            setAvatars((current) => current?.map((avatar) => avatar.index === index ? { ...avatar, data: { ...avatar.data, currentSupply: String(Number(avatar.data.currentSupply) + 1) } } : avatar) ?? null);
                           } catch (error) {
                             const message = formatMintError(error);
                             console.error("Mint failed:", error);
-                            setMintNotice({ tone: "error", text: message });
+                            const pendingSignature = error instanceof MinterPendingError ? error.signature : attempt.signature;
+                            if (error instanceof MinterRejectedError) {
+                              if (attempt.signature) clearPendingPurchase({ ...attempt, signature: attempt.signature });
+                              if (buyerContextRef.current === buyerContext) { setPendingPurchase(null); setMintNotice({ tone: "error", text: message }); }
+                            } else if (pendingSignature) {
+                              const pending = { ...attempt, signature: pendingSignature };
+                              rememberPendingPurchase(pending);
+                              if (buyerContextRef.current === buyerContext) setPendingPurchase(pending);
+                            } else if (buyerContextRef.current === buyerContext) setMintNotice({ tone: "error", text: message });
                           } finally {
+                            if (purchaseAttemptRef.current === attempt) purchaseAttemptRef.current = null;
                             setMintingIndex(null);
                           }
                         }}
@@ -896,7 +1010,7 @@ export default function MarketPage() {
                           ? "Unavailable"
                           : isBusy
                             ? "Minting…"
-                            : "Mint"}
+                            : Number(data.currentSupply) >= maxSupplyRaw ? "Sold out" : !anchorWallet ? "Connect wallet to buy" : "Mint"}
                       </Button>
                     </div>
                   </article>

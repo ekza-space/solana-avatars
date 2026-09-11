@@ -28,6 +28,10 @@ export default defineConfig({
     strictPort: true,
   },
   resolve: {
+    // The sibling workspace has React 19 while this app renders with React 18.
+    // Linked SDK/library imports must use the app's one React/R3F/Three identity.
+    // Deduping the React package also covers its JSX runtime subpaths.
+    dedupe: ["react", "react-dom", "@react-three/fiber", "three"],
     alias: {
       "avatars-sdk/profile": path.join(sdkSrc, "profile.ts"),
       "avatars-sdk/minter": path.join(sdkSrc, "minter.ts"),
@@ -39,6 +43,25 @@ export default defineConfig({
         "@metaplex-foundation/mpl-token-metadata"
       ),
     },
+  },
+  optimizeDeps: {
+    // Prepare the lazy preview and aliased SDK dependencies before the first
+    // Check VRM click. Discovering these later can regenerate React's browser
+    // module URLs while an older page is still mounted.
+    include: [
+      "react",
+      "react-dom",
+      "react-dom/client",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "@react-three/fiber",
+      "@react-three/drei",
+      "@ekza/avatar-renderer/model",
+      "three",
+      "@coral-xyz/anchor",
+      "@solana/web3.js",
+      "@solana/spl-token",
+    ],
   },
   // server.proxy can be added here if local IPFS gateway proxying is needed.
   plugins: [

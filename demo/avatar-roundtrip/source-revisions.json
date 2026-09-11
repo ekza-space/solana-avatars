@@ -1,0 +1,43 @@
+{
+  "schema": "ekza.avatar-roundtrip.source-revisions.v1",
+  "recordedOn": "2026-09-11",
+  "storefront": "Use the containing solana-avatars commit; all paths in this fixture belong to that revision.",
+  "repositories": [
+    {
+      "directory": "ekza-stellar-sdk",
+      "url": "https://github.com/ekza-space/ekza-stellar-sdk.git",
+      "revision": "4b50b8460a95c786809c3157e9d625ae02d38889",
+      "branch": "feature/avatar-passport-roundtrip"
+    },
+    {
+      "directory": "core",
+      "url": "https://github.com/ekza-space/core.git",
+      "revision": "fe8d5cd27e3536bbc4f168ae3f1608fef03a358a",
+      "branch": "feature/avatar-passport-roundtrip"
+    },
+    {
+      "directory": "ekza-mirror",
+      "url": "https://github.com/ekza-space/ekza-mirror.git",
+      "revision": "8fc3a829e2ab8a06b36b0d7916754d2aa3e403b3",
+      "branch": "feature/avatar-passport-roundtrip"
+    },
+    {
+      "directory": "ekza-bevy-sdk",
+      "url": "https://github.com/ekza-space/ekza-bevy-sdk.git",
+      "revision": "8254ed5e94d4709c11c83bef604ebe4481467847",
+      "branch": "feature/avatar-passport-roundtrip"
+    },
+    {
+      "directory": "omoba-bevy-avatar-roundtrip",
+      "url": "https://github.com/o-moba/omoba-bevy.git",
+      "revision": "30815ee24e6a5698f104d90360bb09d4d235de49",
+      "branch": "feat/avatar-passport-roundtrip"
+    },
+    {
+      "directory": "ekza-avatar-renderer",
+      "url": "https://github.com/ekza-space/ekza-avatar-renderer.git",
+      "revision": "33c417ccf88552f980c60e1a95de2e1bc4ef60fe",
+      "note": "Existing renderer revision; this handoff did not change it. The storefront and Space install their declared renderer dependency."
+    }
+  ]
+}
