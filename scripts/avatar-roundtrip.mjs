@@ -12,7 +12,8 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const umbrella = path.dirname(repo);
 const fixture = path.join(repo, "demo/avatar-roundtrip");
 const core = path.join(umbrella, "core");
-const mirror = path.join(umbrella, "ekza-mirror");
+// The registry backend lives in its own repository (extracted from ekza-mirror).
+const registryRepo = path.join(umbrella, "ekza-registry");
 const omoba = path.resolve(process.env.OMOBA_CHECKOUT || path.join(umbrella, "omoba-bevy-avatar-roundtrip"));
 const action = process.argv[2] || "--help";
 const storeOrigin = "http://127.0.0.1:5190";
@@ -41,7 +42,7 @@ function check() {
     const bytes = readFileSync(path.join(fixture, "assets", filename));
     if (bytes.length !== rendition.sizeBytes || createHash("sha256").update(bytes).digest("hex") !== rendition.sha256) throw new Error(`Fixture checksum mismatch: ${filename}`);
   }
-  for (const dir of [core, mirror, omoba, path.join(umbrella, "ekza-stellar-sdk"), path.join(umbrella, "ekza-bevy-sdk")]) if (!existsSync(dir)) throw new Error(`Required checkout missing: ${dir}`);
+  for (const dir of [core, registryRepo, omoba, path.join(umbrella, "ekza-stellar-sdk"), path.join(umbrella, "ekza-bevy-sdk")]) if (!existsSync(dir)) throw new Error(`Required checkout missing: ${dir}`);
   console.log("Public devnet fixture: canonical purchase + 3 exact model files verified.");
 }
 
@@ -126,7 +127,7 @@ async function main() {
   }
   for (const port of [5190, 7110, 8019]) if (!await portFree(port)) throw new Error(`Local port ${port} is in use. Stop the earlier rehearsal first; this script never kills unrelated processes.`);
   if (!existsSync(binary("server"))) throw new Error("Build the native server with --build first.");
-  const registry = launch(path.join(mirror, "backend/.venv/bin/python"), ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8019"], path.join(mirror, "backend"), {
+  const registry = launch(path.join(registryRepo, "backend/.venv/bin/python"), ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8019"], path.join(registryRepo, "backend"), {
     EKZA_CATALOG_PATH: path.join(fixture, "catalog.json"), EKZA_ASSET_DIR: path.join(fixture, "assets"), EKZA_PUBLISHED_DIR: path.join(state, "published"), EKZA_QUARANTINE_DIR: path.join(state, "quarantine"), EKZA_PUBLIC_BASE_URL: registryOrigin,
   });
   const store = launch("npm", ["start"], path.join(repo, "app"), {
