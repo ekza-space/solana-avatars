@@ -24,7 +24,7 @@ import { isPassportPublicationRoute, isPassportPurchaseRoute, isPublicAvatarTool
 globalThis.Buffer = Buffer;
 
 export function LegacyContent({ children }: { children: ReactNode }) {
-  const { publicKey } = useWallet();
+  const { publicKey, wallet } = useWallet();
   const { cluster, setCluster, clusterLabel, networkLocked } = useSolanaNetwork();
   const { pathname } = useLocation();
   const publicTool = isPublicAvatarToolPath(pathname);
@@ -83,6 +83,7 @@ export function LegacyContent({ children }: { children: ReactNode }) {
             <WalletMultiButton />
           </div>
         </Card>
+        {!publicKey && wallet && ["NotDetected", "Unsupported"].includes(wallet.readyState) && <Notice tone="error">Your wallet is not available in this browser. Open this page in a browser with Phantom installed, or in Phantom's browser, then connect again.</Notice>}
       </Page>
       {publicTool || publicKey ? (
         children
@@ -94,8 +95,8 @@ export function LegacyContent({ children }: { children: ReactNode }) {
             lede="NFT minting and on-chain profiles use a Solana wallet. They do not sign you into your ordinary Ekza account or publish an avatar in Studio."
           />
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link to="/studio" className="ui-button">
-              Back to Avatar Studio
+            <Link to="/passport" className="ui-button">
+              Back to avatars
             </Link>
             <Link to="/web3" className="ui-button ui-button-secondary">
               About these experiments
@@ -112,7 +113,7 @@ function LegacyConnection({ children }: { children: ReactNode }) {
   const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect={false}>
+      <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
           <LegacyContent>{children}</LegacyContent>
         </WalletModalProvider>

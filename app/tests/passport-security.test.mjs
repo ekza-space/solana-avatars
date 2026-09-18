@@ -74,6 +74,51 @@ function login(service, pair = user, userCode) {
 }
 const rejected = (status) => (error) => error instanceof PassportError && error.status === status;
 
+test("identity pairing proves an empty wallet without RPC, grants no avatars, and revokes its handoff", async () => {
+  const f = fixture(), pair = f.service.device("ekza-mirror", "identity");
+  assert.equal(new URL(pair.verificationUrl).pathname, "/auth/solana");
+  assert.equal(f.service.deviceDetails(pair.userCode).purpose, "identity");
+  const challenge = f.service.challenge(other.address, pair.userCode);
+  assert.equal(challenge.purpose, "identity");
+  assert.match(challenge.message, /:identity-only\n/);
+  const session = f.service.createSession(challenge.challengeId, b58(sign(null, Buffer.from(challenge.message), other.privateKey)));
+  const poll = f.service.poll(pair.deviceCode);
+  assert.equal(poll.accessToken, session.accessToken);
+  assert.deepEqual(f.service.identity(poll.accessToken), { schema: "ekza.passport.identity.v1", network: "solana-devnet", wallet: other.address, projectId: "ekza-mirror", purpose: "identity", expiresAt: session.expiresAt });
+  await assert.rejects(f.service.library(poll.accessToken), rejected(403));
+  await assert.rejects(f.service.receipt(poll.accessToken, signature), rejected(403));
+  await assert.rejects(f.service.ticket(poll.accessToken, { projectId: "ekza-mirror", avatarId: f.state.catalog.avatars[0].id, mint, sessionId: "camera" }), rejected(403));
+  assert.throws(() => f.service.authorizeCreatorUpload(poll.accessToken), rejected(403));
+  assert.deepEqual(f.calls, []);
+  assert.deepEqual(f.service.revoke(poll.accessToken), { revoked: true });
+  assert.throws(() => f.service.identity(poll.accessToken), rejected(401));
+  assert.throws(() => f.service.deviceDetails(pair.userCode), rejected(410));
+});
+test("identity scope cannot be upgraded, old purchase sessions cannot become identity, and restart forgets sessions", () => {
+  const f = fixture(), pair = f.service.device("ekza-mirror", "identity");
+  assert.throws(() => f.service.device("ekza-mirror", "admin"), rejected(400));
+  const challenge = f.service.challenge(user.address, pair.userCode);
+  const altered = challenge.message.replace(":identity-only", "");
+  assert.throws(() => f.service.createSession(challenge.challengeId, b58(sign(null, Buffer.from(altered), user.privateKey))), rejected(401));
+  const session = login(f.service, user, pair.userCode);
+  assert.throws(() => f.create().identity(session.accessToken), rejected(401));
+  assert.throws(() => f.service.identity(login(f.service).accessToken), rejected(403));
+});
+test("identity HTTP session validates bearer, origin and expiry; DELETE revokes without a request body", async () => {
+  const f = fixture(), pair = f.service.device("ekza-mirror", "identity"), session = login(f.service, user, pair.userCode);
+  const call = (method, token = session.accessToken, origin = config.origin) => handlePassportRequest(new Request(`${config.origin}/api/passport/session`, { method, headers: { Authorization: `Bearer ${token}`, Origin: origin } }), "session", f.service);
+  assert.equal((await call("GET")).status, 200);
+  assert.equal((await call("GET", "invalid")).status, 401);
+  assert.equal((await call("DELETE", session.accessToken, "https://evil.example")).status, 403);
+  assert.equal((await call("GET")).status, 200);
+  assert.match((await call("OPTIONS")).headers.get("Access-Control-Allow-Methods"), /DELETE/);
+  assert.equal((await call("DELETE")).status, 200);
+  assert.equal((await call("GET")).status, 401);
+  const next = f.service.device("ekza-mirror", "identity"), expired = login(f.service, user, next.userCode);
+  f.advance(30 * 60_000);
+  assert.equal((await call("GET", expired.accessToken)).status, 401);
+});
+
 test("public metadata source binds the canonical chain template CID and registry digest", async () => {
   const f = fixture(), sha256 = "b".repeat(64);
   f.state.catalog.avatars[0].provenance.metadataSha256 = sha256;

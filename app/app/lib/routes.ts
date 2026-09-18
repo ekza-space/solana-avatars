@@ -75,3 +75,10 @@ export const STUDIO_NAV = [
   { view: "uploads", label: "My uploads" },
   { view: "account", label: "Account" },
 ] as const;
+
+export const AVATAR_STORE_NAV = [
+  { to: "/passport", label: "Avatars" },
+  { to: "/passport#my-avatars", label: "My avatars" },
+  { to: "/deployer?network=devnet", label: "Publish" },
+  { to: "/connect", label: "Connect app" },
+] as const;

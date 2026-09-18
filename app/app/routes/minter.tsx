@@ -1,5 +1,5 @@
 import { useSearchParams } from "@remix-run/react";
-import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import bs58 from "bs58";
@@ -466,6 +466,7 @@ const enrichWithMetadata = async (
 export default function MarketPage() {
   const { connection } = useMinterConnection();
   const anchorWallet = useAnchorWallet();
+  const { wallet, connect, connecting, disconnecting, connected } = useWallet();
   const { setVisible: showWalletModal } = useWalletModal();
   const { cluster } = useSolanaNetwork();
   const walletAddress = anchorWallet?.publicKey.toBase58() || "";
@@ -851,8 +852,8 @@ export default function MarketPage() {
                           </p>
                         ) : metadataUnavailable ? (
                           <p className="mt-1.5 text-sm leading-relaxed text-[rgb(var(--warning))]">
-                            Metadata could not be loaded from IPFS, so this
-                            collection cannot be minted.
+                            Avatar metadata is unavailable. Retry loading the
+                            collection to enable buying.
                           </p>
                         ) : (
                           <p className="ui-copy-sm mt-1.5 opacity-70">
@@ -926,14 +927,32 @@ export default function MarketPage() {
 
                       <Button
                         className="w-full"
-                        disabled={metadataUnavailable || mintingIndex !== null || Boolean(pendingPurchase) || !minter || Number(data.currentSupply) >= maxSupplyRaw}
+                        disabled={connecting || disconnecting || metadataUnavailable || mintingIndex !== null || Boolean(pendingPurchase) || !minter || Number(data.currentSupply) >= maxSupplyRaw}
                         title={
                           metadataUnavailable
                             ? "Metadata could not be loaded for this collection"
                             : undefined
                         }
                         onClick={async () => {
-                          if (!anchorWallet) { showWalletModal(true); return; }
+                          if (!anchorWallet) {
+                            if (connecting || disconnecting) return;
+                            setMintNotice(null);
+                            if (!wallet) {
+                              showWalletModal(true);
+                            } else if (connected) {
+                              setMintNotice({ tone: "error", text: "This wallet cannot sign the transactions required to buy an avatar. Choose another wallet." });
+                              showWalletModal(true);
+                            } else {
+                              try {
+                                await connect();
+                              } catch {
+                                setMintNotice({ tone: "error", text: "Wallet connection was not completed. Unlock your wallet and try again." });
+                              }
+                            }
+                            // Connecting never authorizes a purchase. Let the user
+                            // review the connected account and click Mint separately.
+                            return;
+                          }
                           if (!minter || !metadata || pendingPurchase || readPendingPurchase(walletAddress, cluster)) return;
                           setMintNotice(null);
                           setMintingIndex(index);
@@ -1006,7 +1025,9 @@ export default function MarketPage() {
                           }
                         }}
                       >
-                        {metadataUnavailable
+                        {connecting || disconnecting
+                          ? "Connecting wallet…"
+                          : metadataUnavailable
                           ? "Unavailable"
                           : isBusy
                             ? "Minting…"

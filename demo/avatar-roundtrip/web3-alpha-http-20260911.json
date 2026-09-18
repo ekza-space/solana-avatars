@@ -1,0 +1,56 @@
+{
+  "schema": "ekza.passport.live-proof.v1",
+  "startedAt": "2026-09-11T15:13:39.646Z",
+  "network": "solana-devnet",
+  "avatarId": "solana:devnet:avatar-data:3bfPehBVoBKXUUzmGGVT3tgQTYkpispqUKfPW1UktASL",
+  "mint": "oDqKQww71LeCSnCHGdU9QwkNfAD5j86ArXJjGKHhGH9",
+  "purchaseSignature": "2SZwLpG5jsCJdMEhxanJxjqEBpKuHEZx1vrw8Tu9qdicMqRwdEFevGSGGA3EpjS2cVy1Kk4xHaYxErC7hxFPxFew",
+  "checks": [
+    {
+      "check": "library-before-explicit-receipt",
+      "result": "pass"
+    },
+    {
+      "check": "real-paid-receipt",
+      "result": "pass",
+      "priceLamports": "1000000"
+    },
+    {
+      "check": "buyer-library",
+      "result": "pass"
+    },
+    {
+      "check": "non-owner-library-and-receipt-denied",
+      "result": "pass"
+    },
+    {
+      "check": "ekza-space",
+      "result": "pass",
+      "profile": "vrm-humanoid-v0",
+      "format": "vrm0",
+      "sha256": "5e3edaf330577ee4c3f6440b8989af3722e7c800bb90eb037f1c05cdfe61fd7c",
+      "sizeBytes": 1656464,
+      "proves": "Live entitlement, one-use ticket, owner denial, paired session scope and exact model bytes; visual rendering is checked separately."
+    },
+    {
+      "check": "ekza-mirror",
+      "result": "pass",
+      "profile": "arkit-body-v1",
+      "format": "usdz",
+      "sha256": "044df769160a581e95706c3a0ed395a13ef5757ed4ac66c692b1809fcc203434",
+      "sizeBytes": 853959,
+      "proves": "Live entitlement, one-use ticket, owner denial, paired session scope and exact model bytes; visual rendering is checked separately."
+    },
+    {
+      "check": "omoba",
+      "result": "pass",
+      "profile": "humanoid-glb-v1",
+      "format": "glb",
+      "sha256": "546ddea729486de56289aef537a16bc716c7085dd93f31c66fd9ab3d740783c2",
+      "sizeBytes": 1885072,
+      "proves": "Live entitlement, one-use ticket, owner denial, paired session scope and exact model bytes; visual rendering is checked separately."
+    }
+  ],
+  "completedAt": "2026-09-11T15:13:47.727Z",
+  "result": "pass"
+}

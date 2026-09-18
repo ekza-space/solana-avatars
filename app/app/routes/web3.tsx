@@ -24,13 +24,13 @@ export default function Web3() {
       <PageHeader
         eyebrow="Ekza · Optional research area"
         title="Web3 experiments"
-        lede="Separate from your Ekza account. These earlier Solana tools are preserved for experimentation; you do not need them to publish, save or use avatars in Studio."
+        lede="Additional Solana tools for developers. Start in the avatar store to try the supported purchase and game connection flow."
         actions={<Badge tone="warning">Experimental</Badge>}
       />
       <div className="mt-6">
         <Notice>
-          A wallet is not yet linked to your email account. Minting an NFT here
-          does not automatically add or approve a model in the Studio catalog.
+          Publishing an avatar does not automatically make it compatible with every game.
+          Check the supported projects on its card.
           Network fees may apply; verify the selected network before signing.
         </Notice>
       </div>
@@ -47,8 +47,8 @@ export default function Web3() {
           ))}
         </div>
       </Section>
-      <Link to="/studio" className="ui-button mt-8">
-        Back to Avatar Studio
+      <Link to="/passport" className="ui-button mt-8">
+        Back to avatars
       </Link>
     </Page>
   );

@@ -132,6 +132,7 @@ async function main() {
   const store = launch("npm", ["start"], path.join(repo, "app"), {
     ...creatorUploadEnv(),
     PORT: "5190", HOST: "127.0.0.1", EKZA_PASSPORT_ORIGIN: storeOrigin, EKZA_PASSPORT_ALLOW_LOCALHOST: "1", EKZA_PASSPORT_RPC_URL: rpcUrl(), EKZA_PASSPORT_REGISTRY_URL: `${registryOrigin}/v1/avatars`, EKZA_PASSPORT_ALLOWED_ORIGINS: spaceOrigin,
+    EKZA_STUDIO_API_URL: `${registryOrigin}/v1/studio`, EKZA_STUDIO_PUBLIC_API_URL: `${registryOrigin}/v1/studio`, EKZA_STUDIO_SPACE_URL: spaceOrigin,
   });
   const space = launch("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", "7110"], core, { VITE_PASSPORT_ORIGIN: storeOrigin });
   const game = launch(binary("server"), [], omoba, { ...gameEnv, SERVER_ADDR: "127.0.0.1:4018", OMOBA_MATCH_MODE: "dev" });

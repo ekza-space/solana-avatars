@@ -61,6 +61,34 @@ const request = (path, method = "GET", options = {}) =>
     },
   });
 
+test("service failures never expose worker instructions or infrastructure details to visitors", async () => {
+  for (const status of [500, 502, 503]) {
+    const response = await proxyStudioRequest(request("catalog"), "catalog", {
+      ...config,
+      fetcher: async () => json({ error: { code: "studio_disabled", message: "Enable EKZA_STUDIO_ENABLED and start the studio worker.", details: ["internal-host:8000"] } }, status),
+    });
+    assert.equal(response.status, status);
+    const body = await response.text();
+    assert.match(body, /temporarily unavailable/);
+    assert.doesNotMatch(body, /EKZA_STUDIO|worker|internal-host/);
+  }
+});
+
+test("failed writes explain uncertain saved status without forwarding service diagnostics", async () => {
+  const response = await proxyStudioRequest(request("avatars", "POST", {
+    headers: { Cookie: sessionRequestCookies() },
+  }), "avatars", {
+    ...config,
+    fetcher: async (url) => url.endsWith("/session")
+      ? json({ user })
+      : json({ error: { message: "worker database traceback" } }, 503),
+  });
+  assert.equal(response.status, 503);
+  const body = await response.text();
+  assert.match(body, /could not confirm.*saved/);
+  assert.doesNotMatch(body, /worker|database|traceback/);
+});
+
 test("only fixed verbs, UUID paths, hashes and file kinds can reach the backend", () => {
   assert.equal(allowedStudioPath("PUT", `revisions/${id}/source`), true);
   assert.equal(allowedStudioPath("GET", `assets/${hash}/ios`), true);

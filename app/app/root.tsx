@@ -10,6 +10,7 @@ import {
 } from "@remix-run/react";
 import { json, redirect, type LoaderFunctionArgs } from "@remix-run/node";
 import { Analytics } from "@vercel/analytics/remix";
+import { studioUiEnabled } from "~/lib/studio-ui.server";
 import { lazy, Suspense, type ReactNode, useEffect, useState } from "react";
 import Footer from "./components/footer";
 import Header from "./components/header";
@@ -24,12 +25,15 @@ const LegacyShell = lazy(() => import("./components/legacy-shell"));
 
 export function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
+  if (!studioUiEnabled() && ["/studio", "/demo"].includes(normalizePathname(url.pathname))) {
+    return redirect("/passport");
+  }
   if (
     normalizePathname(url.pathname) === "/studio" &&
     url.pathname !== "/studio"
   )
     return redirect(studioRedirectTarget(url.search));
-  return json({ demoEnabled: process.env.EKZA_STUDIO_DEMO === "1" });
+  return json({ demoEnabled: studioUiEnabled() && process.env.EKZA_STUDIO_DEMO === "1" });
 }
 
 // System font fallbacks keep the core experience independent of Google Fonts.
@@ -46,6 +50,7 @@ const themeBootScript = `
 `;
 
 export function Layout({ children }: { children: ReactNode }) {
+  const identityPage = normalizePathname(useLocation().pathname) === "/auth/solana";
   return (
     <html lang="en" className="h-full" suppressHydrationWarning>
       <head>
@@ -57,7 +62,7 @@ export function Layout({ children }: { children: ReactNode }) {
       </head>
       <body>
         {children}
-        <Analytics />
+        {!identityPage && <Analytics />}
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -67,6 +72,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
 export function ErrorBoundary() {
   const error = useRouteError();
+  const identityPage = normalizePathname(useLocation().pathname) === "/auth/solana";
   const notFound = isRouteErrorResponse(error) && error.status === 404;
   const message =
     error instanceof Error
@@ -91,13 +97,13 @@ export function ErrorBoundary() {
             <p className="ui-mono leading-relaxed">{message.slice(0, 500)}</p>
           </Card>
         ) : null}
-        <p className="ui-copy">
-          Your Ekza account and saved avatars are unchanged. Return to Avatar
-          Studio to continue.
+        {identityPage ? <p className="ui-copy">Return to your app and start wallet verification again.</p> : <><p className="ui-copy">
+          Return to the avatar store to continue.
         </p>
-        <a href="/studio" className="ui-button">
-          Back to Avatar Studio
+        <a href="/passport" className="ui-button">
+          Back to avatars
         </a>
+        </>}
       </div>
     </main>
   );
@@ -128,13 +134,14 @@ function ClientLegacyPage() {
 
 export default function App() {
   const { pathname } = useLocation();
+  const identityPage = normalizePathname(pathname) === "/auth/solana";
   return (
     <div className="ui-shell flex min-h-dvh flex-col">
-      <Header />
+      {!identityPage && <Header />}
       <main className="flex-1 py-8 sm:py-12">
         {isLegacyToolPath(pathname) ? <ClientLegacyPage /> : <Outlet />}
       </main>
-      <Footer />
+      {!identityPage && <Footer />}
     </div>
   );
 }

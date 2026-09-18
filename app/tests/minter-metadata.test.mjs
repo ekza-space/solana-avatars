@@ -19,10 +19,11 @@ const cid = "QmUjTMKVJ397oHd4vA4wkCdr1V5U7GBN1eWdKJJARkffqV";
 const template = "3bfPehBVoBKXUUzmGGVT3tgQTYkpispqUKfPW1UktASL";
 const bytes = Buffer.from('{ "name": "Exact document", "symbol": "EKZA", "image": "https://assets.example/original.png" }\n');
 const digest = (value) => createHash("sha256").update(value).digest("hex");
-function fixture(fetchImpl) {
+function fixture(fetchImpl, localIpfs = false) {
   const source = { cid, sha256: digest(bytes) }, requests = [];
   const service = { config: { origin: "https://avatar.example", catalogUrl: "https://registry.example/v1/avatars" }, minterMetadataSource: async (value) => { requests.push(value); assert.equal(value, template); return source; } };
-  return { source, requests, service, resolver: new MinterMetadataResolver(service, fetchImpl) };
+  if (localIpfs) service.config = { ...service.config, origin: "http://127.0.0.1:5190", allowLocalhost: true };
+  return { source, requests, service, resolver: new MinterMetadataResolver(service, fetchImpl, localIpfs) };
 }
 const request = (query = `avatarData=${template}`, extra = {}) => new Request(`https://avatar.example/api/avatar-metadata?${query}`, extra);
 
@@ -77,4 +78,42 @@ test("transport failure is redacted and never yields fabricated metadata", async
   const result = await handleMinterMetadata(request(), f.service, f.resolver);
   assert.equal(result.status, 503); const body = await result.text();
   assert.match(body, /temporarily unavailable/); assert.doesNotMatch(body, /private upstream|name|image/);
+});
+
+test("explicit local rehearsal resolves the canonical CID with exact bytes while Pinata is unavailable", async () => {
+  const urls = [];
+  const f = fixture(async (url, options) => {
+    urls.push(url);
+    assert.equal(options.redirect, "error");
+    assert.equal(url, `http://127.0.0.1:8080/ipfs/${cid}`);
+    return new Response(bytes);
+  }, true);
+  assert.deepEqual(await f.resolver.resolve(template), bytes);
+  assert.equal(urls.length, 1);
+});
+
+test("offline local IPFS falls back to the canonical CID on Pinata", async () => {
+  const urls = [];
+  const f = fixture(async (url) => {
+    urls.push(url);
+    if (url.startsWith("http://127.0.0.1")) throw new Error("connection refused");
+    return new Response(bytes);
+  }, true);
+  assert.deepEqual(await f.resolver.resolve(template), bytes);
+  assert.deepEqual(urls, [`http://127.0.0.1:8080/ipfs/${cid}`, `https://ekza.mypinata.cloud/ipfs/${cid}`]);
+});
+
+test("local metadata must match the same approved digest and cannot pollute the cache", async () => {
+  let calls = 0;
+  const f = fixture(async () => new Response(++calls === 1 ? '{"name":"Forged","symbol":"BAD"}' : bytes), true);
+  await assert.rejects(f.resolver.resolve(template), /integrity verification failed/);
+  assert.equal(calls, 1);
+  assert.deepEqual(await f.resolver.resolve(template), bytes);
+});
+
+test("public storefronts and implicit localhost mode cannot enable local IPFS", () => {
+  const f = fixture(async () => assert.fail("Must not fetch"));
+  assert.throws(() => new MinterMetadataResolver(f.service, undefined, true), /localhost demo/);
+  f.service.config.origin = "http://127.0.0.1:5190";
+  assert.throws(() => new MinterMetadataResolver(f.service, undefined, true), /localhost demo/);
 });

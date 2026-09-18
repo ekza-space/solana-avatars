@@ -89,20 +89,35 @@ test("all six Studio views share one safe route contract", () => {
   );
 });
 
-test("the default page and trailing-slash Studio redirect to the Web2 flow", async () => {
+test("old home and Studio links return to the Solana store by default", async () => {
   const home = index.loader({
     request: new Request("https://avatar.test/?view=library&wallet=secret"),
   });
   assert.equal(home.status, 302);
-  assert.equal(home.headers.get("Location"), "/studio?view=library");
+  assert.equal(home.headers.get("Location"), "/passport");
   const canonical = root.loader({
     request: new Request("https://avatar.test/studio/?view=new&auth=signup"),
   });
   assert.equal(canonical.status, 302);
   assert.equal(
     canonical.headers.get("Location"),
-    "/studio?view=new&auth=signup"
+    "/passport"
   );
+  for (const route of ["/studio", "/studio?view=account", "/demo", "/demo/?enabled=1"]) {
+    assert.equal(root.loader({ request: new Request(`https://avatar.test${route}`) }).headers.get("Location"), "/passport");
+  }
+});
+
+test("Studio routes can be restored only by an explicit server setting", () => {
+  const previous = process.env.EKZA_STUDIO_UI_ENABLED;
+  process.env.EKZA_STUDIO_UI_ENABLED = "1";
+  try {
+    assert.equal(index.loader({ request: new Request("https://avatar.test/?view=library") }).headers.get("Location"), "/studio?view=library");
+    assert.equal(root.loader({ request: new Request("https://avatar.test/studio/?view=new") }).headers.get("Location"), "/studio?view=new");
+  } finally {
+    if (previous === undefined) delete process.env.EKZA_STUDIO_UI_ENABLED;
+    else process.env.EKZA_STUDIO_UI_ENABLED = previous;
+  }
 });
 
 test("only explicit legacy tool paths can mount the optional wallet shell", () => {
@@ -222,13 +237,11 @@ test("purchase and publication initial browser markup matches SSR despite saved 
   }
 });
 
-test("public shell renders ordinary-account navigation without wallet chrome", async () => {
+test("Studio keeps its own account navigation without wallet chrome", async () => {
   for (const url of [
     "/studio",
     "/studio/",
     "/studio?view=library",
-    "/about",
-    "/demo",
   ]) {
     const html = await renderPage(url);
     for (const view of ["catalog", "library", "uploads", "account"])
@@ -246,10 +259,33 @@ test("public shell renders ordinary-account navigation without wallet chrome", a
   );
 });
 
+test("wallet store navigation keeps buyers in the same library and publication flow", async () => {
+  for (const url of ["/passport", "/passport#my-avatars", "/connect", "/minter?network=devnet", "/deployer?network=devnet"]) {
+    const html = await renderPage(url);
+    for (const href of ["/passport", "/passport#my-avatars", "/deployer?network=devnet", "/connect"]) {
+      assert.ok(html.includes(`href="${href}"`), `${url} must link to ${href}`);
+    }
+    assert.doesNotMatch(html, /href="\/studio|href="\/web3|My library|My uploads/);
+  }
+});
+
+test("Solana identity confirmation and its error boundary never show commerce navigation", async () => {
+  const { flatRoutes } = require("@remix-run/dev/dist/config/flat-routes.js");
+  assert.equal(flatRoutes(app.replace(/\/$/, ""))["routes/auth.solana"].path, "auth/solana");
+  for (const url of ["/auth/solana?userCode=ABCDEF123456", "/auth/solana/?redirect=https://store.test"]) {
+    for (const missing of [false, true]) {
+      const html = await renderPage(url, { missing });
+      assert.doesNotMatch(html, /href=|Avatar Store|Avatar Studio|NFT|Buy|Marketplace|Discover|wallet-adapter|Loading optional Web3/);
+      if (missing) assert.match(html, /Return to your app/);
+    }
+  }
+});
+
 test("public Web3 hub preserves the original tools behind an explicit experiment", async () => {
   const html = await renderPage("/web3");
   assert.match(html, /Web3 experiments/);
-  assert.match(html, /Separate from your Ekza account/);
+  assert.match(html, /Additional Solana tools/);
+  assert.doesNotMatch(html, /href="\/studio|email account/);
   for (const pathname of ["/web3/profile", "/minter", "/deployer", "/users"])
     assert.ok(html.includes(`href="${pathname}"`));
   assert.doesNotMatch(html, /wallet-adapter|Solana network/);
@@ -265,11 +301,19 @@ test("public Web3 hub preserves the original tools behind an explicit experiment
   );
 });
 
-test("404 recovery returns to Studio without loading wallet providers", async () => {
+test("404 recovery returns to the avatar store without loading wallet providers", async () => {
   const html = await renderPage("/not-a-route", { missing: true });
-  assert.match(html, /Back to Avatar Studio/);
-  assert.match(html, /href="\/studio"/);
+  assert.match(html, /Back to avatars/);
+  assert.match(html, /href="\/passport"/);
+  assert.doesNotMatch(html, /href="\/studio/);
   assert.doesNotMatch(html, /wallet-adapter|Connect a wallet|href="\/"/);
+});
+
+test("About explains the Solana alpha without sending visitors to email registration or Studio", async () => {
+  const html = await renderPage("/about");
+  assert.match(html, /Solana Devnet|test SOL/);
+  assert.match(html, /href="\/deployer\?network=devnet"/);
+  assert.doesNotMatch(html, /href="\/studio|email and password|No crypto wallet|ordinary account/);
 });
 
 test("public shell has no eager Solana imports or remote font dependency", async () => {

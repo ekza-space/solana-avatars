@@ -25,9 +25,10 @@ export type PassportConfig = {
   allowedOrigins?: string[]; allowLocalhost?: boolean;
 };
 type Options = { fetchImpl?: typeof fetch; now?: () => number };
-type Session = { wallet: string; projectId?: ProjectId; expiresAt: number };
+type SessionPurpose = "avatars" | "identity";
+type Session = { wallet: string; projectId?: ProjectId; purpose: SessionPurpose; expiresAt: number };
 type Challenge = { wallet: string; userCode?: string; message: string; expiresAt: number };
-type Device = { userCode: string; projectId: ProjectId; expiresAt: number; token?: string; wallet?: string; lastPoll?: number; claimed?: boolean };
+type Device = { userCode: string; projectId: ProjectId; purpose: SessionPurpose; expiresAt: number; token?: string; sessionKey?: string; wallet?: string; lastPoll?: number; claimed?: boolean };
 type Ticket = { wallet: string; avatarId: string; mint: string; projectId: ProjectId; sessionId: string; support: ProjectSupport; expiresAt: number };
 type Receipt = { mint: string; template: string; signature: string; priceLamports: string };
 const SESSION_MS = 30 * 60_000;
@@ -258,25 +259,44 @@ export class PassportService {
     if (!session || session.expiresAt <= this.now()) return fail(401, "Wallet session expired. Connect again.");
     return session;
   }
-  authorizeCreatorUpload(token: string): string {
+  identity(token: string) {
     const session = this.authenticate(token);
+    if (session.purpose !== "identity") return fail(403, "Use an identity-only wallet session.");
+    return { schema: "ekza.passport.identity.v1", network: "solana-devnet", wallet: session.wallet,
+      projectId: session.projectId, purpose: session.purpose, expiresAt: iso(session.expiresAt) };
+  }
+  revoke(token: string) {
+    this.authenticate(token);
+    this.sessions.delete(hash(token));
+    for (const [key, device] of this.devices) if (device.sessionKey === hash(token)) this.devices.delete(key);
+    return { revoked: true };
+  }
+  private avatarSession(token: string) {
+    const session = this.authenticate(token);
+    if (session.purpose === "identity") return fail(403, "This session only verifies wallet identity.");
+    return session;
+  }
+  authorizeCreatorUpload(token: string): string {
+    const session = this.avatarSession(token);
     if (session.projectId) return fail(403, "Use a browser wallet session to upload an avatar.");
     this.limit(`creator-upload:${session.wallet}`, 12);
     this.limit("creator-upload:all", 60);
     return session.wallet;
   }
-  device(projectId: unknown) {
+  device(projectId: unknown, purposeInput: unknown = "avatars") {
     this.limit("device", 100);
+    if (purposeInput !== "avatars" && purposeInput !== "identity") return fail(400, "Unsupported session purpose.");
+    const purpose = purposeInput;
     const deviceCode = secret(), userCode = randomBytes(6).toString("hex").toUpperCase();
     const expiresAt = this.now() + DEVICE_MS;
-    this.devices.set(hash(deviceCode), { projectId: project(projectId), userCode, expiresAt });
-    return { deviceCode, userCode, verificationUrl: `${this.config.origin}/connect?userCode=${userCode}`, expiresAt: iso(expiresAt), interval: 3 };
+    this.devices.set(hash(deviceCode), { projectId: project(projectId), purpose, userCode, expiresAt });
+    return { deviceCode, userCode, purpose, verificationUrl: `${this.config.origin}${purpose === "identity" ? "/auth/solana" : "/connect"}?userCode=${userCode}`, expiresAt: iso(expiresAt), interval: 3 };
   }
   deviceDetails(userCode: unknown) {
     const code = boundedString(userCode, 12).toUpperCase();
     const device = [...this.devices.values()].find((value) => value.userCode === code);
     if (!device || device.expiresAt <= this.now() || device.claimed) return fail(410, "Device pairing expired. Start again in the application.");
-    return { projectId: device.projectId, userCode: device.userCode, expiresAt: iso(device.expiresAt) };
+    return { projectId: device.projectId, purpose: device.purpose, userCode: device.userCode, expiresAt: iso(device.expiresAt) };
   }
   poll(deviceCode: unknown) {
     const device = this.devices.get(hash(boundedString(deviceCode)));
@@ -300,12 +320,12 @@ export class PassportService {
     const message = [
       `${new URL(this.config.origin).host} requests an Ekza wallet sign-in.`,
       `Wallet: ${wallet}`, `URI: ${this.config.origin}`, "Network: solana-devnet",
-      `Purpose: ${device ? `approve-device:${device.projectId}:${userCode}` : "browser-session"}`,
+      `Purpose: ${device ? `approve-device:${device.projectId}:${userCode}${device.purpose === "identity" ? ":identity-only" : ""}` : "browser-session"}`,
       `Nonce: ${challengeId}`, `Issued At: ${iso(this.now())}`, `Expiration Time: ${iso(expiresAt)}`,
       "This signature does not send a transaction or transfer funds.",
     ].join("\n");
     this.challenges.set(hash(challengeId), { wallet, userCode, message, expiresAt });
-    return { challengeId, message, expiresAt: iso(expiresAt), ...(device ? { projectId: device.projectId } : {}) };
+    return { challengeId, message, expiresAt: iso(expiresAt), ...(device ? { projectId: device.projectId, purpose: device.purpose } : {}) };
   }
   createSession(challengeIdInput: unknown, signatureInput: unknown) {
     const key = hash(boundedString(challengeIdInput)), challenge = this.challenges.get(key);
@@ -323,8 +343,8 @@ export class PassportService {
       device = [...this.devices.values()].find((value) => value.userCode === challenge.userCode);
       if (!device || device.token || device.claimed) return fail(409, "This device has already been approved.");
     }
-    const session = this.token({ wallet: challenge.wallet, projectId: device?.projectId, expiresAt: this.now() + SESSION_MS });
-    if (device) { device.token = session.accessToken; device.wallet = challenge.wallet; }
+    const session = this.token({ wallet: challenge.wallet, projectId: device?.projectId, purpose: device?.purpose ?? "avatars", expiresAt: this.now() + SESSION_MS });
+    if (device) { device.token = session.accessToken; device.sessionKey = hash(session.accessToken); device.wallet = challenge.wallet; }
     return session;
   }
   private async ownedMints(wallet: string): Promise<string[]> {
@@ -478,7 +498,7 @@ export class PassportService {
     return { ...publicAvatar(record), mint, priceLamports: receipt.priceLamports };
   }
   async library(accessToken: string) {
-    const session = this.authenticate(accessToken); this.limit(`library:${session.wallet}`, 15);
+    const session = this.avatarSession(accessToken); this.limit(`library:${session.wallet}`, 15);
     const records = await this.catalogRecords();
     const mints = await this.catalogCandidates(await this.ownedMints(session.wallet), records), items: PurchasedAvatar[] = [];
     // Keep RPC load bounded; do not multiply requests by the wallet size.
@@ -489,13 +509,13 @@ export class PassportService {
     return { schema: "ekza.passport.library.v1", network: "solana-devnet", wallet: session.wallet, expiresAt: iso(session.expiresAt), items };
   }
   async receipt(accessToken: string, signature: unknown) {
-    const session = this.authenticate(accessToken); this.limit(`receipt:${session.wallet}`, 30);
+    const session = this.avatarSession(accessToken); this.limit(`receipt:${session.wallet}`, 30);
     const verified = await this.verifyReceipt(signature), owned = new Set(await this.ownedMints(session.wallet));
     if (!verified.some((receipt) => owned.has(receipt.mint))) return fail(403, "This wallet does not currently own the avatar NFT.");
     return { verified: true, receipts: verified.filter((receipt) => owned.has(receipt.mint)) };
   }
   async ticket(accessToken: string, request: Record<string, unknown>) {
-    const session = this.authenticate(accessToken), projectId = project(request.projectId), mint = address(request.mint);
+    const session = this.avatarSession(accessToken), projectId = project(request.projectId), mint = address(request.mint);
     this.limit(`ticket:${session.wallet}`, 60);
     if (session.projectId && session.projectId !== projectId) return fail(403, "This device session belongs to another project.");
     const sessionId = boundedString(request.sessionId, 128), avatarId = boundedString(request.avatarId, 128);
@@ -563,7 +583,7 @@ export async function handlePassportRequest(request: Request, path: string, prov
     if (origin && !allowed.has(origin)) return fail(403, "This browser origin is not allowed to access passport.");
     if (origin) headers.set("Access-Control-Allow-Origin", origin);
     if (request.method === "OPTIONS") {
-      headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      headers.set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
       headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
       return new Response(null, { status: 204, headers });
     }
@@ -576,10 +596,12 @@ export async function handlePassportRequest(request: Request, path: string, prov
     if (request.method === "GET" && path === "catalog") result = await service.catalog();
     else if (request.method === "GET" && path === "device") result = service.deviceDetails(new URL(request.url).searchParams.get("userCode"));
     else if (request.method === "GET" && path === "library") result = await service.library(bearer());
+    else if (request.method === "GET" && path === "session") result = service.identity(bearer());
+    else if (request.method === "DELETE" && path === "session") result = service.revoke(bearer());
     else if (request.method === "POST") {
       const body = await requestJson(request);
       switch (path) {
-        case "device": result = service.device(body.projectId); break;
+        case "device": result = service.device(body.projectId, body.purpose); break;
         case "device/poll": result = service.poll(body.deviceCode); break;
         case "challenge": result = service.challenge(body.wallet, body.userCode); break;
         case "session": result = service.createSession(body.challengeId, body.signature); break;

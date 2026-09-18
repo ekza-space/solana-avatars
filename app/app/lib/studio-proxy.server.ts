@@ -519,6 +519,16 @@ export async function proxyStudioRequest(
         })
       );
     }
+    if (upstream.status >= 500) {
+      await upstream.body?.cancel();
+      return withCookies(failure(
+        upstream.status,
+        "studio_unavailable",
+        method === "GET"
+          ? "Avatar Studio is temporarily unavailable. Please try again later."
+          : "We could not confirm that your changes were saved. Check their status when Studio is available before trying again."
+      ));
+    }
     const result = await boundedJson(upstream);
     if (authRequest && upstream.ok) {
       if (

@@ -1,4 +1,5 @@
-import { json, type MetaFunction } from "@remix-run/node";
+import { json, redirect, type MetaFunction } from "@remix-run/node";
+import { studioUiEnabled } from "~/lib/studio-ui.server";
 import { Link, useLoaderData } from "@remix-run/react";
 import { Card, Notice, Page, PageHeader, Section } from "~/components/ui";
 import { demoEnabled } from "~/lib/studio-demo.server";
@@ -9,6 +10,7 @@ export const meta: MetaFunction = () => [
 ];
 
 export function loader() {
+  if (!studioUiEnabled()) return redirect("/passport");
   if (!demoEnabled()) throw new Response("Not found", { status: 404 });
   return json(
     {

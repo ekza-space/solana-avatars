@@ -43,7 +43,7 @@ function AvatarCard({ avatar, owned }: { avatar: CatalogAvatar; owned: boolean }
 }
 
 function PassportContent({ pairing = false }: { pairing?: boolean }) {
-  const { publicKey, signMessage } = useWallet();
+  const { publicKey, signMessage, wallet: selectedWallet } = useWallet();
   const wallet = publicKey?.toBase58() || "";
   const [params] = useSearchParams();
   const codeFromUrl = params.get("userCode") || "";
@@ -149,6 +149,7 @@ function PassportContent({ pairing = false }: { pairing?: boolean }) {
       lede={pairing ? "Confirm the code shown in your app, then approve access with the wallet that owns your avatars." : "Buy an avatar once and use it in the projects listed on its card. Creators add game support to the same avatar over time."}
       actions={<WalletMultiButton />} />
     <div className="mt-5"><Notice>Devnet demonstration. Purchases use test SOL. Check the supported projects on each avatar before buying.</Notice></div>
+    {!publicKey && selectedWallet && ["NotDetected", "Unsupported"].includes(selectedWallet.readyState) && <Notice tone="error">Your wallet is not available in this browser. Open this page in a browser with Phantom installed, or in Phantom's browser, then connect again.</Notice>}
     {error && <Notice tone="error" className="mt-4">{error}</Notice>}
     {notice && <Notice tone="success" className="mt-4">{notice}</Notice>}
     {pairing ? <Card className="mt-8 max-w-xl space-y-5 p-6">
@@ -158,6 +159,7 @@ function PassportContent({ pairing = false }: { pairing?: boolean }) {
         <Button disabled={!device || busy || approved} onClick={() => void authenticate()}>{approved ? "Connected" : busy ? "Confirm in your wallet…" : `Connect ${device ? PROJECT_NAMES[device.projectId] : "app"}`}</Button>}
       <Link to="/passport" className="ui-link">Back to avatars</Link>
     </Card> : <>
+      <div id="my-avatars" className="scroll-mt-28">
       <Section title="Your purchased avatars" description="Sign a message to verify your wallet. No transaction or payment is requested for signing in.">
         {!wallet ? <EmptyState title="Connect your wallet to see your avatars." description="You can browse the supported avatars below before connecting." /> : !session ?
           <Button disabled={busy || !signMessage} onClick={() => void authenticate()}>{busy ? "Confirm in your wallet…" : "Verify wallet & open library"}</Button> : <>
@@ -165,12 +167,13 @@ function PassportContent({ pairing = false }: { pairing?: boolean }) {
             {owned.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{owned.map((avatar) => <AvatarCard key={avatar.mint} avatar={avatar} owned />)}</div> : !busy ? <EmptyState title="No supported purchases in this wallet yet." description="Buy an avatar below, then refresh. A transferred avatar appears in its new owner's library." /> : <p role="status">Checking your purchases…</p>}
           </>}
       </Section>
+      </div>
       <Section title="Discover supported avatars" description="A support badge refers to an approved model version for that project.">
         {loadingCatalog ? <p role="status">Loading avatars…</p> : catalog.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{catalog.map((avatar) => <AvatarCard key={avatar.avatarId} avatar={avatar} owned={false} />)}</div> : <EmptyState title="The catalogue is not available yet." description="Try again when the registry is connected and approved avatars are published." />}
       </Section>
       <section id="native-apps" className="mt-12 grid gap-5 md:grid-cols-2">
-        <Card className="space-y-4 p-6"><h2 className="ui-h3">Use your purchase in another project</h2><ol className="list-inside list-decimal space-y-3"><li>Open Purchased avatars in Ekza Mirror or Omoba.</li><li>Open the connection link and check the app's code.</li><li>Approve with the same wallet, then choose your avatar.</li></ol><Link to="/connect" className="ui-link">Enter an app code</Link></Card>
-        <Card className="space-y-4 p-6"><h2 className="ui-h3">Create once. Add more worlds.</h2><p className="ui-copy-sm">Publish your avatar, then prepare a rendition for each project's requirements. Approved support is added to the avatar's card and becomes available to existing owners.</p><div className="flex flex-wrap gap-3"><Link to="/deployer?network=devnet" className="ui-button">Publish an avatar</Link><Link to="/studio?view=new" className="ui-button ui-button-secondary">Creator Studio</Link></div></Card>
+        <Card className="space-y-4 p-6"><h2 className="ui-h3">Use your purchase in another project</h2><ol className="list-inside list-decimal space-y-3"><li>In the Mirror test build, open Avatars → My avatars · Devnet. Start the Omoba test launcher to get its connection link.</li><li>Open the connection link in a browser with your wallet and check the app's code.</li><li>Approve with the same wallet, then choose your avatar.</li></ol><Link to="/connect" className="ui-link">Enter an app code</Link></Card>
+        <Card className="space-y-4 p-6"><h2 className="ui-h3">Create once. Add more worlds.</h2><p className="ui-copy-sm">Publish your avatar, then prepare a rendition for each project's requirements. Approved support is added to the avatar's card and becomes available to existing owners.</p><Link to="/deployer?network=devnet" className="ui-button">Publish an avatar</Link></Card>
       </section>
     </>}
   </Page>;
@@ -178,5 +181,5 @@ function PassportContent({ pairing = false }: { pairing?: boolean }) {
 
 export default function PassportPage({ pairing = false }: { pairing?: boolean }) {
   const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
-  return <ConnectionProvider endpoint={import.meta.env.VITE_SOLANA_DEVNET_RPC || clusterApiUrl("devnet")}><WalletProvider wallets={wallets} autoConnect={false}><WalletModalProvider><PassportContent pairing={pairing} /></WalletModalProvider></WalletProvider></ConnectionProvider>;
+  return <ConnectionProvider endpoint={import.meta.env.VITE_SOLANA_DEVNET_RPC || clusterApiUrl("devnet")}><WalletProvider wallets={wallets} autoConnect><WalletModalProvider><PassportContent pairing={pairing} /></WalletModalProvider></WalletProvider></ConnectionProvider>;
 }

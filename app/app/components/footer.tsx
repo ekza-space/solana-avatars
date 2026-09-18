@@ -1,7 +1,11 @@
-import { Link } from "@remix-run/react";
-import { STUDIO_NAV, studioHref } from "~/lib/routes";
+import { Link, useLocation } from "@remix-run/react";
+import { STUDIO_NAV, studioHref, AVATAR_STORE_NAV, normalizePathname } from "~/lib/routes";
 
 export default function Footer() {
+  const studioPage = normalizePathname(useLocation().pathname) === "/studio";
+  const items = studioPage
+    ? STUDIO_NAV.map((item) => ({ to: studioHref(item.view), label: item.label }))
+    : AVATAR_STORE_NAV;
   return (
     <footer className="mt-16 border-t border-[rgb(var(--line))]">
       <div className="mx-auto w-full max-w-[1400px] px-5 py-8 sm:px-8">
@@ -22,11 +26,10 @@ export default function Footer() {
             aria-label="Product"
             className="flex flex-wrap items-start gap-x-6 gap-y-3 text-sm"
           >
-            <Link to="/passport" className="ui-link">Purchased avatars</Link>
-            {STUDIO_NAV.map((item) => (
+            {items.map((item) => (
               <Link
-                key={item.view}
-                to={studioHref(item.view)}
+                key={item.to}
+                to={item.to}
                 className="ui-link"
               >
                 {item.label}
@@ -41,9 +44,9 @@ export default function Footer() {
           <span className="ui-label">
             Ekza Space · Ekza Mirror · Omoba · © {new Date().getFullYear()} Ekza
           </span>
-          <Link to="/web3" className="text-xs opacity-70 hover:opacity-100">
+          {studioPage && <Link to="/web3" className="text-xs opacity-70 hover:opacity-100">
             Optional Web3 experiments ↗
-          </Link>
+          </Link>}
         </div>
       </div>
     </footer>

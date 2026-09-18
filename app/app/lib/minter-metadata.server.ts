@@ -3,6 +3,7 @@ import { configuredService, PassportError, type PassportService } from "./passpo
 
 const MAX_BYTES = 262_144;
 const GATEWAY = "https://ekza.mypinata.cloud/ipfs/";
+const LOCAL_GATEWAY = "http://127.0.0.1:8080/ipfs/";
 const fail = (status: number, message: string): never => { throw new PassportError(status, message); };
 
 /** Only canonical on-chain CIDs can select a document. No caller-supplied URL,
@@ -11,8 +12,12 @@ export class MinterMetadataResolver {
   private readonly fetcher: typeof fetch;
   private verified = new Map<string, Buffer>();
   private inflight = new Map<string, Promise<Buffer>>();
-  constructor(private service: PassportService, fetchImpl?: typeof fetch) {
+  constructor(private service: PassportService, fetchImpl?: typeof fetch, private localIpfs = false) {
     this.fetcher = fetchImpl ?? globalThis.fetch.bind(globalThis);
+    const origin = new URL(service.config.origin);
+    if (localIpfs && (!service.config.allowLocalhost || !["localhost", "127.0.0.1", "[::1]"].includes(origin.hostname))) {
+      fail(503, "Local IPFS is available only for an explicitly enabled localhost demo.");
+    }
   }
   private async download(url: string, timeout: number): Promise<Buffer> {
     const response = await this.fetcher(url, { redirect: "error", credentials: "omit", signal: AbortSignal.timeout(timeout), headers: { Accept: "application/json" } });
@@ -38,7 +43,19 @@ export class MinterMetadataResolver {
     const active = this.inflight.get(key); if (active) return active;
     const job = (async () => {
       let bytes: Buffer;
-      try { bytes = await this.download(`${GATEWAY}${source.cid}`, 8_000); }
+      try {
+        if (this.localIpfs) {
+          try { bytes = await this.download(`${LOCAL_GATEWAY}${source.cid}`, 8_000); }
+          catch (error) {
+            // A missing/offline local node may fall back to the public gateway.
+            // Invalid or oversized content must still fail closed.
+            if (error instanceof PassportError && error.status !== 503) throw error;
+            bytes = await this.download(`${GATEWAY}${source.cid}`, 8_000);
+          }
+        } else {
+          bytes = await this.download(`${GATEWAY}${source.cid}`, 8_000);
+        }
+      }
       catch (error) { if (error instanceof PassportError) throw error; return fail(503, "Avatar metadata is temporarily unavailable. Retry shortly."); }
       if (source.sha256 && createHash("sha256").update(bytes).digest("hex") !== source.sha256) return fail(502, "Avatar metadata integrity verification failed.");
       let metadata: any;
@@ -67,7 +84,7 @@ export async function handleMinterMetadata(request: Request, provided?: Passport
     if (requests.until < Date.now()) requests = { until: Date.now() + 60_000, count: 0 };
     if (++requests.count > 120) return fail(429, "Metadata requests are busy. Retry shortly.");
     let resolver = providedResolver ?? resolvers.get(service);
-    if (!resolver) { resolver = new MinterMetadataResolver(service); resolvers.set(service, resolver); }
+    if (!resolver) { resolver = new MinterMetadataResolver(service, undefined, process.env.EKZA_PASSPORT_LOCAL_IPFS === "1"); resolvers.set(service, resolver); }
     const bytes = await resolver.resolve(url.searchParams.get("avatarData") || "");
     return new Response(new Uint8Array(bytes), { headers });
   } catch (error) {

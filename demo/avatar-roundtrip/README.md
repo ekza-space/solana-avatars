@@ -18,6 +18,13 @@ node scripts/avatar-roundtrip.mjs --build
 node scripts/avatar-roundtrip.mjs --serve
 ```
 
+If your local Kubo gateway is running on `127.0.0.1:8080`, start with
+`EKZA_PASSPORT_LOCAL_IPFS=1 node scripts/avatar-roundtrip.mjs --serve`.
+The metadata resolver reads the canonical on-chain CID from that local gateway
+first, verifies the registry's exact SHA-256, and falls back to Pinata only if
+the local node is unavailable. This option is refused for non-local storefronts;
+it does not change chain data, wallet access, or public hosting settings.
+
 The supervisor starts only local listeners: registry8019, storefront5190, Space7110 and Omoba server4018. It does not create a wallet, mint an NFT, send a payment or deploy anything. Ctrl+C stops only the processes it started. It refuses occupied web ports. Space's existing realtime backend is separate; rendering and avatar selection work while it is unavailable, but multiplayer Space requires its usual backend.
 
 The server reads `EKZA_PASSPORT_RPC_URL` if supplied, otherwise reuses the already configured `core/.env.devnet.local` Devnet endpoint without printing it; public Devnet is the final fallback. The API verifies the Devnet genesis hash. Never place a private RPC key in a public artifact or launch URL.
@@ -36,7 +43,7 @@ node scripts/avatar-roundtrip.mjs --omoba
 
 Omoba initially uses a staged, public protected roster and restarts both processes when new renditions are imported. It keeps its 15 free avatars. The token is private in memory; only a scoped one-use ticket reaches the game server. The default checkout is the isolated `omoba-bevy-avatar-roundtrip` branch `feat/avatar-passport-roundtrip`; set `OMOBA_CHECKOUT` to an integrated checkout later.
 
-For a Debug Mirror Simulator build, retain simulator ad-hoc signing (`CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=YES`) so the existing app identifier can access Keychain. Launch with `-EkzaPassportOrigin http://127.0.0.1:5190`. Open **Аватары → Купленные аватары · кошелёк**. Selecting a verified wallet avatar returns to the preview. Physical devices require a reachable operator-configured HTTPS origin. Public deployment and any networking change still require explicit approval.
+For a Debug Mirror Simulator build, retain simulator ad-hoc signing (`CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=YES`) so the existing app identifier can access Keychain. Launch with `--ekza-passport-demo -EkzaPassportOrigin http://127.0.0.1:5190`. Open **Аватары → Мои аватары · Devnet**. This explicit Debug mode hides Studio, the App Store shop and the separate identity-only sign-in; default App Store behavior is unchanged. Selecting a verified wallet avatar returns to the preview. Physical devices require a reachable operator-configured HTTPS origin. Public deployment and any networking change still require explicit approval.
 
 ## Live proof tools
 
@@ -49,5 +56,11 @@ For a Debug Mirror Simulator build, retain simulator ad-hoc signing (`CODE_SIGNI
 Use `/deployer` for its source/template publication, then prepare the project's required rendition. Follow `ekza-mirror/docs/passport-roundtrip.md` and the `app.passport_cli` operator-review command to attach source/rendition/review hashes. Space accepts the matching universal VRM0/VRM1 humanoid profile; Mirror requires `ios/arkit-body-v1` USDZ; Omoba requires `desktop/humanoid-glb-v1` with the required skeleton and idle/walk/attack/cast/death clips. A filename or supported-format declaration is insufficient. After approval, all current owners receive that support through the canonical template ID, without a second purchase.
 
 ## Deployment prerequisite
+
+The Solana alpha hides the separate email-based Studio UI. `/studio`, its
+saved deep links, and the old `/demo` guide redirect to `/passport` by default.
+The implementation and stored data are retained. Developers can explicitly
+restore those pages with `EKZA_STUDIO_UI_ENABLED=1`; this alone does not enable
+or configure the Studio backend. The public About page describes the Solana flow.
 
 The current Passport API requires one long-lived Node process. Existing stateless/multi-instance Vercel hosting must not receive this API unchanged: pairing and one-use tickets require shared atomic state there. A public launch needs a reviewed host choice or a shared state adapter, configured RPC/registry origins, and a physical-device rehearsal if camera body tracking is demonstrated. No production configuration was changed in this task.
