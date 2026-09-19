@@ -62,61 +62,44 @@ const root = await load("root.tsx");
 const hub = await load("routes/web3.tsx");
 const about = await load("routes/about.tsx");
 
-test("all six Studio views share one safe route contract", () => {
-  for (const view of [
-    "catalog",
-    "library",
-    "uploads",
-    "review",
-    "new",
-    "account",
-  ]) {
-    assert.equal(routes.parseStudioView(`?view=${view}`), view);
-    assert.equal(routes.studioHref(view), `/studio?view=${view}`);
-  }
-  assert.equal(routes.parseStudioView("?view=https://evil.test"), "catalog");
-  assert.equal(
-    routes.studioRedirectTarget(
-      "?view=account&auth=signup&returnTo=review&token=secret&redirect=https://evil.test"
-    ),
-    "/studio?view=account&auth=signup&returnTo=review"
-  );
-  assert.equal(
-    routes.studioRedirectTarget(
-      "?view=bad&returnTo=https://evil.test&auth=bad"
-    ),
-    "/studio"
-  );
-});
+const movedStudio = await load("routes/studio.tsx");
+const movedDemo = await load("routes/demo.tsx");
 
-test("old home and Studio links return to the Solana store by default", async () => {
+test("home opens the avatar store", () => {
   const home = index.loader({
     request: new Request("https://avatar.test/?view=library&wallet=secret"),
   });
   assert.equal(home.status, 302);
   assert.equal(home.headers.get("Location"), "/passport");
-  const canonical = root.loader({
-    request: new Request("https://avatar.test/studio/?view=new&auth=signup"),
-  });
-  assert.equal(canonical.status, 302);
-  assert.equal(
-    canonical.headers.get("Location"),
-    "/passport"
-  );
-  for (const route of ["/studio", "/studio?view=account", "/demo", "/demo/?enabled=1"]) {
-    assert.equal(root.loader({ request: new Request(`https://avatar.test${route}`) }).headers.get("Location"), "/passport");
-  }
 });
 
-test("Studio routes can be restored only by an explicit server setting", () => {
-  const previous = process.env.EKZA_STUDIO_UI_ENABLED;
-  process.env.EKZA_STUDIO_UI_ENABLED = "1";
+test("old Studio links follow only the operator-configured destination", () => {
+  const previous = process.env.EKZA_STUDIO_URL;
+  const location = (module, url) =>
+    module.loader({ request: new Request(url) }).headers.get("Location");
   try {
-    assert.equal(index.loader({ request: new Request("https://avatar.test/?view=library") }).headers.get("Location"), "/studio?view=library");
-    assert.equal(root.loader({ request: new Request("https://avatar.test/studio/?view=new") }).headers.get("Location"), "/studio?view=new");
+    delete process.env.EKZA_STUDIO_URL;
+    assert.equal(location(movedStudio, "https://avatar.test/studio?view=new"), "/passport");
+    assert.equal(location(movedDemo, "https://avatar.test/demo"), "/passport");
+    process.env.EKZA_STUDIO_URL = "https://studio.ekza.io/ignored/path?x=1";
+    assert.equal(
+      location(movedStudio, "https://avatar.test/studio?view=library&token=secret&redirect=https://evil.test"),
+      "https://studio.ekza.io/studio?view=library"
+    );
+    assert.equal(
+      location(movedStudio, "https://avatar.test/studio?view=https://evil.test"),
+      "https://studio.ekza.io/studio"
+    );
+    assert.equal(location(movedDemo, "https://avatar.test/demo"), "https://studio.ekza.io/studio");
+    process.env.EKZA_STUDIO_URL = "http://127.0.0.1:7103";
+    assert.equal(location(movedStudio, "https://avatar.test/studio"), "http://127.0.0.1:7103/studio");
+    for (const unsafe of ["http://studio.example", "javascript:alert(1)", "not a url"]) {
+      process.env.EKZA_STUDIO_URL = unsafe;
+      assert.equal(location(movedStudio, "https://avatar.test/studio"), "/passport", unsafe);
+    }
   } finally {
-    if (previous === undefined) delete process.env.EKZA_STUDIO_UI_ENABLED;
-    else process.env.EKZA_STUDIO_UI_ENABLED = previous;
+    if (previous === undefined) delete process.env.EKZA_STUDIO_URL;
+    else process.env.EKZA_STUDIO_URL = previous;
   }
 });
 
@@ -235,28 +218,6 @@ test("purchase and publication initial browser markup matches SSR despite saved 
     if (previousWindow === undefined) delete globalThis.window;
     else globalThis.window = previousWindow;
   }
-});
-
-test("Studio keeps its own account navigation without wallet chrome", async () => {
-  for (const url of [
-    "/studio",
-    "/studio/",
-    "/studio?view=library",
-  ]) {
-    const html = await renderPage(url);
-    for (const view of ["catalog", "library", "uploads", "account"])
-      assert.ok(html.includes(`href="/studio?view=${view}"`), url);
-    assert.match(html, /href="\/web3"/);
-    assert.doesNotMatch(
-      html,
-      /wallet-adapter|Connect a wallet|Solana network|href="\/minter"|https:\/\/space\.ekza\.io/
-    );
-    assert.doesNotMatch(html, /href="\/demo"/);
-  }
-  assert.match(
-    await renderPage("/studio", { demoEnabled: true }),
-    /href="\/demo"/
-  );
 });
 
 test("wallet store navigation keeps buyers in the same library and publication flow", async () => {

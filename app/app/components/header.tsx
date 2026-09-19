@@ -1,37 +1,14 @@
-import { Link, useLocation, useRouteLoaderData } from "@remix-run/react";
+import { Link, useLocation } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import ThemeToggle from "./theme-toggle";
-import {
-  normalizePathname,
-  parseStudioView,
-  STUDIO_NAV,
-  studioHref,
-  AVATAR_STORE_NAV,
-} from "~/lib/routes";
+import { normalizePathname, AVATAR_STORE_NAV } from "~/lib/routes";
 
 export default function Header() {
   const location = useLocation();
   const pathname = normalizePathname(location.pathname);
-  const view = parseStudioView(location.search);
-  const studioPage = pathname === "/studio";
-  const rootData = useRouteLoaderData<{ demoEnabled?: boolean }>("root");
   const [isOpen, setIsOpen] = useState(false);
   useEffect(() => setIsOpen(false), [location.pathname, location.search]);
-  const items = studioPage ? [
-    { to: "/passport", label: "Avatars", active: false },
-    ...STUDIO_NAV.map((item) => ({
-      to: studioHref(item.view),
-      label: item.label,
-      active:
-        pathname === "/studio" &&
-        (view === item.view ||
-          (item.view === "uploads" && ["new", "review"].includes(view))),
-    })),
-    { to: "/about", label: "About", active: false },
-    ...(rootData?.demoEnabled === true
-      ? [{ to: "/demo", label: "Demo guide", active: false }]
-      : []),
-  ] : AVATAR_STORE_NAV.map((item) => ({
+  const items = AVATAR_STORE_NAV.map((item) => ({
     ...item,
     active: item.to === "/passport#my-avatars"
       ? pathname === "/passport" && location.hash === "#my-avatars"
@@ -69,13 +46,6 @@ export default function Header() {
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-3">
-          {studioPage && <Link
-            to="/web3"
-            className="hidden text-xs text-[rgb(var(--text))] opacity-70 hover:opacity-100 lg:block"
-            aria-label="Web3 experiments"
-          >
-            Web3 ↗
-          </Link>}
           <ThemeToggle />
           <button
             type="button"
@@ -117,14 +87,6 @@ export default function Header() {
                 </Link>
               </li>
             ))}
-            {studioPage && <li>
-              <Link
-                to="/web3"
-                className="flex min-h-12 items-center text-sm opacity-70"
-              >
-                Web3 experiments ↗
-              </Link>
-            </li>}
           </ul>
         </nav>
       ) : null}

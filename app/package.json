@@ -9,7 +9,7 @@
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
     "start": "node scripts/start.mjs",
     "typecheck": "tsc",
-    "test:studio": "node --test tests/studio-*.test.mjs"
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",

@@ -8,33 +8,14 @@ import {
   useLocation,
   isRouteErrorResponse,
 } from "@remix-run/react";
-import { json, redirect, type LoaderFunctionArgs } from "@remix-run/node";
 import { Analytics } from "@vercel/analytics/remix";
-import { studioUiEnabled } from "~/lib/studio-ui.server";
 import { lazy, Suspense, type ReactNode, useEffect, useState } from "react";
 import Footer from "./components/footer";
 import Header from "./components/header";
 import { Card, Notice, Page } from "./components/ui";
-import {
-  isLegacyToolPath,
-  normalizePathname,
-  studioRedirectTarget,
-} from "./lib/routes";
+import { isLegacyToolPath, normalizePathname } from "./lib/routes";
 
 const LegacyShell = lazy(() => import("./components/legacy-shell"));
-
-export function loader({ request }: LoaderFunctionArgs) {
-  const url = new URL(request.url);
-  if (!studioUiEnabled() && ["/studio", "/demo"].includes(normalizePathname(url.pathname))) {
-    return redirect("/passport");
-  }
-  if (
-    normalizePathname(url.pathname) === "/studio" &&
-    url.pathname !== "/studio"
-  )
-    return redirect(studioRedirectTarget(url.search));
-  return json({ demoEnabled: studioUiEnabled() && process.env.EKZA_STUDIO_DEMO === "1" });
-}
 
 // System font fallbacks keep the core experience independent of Google Fonts.
 const themeBootScript = `

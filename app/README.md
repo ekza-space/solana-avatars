@@ -1,5 +1,11 @@
 # Welcome to Ekza Avatars UI
 
+> **Avatar Studio moved.** The email-account Studio (catalogue, library, uploads,
+> review) now lives in the `ekza-registry` repository under `web/`, next to its
+> backend. This app keeps the wallet storefront, the passport API and the Web3
+> tools. Old `/studio` and `/demo` links are forwarded to `EKZA_STUDIO_URL` when the
+> operator sets it (HTTPS, or loopback for local work), otherwise to `/passport`.
+
 **Ekza Avatars UI** is the main interface for managing 2D/3D avatars in the Ekza metaverse.  
 Users can connect their wallet, set up their profile, and upload avatar NFTs that represent them in virtual worlds.
 
